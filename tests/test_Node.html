@@ -1,0 +1,38 @@
+<html>
+  <script type="text/javascript" src="../Node.js"></script>
+  <body id="body">
+    Tests running.
+  </body>
+  <script>
+    var NodesStore = new Nodes();
+
+    var root = new Node(NodesStore.generateUniqueNodeID(), "Root Node", {});
+    NodesStore.addNode(root);
+
+    var fail = 0;
+
+    if (root.id != 0) {
+      fail += 1;
+    }
+
+    var other = new Node(NodesStore.generateUniqueNodeID(), "Other Node", {});
+    NodesStore.addNode(other);
+
+    if (other.id != 1) {
+      fail += 10;
+    }
+
+    var third = new Node(NodesStore.generateUniqueNodeID(), "Third Node", {});
+    NodesStore.addNode(third);
+
+    if (third.id != 2) {
+      fail += 100;
+    }
+
+    if (fail != 0) {
+      document.getElementById("body").innerHTML += "\nTests Failed: " + fail;
+    } else {
+      document.getElementById("body").innerHTML += "\nTests Passed.";
+    }
+  </script>
+</html>
