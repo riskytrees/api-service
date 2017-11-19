@@ -1,7 +1,7 @@
 <html>
 <head>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.js"></script>
-    <script type="text/javascript" src="Node.js"></script>  
+    <script type="text/javascript" src="Node.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css" />
 
     <style type="text/css">
@@ -18,15 +18,18 @@
 <h1> Attack Trees </h1>
 <div id="mynetwork"></div>
 
+<button onclick="addNode()">Add Node</button>
+
 <script type="text/javascript">
     // Attack Tree Setup
-    var EdgesStore = new Edges();
-    var NodesStore = new Nodes();
+    EdgesStore = new Edges();
+    NodesStore = new Nodes();
+
+    globalIDCtr = 0;
 
     // Create root node
-    var root = new Node(0, "Root Node", []);
-    NodesStore.addNode(root);     
-
+    globalRoot = new Node(globalIDCtr++, "Root Node", []);
+    NodesStore.addNode(globalRoot);
 
     // create a network
     var container = document.getElementById('mynetwork');
@@ -36,13 +39,43 @@
         nodes: NodesStore.nodes,
         edges: EdgesStore.edges
     };
-    var options = {};
+    var options = {
+        layout: {
+            hierarchical: {
+                direction: "UD",
+                sortMethod: "directed",
+                nodeSpacing: 150,
+                levelSeparation: 100
+            }
+        },
+        interaction: {dragNodes :false},
+        physics: {
+            enabled: false
+        }
+    };
 
     // initialize your network!
-    var network = new vis.Network(container, data, options);
+    globalNetwork = new vis.Network(container, data, options);
 
+    function addNode() {
+      // Add a child.
+      var child = new Node(globalIDCtr, "Child Node " + globalIDCtr, []);
+      globalIDCtr++;
+
+      // Get selected Node
+      var selectedNodes = globalNetwork.getSelectedNodes();
+      console.log(selectedNodes);
+      NodesStore.getNode(selectedNodes[0]).addChild(child, EdgesStore, NodesStore);
+
+      var data = {
+          nodes: NodesStore.nodes,
+          edges: EdgesStore.edges
+      };
+
+      globalNetwork.setData(data);
+      globalNetwork.redraw();
+    }
 </script>
 </body>
 
 </html>
-

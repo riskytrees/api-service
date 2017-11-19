@@ -10,10 +10,14 @@ class Node {
     this.id = id;
   }
 
-  addChild(node, edgesStore) {
+  addChild(node, edgesStore, nodesStore) {
+    // Add to node store.
+    nodesStore.addNode(node)
+
     // Add edge from this.id to node.id
-    newEdge = new Edge(this.id, node.id);
+    var newEdge = new Edge(this.id, node.id);
     edgesStore.addEdge(newEdge);
+
   }
 
   // Can be extended
@@ -37,11 +41,10 @@ class Nodes {
       return a.id - b.id;
     });
 
-    var val = 0;
     for (var i = 0; i < this.nodes.length; i++) {
       if (i == 0) {
-        if (this.nodes[i].id - val != 1) {
-          return val + 1;
+        if (this.nodes[i].id != 0) {
+          return 0;
         }
       } else {
         if (this.nodes[i].id - this.nodes[i - 1].id != 1) {
@@ -51,6 +54,16 @@ class Nodes {
     }
 
     return this.nodes.length;
+  }
+
+  getNode(id) {
+    for (var i = 0; i < this.nodes.length; i++) {
+      if (this.nodes[i].id == id) {
+        return this.nodes[i]
+      }
+    }
+
+    return null;
   }
 }
 
