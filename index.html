@@ -2,6 +2,7 @@
 <head>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.js"></script>
     <script type="text/javascript" src="Node.js"></script>
+    <script type="text/javascript" src="Properties.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css" />
 
     <style type="text/css">
@@ -19,6 +20,10 @@
 <div id="mynetwork"></div>
 
 <button onclick="addNode()">Add Node</button>
+<button onclick="editNode()">Edit Node</button>
+<div id="editor">
+  This will populate when you edit a node.
+</div>
 
 <script type="text/javascript">
     // Attack Tree Setup
@@ -28,7 +33,7 @@
     globalIDCtr = 0;
 
     // Create root node
-    globalRoot = new Node(globalIDCtr++, "Root Node", []);
+    globalRoot = new Node(globalIDCtr++, "Root Node", {"root": true});
     NodesStore.addNode(globalRoot);
 
     // create a network
@@ -59,12 +64,16 @@
 
     function addNode() {
       // Add a child.
-      var child = new Node(globalIDCtr, "Child Node " + globalIDCtr, []);
+      var child = new Node(globalIDCtr, "Child Node " + globalIDCtr, {});
       globalIDCtr++;
 
       // Get selected Node
       var selectedNodes = globalNetwork.getSelectedNodes();
-      console.log(selectedNodes);
+
+      if (selectedNodes === []) {
+        return;
+      }
+
       NodesStore.getNode(selectedNodes[0]).addChild(child, EdgesStore, NodesStore);
 
       var data = {
@@ -74,6 +83,16 @@
 
       globalNetwork.setData(data);
       globalNetwork.redraw();
+    }
+
+    function editNode() {
+      var selectedNodes = globalNetwork.getSelectedNodes();
+
+      if (selectedNodes === []) {
+        return;
+      }
+
+      openEditDialog(NodesStore.getNode(selectedNodes[0]).attributes, document.getElementById("editor"));
     }
 </script>
 </body>
