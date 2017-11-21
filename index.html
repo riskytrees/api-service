@@ -8,7 +8,6 @@
     <style type="text/css">
         #mynetwork {
             width: 100%;
-            height: 800px;
             border: 1px solid lightgray;
         }
     </style>
@@ -53,7 +52,7 @@
                 levelSeparation: 100
             }
         },
-        interaction: {dragNodes :false},
+        interaction: {dragNodes: false},
         physics: {
             enabled: false
         }
@@ -92,7 +91,7 @@
         return;
       }
 
-      openEditDialog(NodesStore.getNode(selectedNodes[0]).attributes, document.getElementById("editor"));
+      openEditDialog(NodesStore.getNode(selectedNodes[0]).attributes, "editor");
     }
 </script>
 </body>
