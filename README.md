@@ -6,3 +6,9 @@ conformant with the trees created with ADTool2: https://github.com/tahti/ADTool2
 It runs as a single website and can be exported (and imported) as an XML file.
 Both ADTool2 and attack_tree_modeler are capable of opening and editing these
 files.
+
+
+## Code Quality
+
+### Code Style
+All JS in this project should adhere to https://standardjs.com/
