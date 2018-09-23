@@ -20,6 +20,10 @@ class Node {
 
   }
 
+  editLabel(newLabel) {
+    this.label = newLabel;
+  }
+
   // Can be extended
   calculate() {
     return 0;
