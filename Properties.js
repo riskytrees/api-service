@@ -3,14 +3,13 @@ function donePressed(ele_id) {
   ele.innerHTML = ""
 }
 
-function openEditDialog(obj, ele_id) {
+function openEditDialog(obj, ele_id, redrawFunc) {
   var attributes = Object.keys(obj.attributes)
-  var label = obj.label
   var ele = document.getElementById(ele_id)
   ele.innerHTML = ""
 
   // Display name
-  ele.innerHTML += "<br>Name: " + label + " "
+  ele.innerHTML += "<br><input value='" + obj.label + "' id='node-label'></input>"
 
   // Display existing attributes
   for (var i = 0; i < attributes.length; i++) {
@@ -32,6 +31,12 @@ function openEditDialog(obj, ele_id) {
       obj.attributes[attributes[event.target.id.split("-").pop()]] = document.getElementById(event.target.id).value
     });
   }
+
+  document.getElementById("node-label").addEventListener("change", function(event) {
+    console.log(event)
+    obj.label = document.getElementById(event.target.id).value
+    redrawFunc()
+  });
 
   document.getElementById("add-button").addEventListener("click", function(event) {
     console.log("Add clicked")

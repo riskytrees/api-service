@@ -26,6 +26,17 @@
 </div>
 
 <script type="text/javascript">
+    function redrawHelper() {
+      var data = {
+          nodes: NodesStore.nodes,
+          edges: EdgesStore.edges
+      };
+
+      globalNetwork.setData(data);
+      globalNetwork.redraw();
+    }
+
+
     // Attack Tree Setup
     EdgesStore = new Edges();
     NodesStore = new Nodes();
@@ -75,14 +86,7 @@
       }
 
       NodesStore.getNode(selectedNodes[0]).addChild(child, EdgesStore, NodesStore);
-
-      var data = {
-          nodes: NodesStore.nodes,
-          edges: EdgesStore.edges
-      };
-
-      globalNetwork.setData(data);
-      globalNetwork.redraw();
+      redrawHelper();
     }
 
     function editNode() {
@@ -92,7 +96,7 @@
         return;
       }
 
-      openEditDialog(NodesStore.getNode(selectedNodes[0]), "editor");
+      openEditDialog(NodesStore.getNode(selectedNodes[0]), "editor", redrawHelper);
     }
 </script>
 </body>
