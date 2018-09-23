@@ -1,4 +1,5 @@
 # attack_tree_modeler
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/JosiahOne/attack_tree_modeler.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/JosiahOne/attack_tree_modeler/context:javascript)
 
 This is a WIP project used which will be used to create attack trees which are
 conformant with the trees created with ADTool2: https://github.com/tahti/ADTool2
