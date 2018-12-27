@@ -1,24 +1,24 @@
-function donePressed(ele_id) {
+function donePressed (ele_id) {
   var ele = document.getElementById(ele_id)
-  ele.innerHTML = ""
+  ele.innerHTML = ''
 }
 
-function openEditDialog(obj, ele_id, redrawFunc) {
+function openEditDialog (obj, ele_id, redrawFunc) {
   var attributes = Object.keys(obj.attributes)
   var ele = document.getElementById(ele_id)
-  ele.innerHTML = ""
+  ele.innerHTML = ''
 
   // Display name
   ele.innerHTML += "<br><input value='" + obj.label + "' id='node-label'></input>"
 
   // Display existing attributes
   for (var i = 0; i < attributes.length; i++) {
-    ele.innerHTML += "<br><br>" + attributes[i] + " "
+    ele.innerHTML += '<br><br>' + attributes[i] + ' '
     ele.innerHTML += "<input value='" + obj.attributes[attributes[i]] + "' id='property-" + i + "'></input>"
   }
 
   // UI for adding attributes
-  ele.innerHTML += "<br><br>Add attribute: "
+  ele.innerHTML += '<br><br>Add attribute: '
   ele.innerHTML += "<input id='new-attr-id-field' placeholder='New ID'></input> <input id='new-attr-val-field' placeholder='New Value'></input>"
   ele.innerHTML += " <button id='add-button'>Add Attribute</button>"
 
@@ -26,23 +26,23 @@ function openEditDialog(obj, ele_id, redrawFunc) {
 
   // Event listeners for editing attributes
   for (var i = 0; i < attributes.length; i++) {
-    document.getElementById("property-" + i).addEventListener("change", function(event) {
+    document.getElementById('property-' + i).addEventListener('change', function (event) {
       console.log(event)
-      obj.attributes[attributes[event.target.id.split("-").pop()]] = document.getElementById(event.target.id).value
-    });
+      obj.attributes[attributes[event.target.id.split('-').pop()]] = document.getElementById(event.target.id).value
+    })
   }
 
-  document.getElementById("node-label").addEventListener("change", function(event) {
+  document.getElementById('node-label').addEventListener('change', function (event) {
     console.log(event)
     obj.label = document.getElementById(event.target.id).value
     redrawFunc()
-  });
+  })
 
-  document.getElementById("add-button").addEventListener("click", function(event) {
-    console.log("Add clicked")
+  document.getElementById('add-button').addEventListener('click', function (event) {
+    console.log('Add clicked')
     // Save added attribute if one exists
-    if (document.getElementById("new-attr-id-field").value !== "") {
-      obj.attributes[document.getElementById("new-attr-id-field").value] = document.getElementById("new-attr-val-field").value
+    if (document.getElementById('new-attr-id-field').value !== '') {
+      obj.attributes[document.getElementById('new-attr-id-field').value] = document.getElementById('new-attr-val-field').value
     }
-  });
+  })
 }

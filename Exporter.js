@@ -11,10 +11,10 @@
 //
 // That said, we also support a "nicer" format that actually is formally
 // defined. The hope is that, over time, ADTool2's usage will become redundant
-// and this format will replace it. 
+// and this format will replace it.
 class Exporter {
-  constructor() {
-  
+  constructor () {
+
   }
 
   // Function used for exporting a tree.
@@ -37,31 +37,31 @@ class Exporter {
   //   ]
   // }
   //
-  // 
+  //
   // Returns: A json object containing the tree data if adtFormat is false.
   //          A string representation of the adt XML data if adtFormat is true.
-  exportTree(nodeStore, edgeStore, adtFormat = false) {
+  exportTree (nodeStore, edgeStore, adtFormat = false) {
     let nodes = []
     let edges = []
 
     for (let node of nodeStore.nodes) {
       nodes.push({
-        "id": node.id,
-        "label": node.label,
-        "attributes": node.attributes
+        'id': node.id,
+        'label': node.label,
+        'attributes': node.attributes
       })
     }
 
     for (let edge of edgeStore.edges) {
       edges.push({
-        "from": edge.from,
-        "to": edge.to
+        'from': edge.from,
+        'to': edge.to
       })
     }
 
     let output = {
-      "nodes": nodes,
-      "edges": edges
+      'nodes': nodes,
+      'edges': edges
     }
 
     return output
