@@ -41,6 +41,29 @@ class Exporter {
   // Returns: A json object containing the tree data if adtFormat is false.
   //          A string representation of the adt XML data if adtFormat is true.
   exportTree(nodeStore, edgeStore, adtFormat = false) {
+    let nodes = []
+    let edges = []
 
+    for (let node of nodeStore.nodes) {
+      nodes.push({
+        "id": node.id,
+        "label": node.label,
+        "attributes": node.attributes
+      })
+    }
+
+    for (let edge of edgeStore.edges) {
+      edges.push({
+        "from": edge.from,
+        "to": edge.to
+      })
+    }
+
+    let output = {
+      "nodes": nodes,
+      "edges": edges
+    }
+
+    return output
   }
 }
