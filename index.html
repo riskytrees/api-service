@@ -3,6 +3,7 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.js"></script>
     <script type="text/javascript" src="Node.js"></script>
     <script type="text/javascript" src="Properties.js"></script>
+    <script type="text/javascript" src="Exporter.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css" />
 
     <style type="text/css">
@@ -24,6 +25,9 @@
 <div id="editor">
   This will populate when you edit a node.
 </div>
+<br>
+<button onclick="exportTree()">Export Tree</button>
+<a id="downloadAnchor" style="display:none"></a>
 
 <script type="text/javascript">
     function redrawHelper() {
@@ -97,6 +101,18 @@
       }
 
       openEditDialog(NodesStore.getNode(selectedNodes[0]), "editor", redrawHelper);
+    }
+
+    function exportTree() {
+      let exporter = new Exporter();
+
+      let exportJSON = exporter.exportTree(NodesStore, EdgesStore);
+
+      let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportJSON));
+      let anchor = document.getElementById('downloadAnchor');
+      anchor.setAttribute("href", dataStr);
+      anchor.setAttribute("download", "attack_tree.json");
+      anchor.click();
     }
 </script>
 </body>
