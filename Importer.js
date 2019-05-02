@@ -1,14 +1,14 @@
 // Dependencies: Nodes.js
+/* global Nodes */
+/* global Node */
+/* global Edges */
+/* global Edge */
 
 // Class used for importing exported json tree files.
 //
 // Primary method of interest is import()
 
-class Importer {
-  constructor () {
-
-  }
-
+class Importer { // eslint-disable-line no-unused-vars
   // Function used to validate and import an exported json object. See
   // exportTree() in Exporter.js for format structure.
   //
@@ -17,7 +17,6 @@ class Importer {
     let nodeStore = new Nodes()
     let edgeStore = new Edges()
 
-    let nodeIDCtr = 0
     for (let node of jsonData.nodes) {
       let nodeID = node.id
       let nodeLabel = node.label
