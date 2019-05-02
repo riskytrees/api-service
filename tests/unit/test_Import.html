@@ -1,0 +1,70 @@
+<html>
+  <script type="text/javascript" src="../../Importer.js"></script>
+  <script type="text/javascript" src="../../Node.js"></script>
+  <body id="body">
+    Tests running.
+  </body>
+  <script>
+    var fail = 0;
+
+    var importer = new Importer();
+
+    var dataToImport = {
+      "nodes": [
+        {
+          "id": 0,
+          "label": "Root node",
+          "attributes": {
+            "root": true
+          }
+        },
+        {
+          "id": 1,
+          "label": "Other node",
+          "attributes": {
+            "thing": "1"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "to": 1,
+          "from": 0
+        }
+      ]
+    }
+
+    let [nodeStore, edgeStore] = importer.import(dataToImport)
+
+    if (nodeStore.getNode(0) === null) {
+      fail += 1
+    }
+
+    if (nodeStore.getNode(0).label !== "Root node") {
+      fail += 10
+    }
+
+    if (nodeStore.getNode(0).attributes["root"] !== true) {
+      fail += 100
+    }
+
+    if (nodeStore.getNode(1) === null) {
+      fail += 1000
+    }
+
+    if (nodeStore.getNode(1).label !== "Other node") {
+      fail += 10000
+    }
+
+    if (nodeStore.getNode(1).attributes["thing"] !== "1") {
+      fail += 100000
+    }
+
+
+    if (fail != 0) {
+      document.getElementById("body").innerHTML += "\nTests Failed: " + fail;
+    } else {
+      document.getElementById("body").innerHTML += "\nTests Passed.";
+    }
+  </script>
+</html>
