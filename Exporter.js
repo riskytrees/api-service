@@ -26,7 +26,7 @@ class Exporter {
   //     {
   //       id: Int(ID),
   //       label: String("Node Title"),
-  //       attributes: [{}, ...]
+  //       attributes: {}
   //     }, ...
   //   ],
   //   edges: [
