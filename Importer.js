@@ -13,7 +13,7 @@ class Importer {
   // exportTree() in Exporter.js for format structure.
   //
   // Returns: An array containing [Nodes, Edges] respectively
-  import(jsonData, adtFormat = false) {
+  import (jsonData, adtFormat = false) {
     let nodeStore = new Nodes()
     let edgeStore = new Edges()
 
@@ -22,7 +22,6 @@ class Importer {
       let nodeID = node.id
       let nodeLabel = node.label
       let nodeAttributes = node.attributes
-
 
       let newNode = new Node(nodeID, nodeLabel, nodeAttributes)
       nodeStore.addNode(newNode)
