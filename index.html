@@ -4,6 +4,8 @@
     <script type="text/javascript" src="Node.js"></script>
     <script type="text/javascript" src="Properties.js"></script>
     <script type="text/javascript" src="Exporter.js"></script>
+    <script type="text/javascript" src="Importer.js"></script>
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css" />
 
     <style type="text/css">
@@ -27,6 +29,8 @@
 </div>
 <br>
 <button onclick="exportTree()">Export Tree</button>
+<input type="file" id="treeInput" onchange='importTree(event)'>
+
 <a id="downloadAnchor" style="display:none"></a>
 
 <script type="text/javascript">
@@ -45,10 +49,8 @@
     EdgesStore = new Edges();
     NodesStore = new Nodes();
 
-    globalIDCtr = 0;
-
     // Create root node
-    globalRoot = new Node(globalIDCtr++, "Root Node", {"root": true});
+    globalRoot = new Node(0, "Root Node", {"root": true});
     NodesStore.addNode(globalRoot);
 
     // create a network
@@ -79,8 +81,8 @@
 
     function addNode() {
       // Add a child.
-      var child = new Node(globalIDCtr, "Child Node " + globalIDCtr, {});
-      globalIDCtr++;
+      var nextID = NodesStore.generateUniqueNodeID()
+      var child = new Node(nextID, "Child Node " + nextID, {});
 
       // Get selected Node
       var selectedNodes = globalNetwork.getSelectedNodes();
@@ -113,6 +115,22 @@
       anchor.setAttribute("href", dataStr);
       anchor.setAttribute("download", "attack_tree.json");
       anchor.click();
+    }
+
+    function importTree(event) {
+      let importer = new Importer();
+
+       let reader = new FileReader();
+       reader.onload = function(){
+         let importedTree = JSON.parse(reader.result);
+         let [nodes, edges] = importer.import(importedTree);
+         console.log(nodes)
+         console.log(edges)
+         NodesStore = nodes;
+         EdgesStore = edges;
+         redrawHelper();
+       };
+       reader.readAsText(event.target.files[0]);
     }
 </script>
 </body>
