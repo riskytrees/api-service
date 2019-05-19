@@ -1,6 +1,6 @@
 function redrawHelper () {
   var data = {
-    nodes: NodesStore.nodes,
+    nodes: NodesStore.toVIS(),
     edges: EdgesStore.edges
   }
 
@@ -21,7 +21,7 @@ var container = document.getElementById('mynetwork')
 
 // provide the data in the vis format
 var data = {
-  nodes: NodesStore.nodes,
+  nodes: NodesStore.toVIS(),
   edges: EdgesStore.edges
 }
 var options = {
