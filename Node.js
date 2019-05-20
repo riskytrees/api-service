@@ -42,7 +42,7 @@ class Nodes {
 
     for (let aNode of this.nodes) {
       let copyNode = new Node(aNode.id, aNode.label, aNode.attributes)
-      copyNode.label = copyNode.modelLabelDisplay()
+      copyNode.label = aNode.modelLabelDisplay()
       visData.push(copyNode)
     }
 
