@@ -27,7 +27,7 @@ class Node {
 
   // Returns a string representing what should be displayed as the title of a
   // node on an attack tree.
-  modelLabelDisplay() {
+  modelLabelDisplay () {
     return this.label
   }
 }
@@ -37,7 +37,7 @@ class Nodes {
     this.nodes = []
   }
 
-  toVIS() {
+  toVIS () {
     let visData = []
 
     for (let aNode of this.nodes) {
