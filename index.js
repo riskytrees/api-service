@@ -8,12 +8,32 @@ function redrawHelper () {
   globalNetwork.redraw()
 }
 
+function newNode(arg1, arg2, arg3) {
+  if (ChosenModelUUID === Node.getUUID()) {
+    return new Node(arg1, arg2, arg3)
+  }
+}
+
+function populateModels() {
+  let selector = document.getElementById("modelSelector")
+
+  let defaultOption = document.createElement("option")
+  defaultOption.value = Node.getUUID()
+  defaultOption.textContent = "Node"
+
+  selector.appendChild(defaultOption)
+}
+
+// Populate UI
+populateModels()
+
 // Attack Tree Setup
 EdgesStore = new Edges()
 NodesStore = new Nodes()
+ChosenModelUUID = Node.getUUID()
 
 // Create root node
-globalRoot = new Node(0, 'Root Node', { 'root': true })
+globalRoot = newNode(0, 'Root Node', { 'root': true })
 NodesStore.addNode(globalRoot)
 
 // create a network
@@ -45,7 +65,7 @@ globalNetwork = new vis.Network(container, data, options)
 function addNode () {
   // Add a child.
   var nextID = NodesStore.generateUniqueNodeID()
-  var child = new Node(nextID, 'Child Node ' + nextID, {})
+  var child = newNode(nextID, 'Child Node ' + nextID, {})
 
   // Get selected Node
   var selectedNodes = globalNetwork.getSelectedNodes()
