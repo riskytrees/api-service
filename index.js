@@ -8,7 +8,7 @@ function redrawHelper () {
   globalNetwork.redraw()
 }
 
-function newNode(arg1, arg2, arg3) {
+function newNode (arg1, arg2, arg3) {
   if (ChosenModelUUID === Node.getUUID()) {
     return new Node(arg1, arg2, arg3)
   } else if (ChosenModelUUID === EvitaNode.getUUID()) {
@@ -16,8 +16,8 @@ function newNode(arg1, arg2, arg3) {
   }
 }
 
-function modelChanged() {
-  let selector = document.getElementById("modelSelector")
+function modelChanged () {
+  let selector = document.getElementById('modelSelector')
   let chosenModel = selector.value
 
   ChosenModelUUID = chosenModel
@@ -30,24 +30,24 @@ function modelChanged() {
     NodesStore.addNode(newNode(node.id, node.label, node.attributes))
   }
 
-  redrawHelper ()
+  redrawHelper()
 }
 
-function populateModels() {
-  let selector = document.getElementById("modelSelector")
+function populateModels () {
+  let selector = document.getElementById('modelSelector')
 
-  let defaultOption = document.createElement("option")
+  let defaultOption = document.createElement('option')
   defaultOption.value = Node.getUUID()
-  defaultOption.textContent = "Node"
+  defaultOption.textContent = 'Node'
 
-  let evitaOption = document.createElement("option")
+  let evitaOption = document.createElement('option')
   evitaOption.value = EvitaNode.getUUID()
-  evitaOption.textContent = "EVITA"
+  evitaOption.textContent = 'EVITA'
 
   selector.appendChild(defaultOption)
   selector.appendChild(evitaOption)
 
-  selector.onchange = function() {modelChanged()}
+  selector.onchange = function () { modelChanged() }
 }
 
 // Populate UI
