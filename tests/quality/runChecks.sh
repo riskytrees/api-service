@@ -1,2 +1,2 @@
 npm install standard --global;
-standard ../../*.js;
+standard ../../*.js --fix;

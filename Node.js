@@ -23,15 +23,34 @@ class Node {
     this.label = newLabel
   }
 
-  // Can be extended
-  calculate () {
-    return 0
+  // Overridable Functions
+
+  static getUUID () {
+    return '43daa996-8208-499f-be1b-f6c34c84d9df'
+  }
+
+  // Returns a string representing what should be displayed as the title of a
+  // node on an attack tree.
+  modelLabelDisplay () {
+    return this.label
   }
 }
 
 class Nodes {
   constructor () {
     this.nodes = []
+  }
+
+  toVIS () {
+    let visData = []
+
+    for (let aNode of this.nodes) {
+      let copyNode = new Node(aNode.id, aNode.label, aNode.attributes)
+      copyNode.label = aNode.modelLabelDisplay()
+      visData.push(copyNode)
+    }
+
+    return visData
   }
 
   addNode (node) {

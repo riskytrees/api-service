@@ -1,6 +1,6 @@
 function redrawHelper () {
   var data = {
-    nodes: NodesStore.nodes,
+    nodes: NodesStore.toVIS(),
     edges: EdgesStore.edges
   }
 
@@ -8,12 +8,58 @@ function redrawHelper () {
   globalNetwork.redraw()
 }
 
+function newNode (arg1, arg2, arg3) {
+  if (ChosenModelUUID === Node.getUUID()) {
+    return new Node(arg1, arg2, arg3)
+  } else if (ChosenModelUUID === EvitaNode.getUUID()) {
+    return new EvitaNode(arg1, arg2, arg3)
+  }
+}
+
+function modelChanged () {
+  let selector = document.getElementById('modelSelector')
+  let chosenModel = selector.value
+
+  ChosenModelUUID = chosenModel
+
+  let oldNodeStore = NodesStore
+
+  NodesStore = new Nodes()
+
+  for (let node of oldNodeStore.nodes) {
+    NodesStore.addNode(newNode(node.id, node.label, node.attributes))
+  }
+
+  redrawHelper()
+}
+
+function populateModels () {
+  let selector = document.getElementById('modelSelector')
+
+  let defaultOption = document.createElement('option')
+  defaultOption.value = Node.getUUID()
+  defaultOption.textContent = 'Node'
+
+  let evitaOption = document.createElement('option')
+  evitaOption.value = EvitaNode.getUUID()
+  evitaOption.textContent = 'EVITA'
+
+  selector.appendChild(defaultOption)
+  selector.appendChild(evitaOption)
+
+  selector.onchange = function () { modelChanged() }
+}
+
+// Populate UI
+populateModels()
+
 // Attack Tree Setup
 EdgesStore = new Edges()
 NodesStore = new Nodes()
+ChosenModelUUID = Node.getUUID()
 
 // Create root node
-globalRoot = new Node(0, 'Root Node', { 'root': true })
+globalRoot = newNode(0, 'Root Node', { 'root': true })
 NodesStore.addNode(globalRoot)
 
 // create a network
@@ -21,7 +67,7 @@ var container = document.getElementById('mynetwork')
 
 // provide the data in the vis format
 var data = {
-  nodes: NodesStore.nodes,
+  nodes: NodesStore.toVIS(),
   edges: EdgesStore.edges
 }
 var options = {
@@ -45,7 +91,7 @@ globalNetwork = new vis.Network(container, data, options)
 function addNode () {
   // Add a child.
   var nextID = NodesStore.generateUniqueNodeID()
-  var child = new Node(nextID, 'Child Node ' + nextID, {})
+  var child = newNode(nextID, 'Child Node ' + nextID, {})
 
   // Get selected Node
   var selectedNodes = globalNetwork.getSelectedNodes()
