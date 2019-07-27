@@ -117,7 +117,7 @@ function editNode () {
 function exportTree () {
   let exporter = new Exporter()
 
-  let exportJSON = exporter.exportTree(NodesStore, EdgesStore)
+  let exportJSON = exporter.exportTree(NodesStore, EdgesStore, false, ChosenModelUUID)
 
   let dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportJSON))
   let anchor = document.getElementById('downloadAnchor')
