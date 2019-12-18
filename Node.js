@@ -42,10 +42,10 @@ class Nodes {
   }
 
   toVIS () {
-    let visData = []
+    const visData = []
 
-    for (let aNode of this.nodes) {
-      let copyNode = new Node(aNode.id, aNode.label, aNode.attributes)
+    for (const aNode of this.nodes) {
+      const copyNode = new Node(aNode.id, aNode.label, aNode.attributes)
       copyNode.label = aNode.modelLabelDisplay()
       visData.push(copyNode)
     }

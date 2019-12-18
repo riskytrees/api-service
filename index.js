@@ -16,12 +16,12 @@ function newNode (arg1, arg2, arg3) {
   }
 }
 
-function updateModel() {
-  let oldNodeStore = NodesStore
+function updateModel () {
+  const oldNodeStore = NodesStore
 
   NodesStore = new Nodes()
 
-  for (let node of oldNodeStore.nodes) {
+  for (const node of oldNodeStore.nodes) {
     NodesStore.addNode(newNode(node.id, node.label, node.attributes))
   }
 
@@ -32,21 +32,21 @@ function updateModel() {
 }
 
 function modelChanged () {
-  let selector = document.getElementById('modelSelector')
-  let chosenModel = selector.value
+  const selector = document.getElementById('modelSelector')
+  const chosenModel = selector.value
 
   ChosenModelUUID = chosenModel
   updateModel()
 }
 
 function populateModels () {
-  let selector = document.getElementById('modelSelector')
+  const selector = document.getElementById('modelSelector')
 
-  let defaultOption = document.createElement('option')
+  const defaultOption = document.createElement('option')
   defaultOption.value = Node.getUUID()
   defaultOption.textContent = 'Node'
 
-  let evitaOption = document.createElement('option')
+  const evitaOption = document.createElement('option')
   evitaOption.value = EvitaNode.getUUID()
   evitaOption.textContent = 'EVITA'
 
@@ -65,7 +65,7 @@ NodesStore = new Nodes()
 ChosenModelUUID = Node.getUUID()
 
 // Create root node
-globalRoot = newNode(0, 'Root Node', { 'root': true })
+globalRoot = newNode(0, 'Root Node', { root: true })
 NodesStore.addNode(globalRoot)
 
 // create a network
@@ -121,24 +121,24 @@ function editNode () {
 }
 
 function exportTree () {
-  let exporter = new Exporter()
+  const exporter = new Exporter()
 
-  let exportJSON = exporter.exportTree(NodesStore, EdgesStore, false, ChosenModelUUID)
+  const exportJSON = exporter.exportTree(NodesStore, EdgesStore, false, ChosenModelUUID)
 
-  let dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportJSON))
-  let anchor = document.getElementById('downloadAnchor')
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportJSON))
+  const anchor = document.getElementById('downloadAnchor')
   anchor.setAttribute('href', dataStr)
   anchor.setAttribute('download', 'attack_tree.json')
   anchor.click()
 }
 
 function importTree (event) {
-  let importer = new Importer()
+  const importer = new Importer()
 
-  let reader = new FileReader()
+  const reader = new FileReader()
   reader.onload = function () {
-    let importedTree = JSON.parse(reader.result)
-    let [nodes, edges, dataModel] = importer.import(importedTree)
+    const importedTree = JSON.parse(reader.result)
+    const [nodes, edges, dataModel] = importer.import(importedTree)
     console.log(nodes)
     console.log(edges)
     NodesStore = nodes
