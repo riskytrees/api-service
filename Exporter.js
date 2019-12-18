@@ -1,3 +1,6 @@
+// Dependencies: Nodes.js
+/* global Node */
+
 // Class used for handling exportation of attack trees.
 //
 // The de-facto exportation method here would be to simply json-dump the two
@@ -34,34 +37,36 @@ class Exporter {
   //       to: Int(NodeID),
   //       from: Int(OtherNodeID)
   //     }
-  //   ]
+  //   ],
+  //   dataModel: "UUID of Model"
   // }
   //
   //
   // Returns: A json object containing the tree data if adtFormat is false.
   //          A string representation of the adt XML data if adtFormat is true.
-  exportTree (nodeStore, edgeStore, adtFormat = false) {
-    let nodes = []
-    let edges = []
+  exportTree (nodeStore, edgeStore, adtFormat = false, modelUUID = Node.getUUID()) {
+    const nodes = []
+    const edges = []
 
-    for (let node of nodeStore.nodes) {
+    for (const node of nodeStore.nodes) {
       nodes.push({
-        'id': node.id,
-        'label': node.label,
-        'attributes': node.attributes
+        id: node.id,
+        label: node.label,
+        attributes: node.attributes
       })
     }
 
-    for (let edge of edgeStore.edges) {
+    for (const edge of edgeStore.edges) {
       edges.push({
-        'from': edge.from,
-        'to': edge.to
+        from: edge.from,
+        to: edge.to
       })
     }
 
-    let output = {
-      'nodes': nodes,
-      'edges': edges
+    const output = {
+      nodes: nodes,
+      edges: edges,
+      dataModel: modelUUID
     }
 
     return output

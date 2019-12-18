@@ -14,23 +14,31 @@ class Importer { // eslint-disable-line no-unused-vars
   //
   // Returns: An array containing [Nodes, Edges] respectively
   import (jsonData, adtFormat = false) {
-    let nodeStore = new Nodes()
-    let edgeStore = new Edges()
+    const nodeStore = new Nodes()
+    const edgeStore = new Edges()
 
-    for (let node of jsonData.nodes) {
-      let nodeID = node.id
-      let nodeLabel = node.label
-      let nodeAttributes = node.attributes
+    const modelUUID = jsonData.dataModel
 
-      let newNode = new Node(nodeID, nodeLabel, nodeAttributes)
+    for (const node of jsonData.nodes) {
+      const nodeID = node.id
+      const nodeLabel = node.label
+      const nodeAttributes = node.attributes
+      let newNode = null
+
+      if (modelUUID === Node.getUUID()) {
+        newNode = new Node(nodeID, nodeLabel, nodeAttributes)
+      } else if (modelUUID === EvitaNode.getUUID()) {
+        newNode = new EvitaNode(nodeID, nodeLabel, nodeAttributes)
+      }
+
       nodeStore.addNode(newNode)
     }
 
-    for (let edge of jsonData.edges) {
-      let newEdge = new Edge(edge.from, edge.to)
+    for (const edge of jsonData.edges) {
+      const newEdge = new Edge(edge.from, edge.to)
       edgeStore.addEdge(newEdge)
     }
 
-    return [nodeStore, edgeStore]
+    return [nodeStore, edgeStore, modelUUID]
   }
 }
