@@ -17,12 +17,20 @@ class Importer { // eslint-disable-line no-unused-vars
     let nodeStore = new Nodes()
     let edgeStore = new Edges()
 
+    let modelUUID = jsonData.dataModel;
+
     for (let node of jsonData.nodes) {
       let nodeID = node.id
       let nodeLabel = node.label
       let nodeAttributes = node.attributes
+      let newNode = null;
 
-      let newNode = new Node(nodeID, nodeLabel, nodeAttributes)
+      if (modelUUID === Node.getUUID()) {
+        newNode = new Node(nodeID, nodeLabel, nodeAttributes)
+      } else if (modelUUID === EvitaNode.getUUID()) {
+        newNode = new EvitaNode(nodeID, nodeLabel, nodeAttributes)
+      }
+
       nodeStore.addNode(newNode)
     }
 
@@ -31,6 +39,6 @@ class Importer { // eslint-disable-line no-unused-vars
       edgeStore.addEdge(newEdge)
     }
 
-    return [nodeStore, edgeStore]
+    return [nodeStore, edgeStore, modelUUID]
   }
 }

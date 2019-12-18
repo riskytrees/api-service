@@ -16,12 +16,7 @@ function newNode (arg1, arg2, arg3) {
   }
 }
 
-function modelChanged () {
-  let selector = document.getElementById('modelSelector')
-  let chosenModel = selector.value
-
-  ChosenModelUUID = chosenModel
-
+function updateModel() {
   let oldNodeStore = NodesStore
 
   NodesStore = new Nodes()
@@ -30,7 +25,18 @@ function modelChanged () {
     NodesStore.addNode(newNode(node.id, node.label, node.attributes))
   }
 
+  console.log(ChosenModelUUID)
+  document.getElementById('modelSelector').value = ChosenModelUUID
+
   redrawHelper()
+}
+
+function modelChanged () {
+  let selector = document.getElementById('modelSelector')
+  let chosenModel = selector.value
+
+  ChosenModelUUID = chosenModel
+  updateModel()
 }
 
 function populateModels () {
@@ -132,11 +138,14 @@ function importTree (event) {
   let reader = new FileReader()
   reader.onload = function () {
     let importedTree = JSON.parse(reader.result)
-    let [nodes, edges] = importer.import(importedTree)
+    let [nodes, edges, dataModel] = importer.import(importedTree)
     console.log(nodes)
     console.log(edges)
     NodesStore = nodes
     EdgesStore = edges
+    ChosenModelUUID = dataModel
+    updateModel()
+
     redrawHelper()
   }
   reader.readAsText(event.target.files[0])
