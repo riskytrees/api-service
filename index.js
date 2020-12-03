@@ -13,6 +13,8 @@ function newNode (arg1, arg2, arg3) {
     return new Node(arg1, arg2, arg3)
   } else if (ChosenModelUUID === EvitaNode.getUUID()) {
     return new EvitaNode(arg1, arg2, arg3)
+  } else if (ChosenModelUUID === MinMaxNode.getUUID()) {
+    return new MinMaxNode(arg1, arg2, arg3)
   }
 }
 
@@ -50,8 +52,13 @@ function populateModels () {
   evitaOption.value = EvitaNode.getUUID()
   evitaOption.textContent = 'EVITA'
 
+  const minMaxOption = document.createElement('option')
+  minMaxOption.value = MinMaxNode.getUUID()
+  minMaxOption.textContent = 'MinMax'
+
   selector.appendChild(defaultOption)
   selector.appendChild(evitaOption)
+  selector.appendChild(minMaxOption)
 
   selector.onchange = function () { modelChanged() }
 }
