@@ -43,6 +43,9 @@ function openEditDialog (obj, ele_id, redrawFunc) {
     // Save added attribute if one exists
     if (document.getElementById('new-attr-id-field').value !== '') {
       obj.attributes[document.getElementById('new-attr-id-field').value] = document.getElementById('new-attr-val-field').value
+      donePressed(ele_id)
+      openEditDialog(obj, ele_id, redrawFunc)
+      redrawFunc()
     }
   })
 }
