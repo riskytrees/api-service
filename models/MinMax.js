@@ -12,7 +12,7 @@ class MinMaxNode extends Node {
    }
 
    modelLabelDisplay (edgesStore, nodesStore) {
-      let effortStr = 'Unknown'
+      let effortStr = '?'
 
       if (this.attributes && this.attributes.effort) {
          const effort = parseInt(this.attributes.effort, 10)
@@ -37,6 +37,6 @@ class MinMaxNode extends Node {
          }
       }
 
-      return this.label + ' | Effort: ' + effortStr
+      return this.label + '\nEffort: ' + effortStr
    }
 }
