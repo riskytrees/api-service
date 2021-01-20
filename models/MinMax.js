@@ -14,29 +14,59 @@ class MinMaxNode extends Node {
    modelLabelDisplay (edgesStore, nodesStore) {
       let effortStr = '?'
 
-      if (this.attributes && this.attributes.effort) {
+      if (this.attributes && this.attributes.effort && this.getChildren(edgesStore, nodesStore).length === 0) {
          const effort = parseInt(this.attributes.effort, 10)
          effortStr = effort.toString()
-      } else if (this.getChildren(edgesStore, nodesStore).length > 0) {
-         // Min - Get easiest thing
-         let lowestEffort = null;
+      } else if (this.attributes && this.attributes.operator && this.getChildren(edgesStore, nodesStore).length > 0) {
+         let effort = null;
 
-         for (const child of this.getChildren(edgesStore, nodesStore)) {
-            if (child.attributes.effort) {
-               const childEffort = parseInt(child.attributes.effort, 10)
-
-               if (!lowestEffort || childEffort < lowestEffort) {
-                  lowestEffort = childEffort
-               }
-            }
-
+         if (this.attributes.operator === 'min' || this.attributes.operator === 'or') {
+            // Min - Get easiest thing
+            effort = this.getMinEffort(this.getChildren(edgesStore, nodesStore))
+         } else if (this.attributes.operator === 'max' || this.attributes.operator === 'and') {
+            // Max - Get hardest thing
+            effort = this.getMaxEffort(this.getChildren(edgesStore, nodesStore))
          }
 
-         if (lowestEffort) {
-            effortStr = lowestEffort.toString()
+         if (effort) {
+            effortStr = effort.toString()
          }
       }
 
       return this.label + '\nEffort: ' + effortStr
+   }
+
+   getMinEffort (nodes) {
+      let lowestEffort = null;
+
+      for (const child of nodes) {
+         if (child.attributes.effort) {
+            const childEffort = parseInt(child.attributes.effort, 10)
+
+            if (!lowestEffort || childEffort < lowestEffort) {
+               lowestEffort = childEffort
+            }
+         }
+
+      }
+
+      return lowestEffort
+   }
+
+   getMaxEffort (nodes) {
+      let highestEffort = null;
+
+      for (const child of nodes) {
+         if (child.attributes.effort) {
+            const childEffort = parseInt(child.attributes.effort, 10)
+
+            if (!highestEffort || childEffort > highestEffort) {
+               highestEffort = childEffort
+            }
+         }
+
+      }
+
+      return highestEffort
    }
 }
