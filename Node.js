@@ -3,7 +3,7 @@
 // This is an especially important class, because it can be overriden in order to implement other attack models.
 // By default it does simple min/max costing with one attribute.
 // Data stored in a d3-compatible format: https://github.com/d3/d3-hierarchy/blob/master/README.md#hierarchy
-class Node {
+class Node { // eslint-disable-line no-unused-vars
   constructor (id, label, attributeObj) {
     this.attributes = attributeObj
     this.label = label
@@ -20,16 +20,16 @@ class Node {
   }
 
   getChildren (edgesStore, nodesStore) {
-     const children = [];
+    const children = []
 
-     for (const anEdge of edgesStore.edges) {
-        if (anEdge.from === this.id) {
-            children.push(nodesStore.getNode(anEdge.to))
-        }
-     }
+    for (const anEdge of edgesStore.edges) {
+      if (anEdge.from === this.id) {
+        children.push(nodesStore.getNode(anEdge.to))
+      }
+    }
 
-     return children;
- }
+    return children
+  }
 
   editLabel (newLabel) {
     this.label = newLabel
@@ -48,7 +48,7 @@ class Node {
   }
 }
 
-class Nodes {
+class Nodes { // eslint-disable-line no-unused-vars
   constructor () {
     this.nodes = []
   }
@@ -101,14 +101,14 @@ class Nodes {
   }
 }
 
-class Edge {
+class Edge { // eslint-disable-line no-unused-vars
   constructor (from, to) {
     this.from = from
     this.to = to
   }
 }
 
-class Edges {
+class Edges { // eslint-disable-line no-unused-vars
   constructor () {
     this.edges = []
   }

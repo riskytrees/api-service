@@ -15,7 +15,7 @@
 // That said, we also support a "nicer" format that actually is formally
 // defined. The hope is that, over time, ADTool2's usage will become redundant
 // and this format will replace it.
-class Exporter {
+class Exporter { // eslint-disable-line no-unused-vars
   constructor () {
 
   }

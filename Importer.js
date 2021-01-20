@@ -3,6 +3,7 @@
 /* global Node */
 /* global Edges */
 /* global Edge */
+/* global EvitaNode */
 
 // Class used for importing exported json tree files.
 //

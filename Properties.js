@@ -12,7 +12,7 @@ function openEditDialog (obj, ele_id, redrawFunc) {
   ele.innerHTML += "<br><input value='" + obj.label + "' id='node-label'></input>"
 
   // Display existing attributes
-  for (var i = 0; i < attributes.length; i++) {
+  for (let i = 0; i < attributes.length; i++) {
     ele.innerHTML += '<br><br>' + attributes[i] + ' '
     ele.innerHTML += "<input value='" + obj.attributes[attributes[i]] + "' id='property-" + i + "'></input>"
   }
@@ -25,7 +25,7 @@ function openEditDialog (obj, ele_id, redrawFunc) {
   ele.innerHTML += "<br><br><button id='done-button' onclick='donePressed(\"" + ele_id + "\")'>Done</button>"
 
   // Event listeners for editing attributes
-  for (var i = 0; i < attributes.length; i++) {
+  for (let i = 0; i < attributes.length; i++) {
     document.getElementById('property-' + i).addEventListener('change', function (event) {
       console.log(event)
       obj.attributes[attributes[event.target.id.split('-').pop()]] = document.getElementById(event.target.id).value

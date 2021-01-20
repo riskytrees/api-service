@@ -1,3 +1,15 @@
+/* global Node */
+/* global Nodes */
+/* global Edges */
+/* global EvitaNode */
+/* global MinMaxNode */
+
+// Non-imports
+/* global EdgesStore */
+/* global NodesStore */
+/* global ChosenModelUUID */
+/* global globalNetwork */
+
 function redrawHelper () {
   const data = {
     nodes: NodesStore.toVIS(EdgesStore),
@@ -63,44 +75,6 @@ function populateModels () {
   selector.onchange = function () { modelChanged() }
 }
 
-// Populate UI
-populateModels()
-
-// Attack Tree Setup
-EdgesStore = new Edges()
-NodesStore = new Nodes()
-ChosenModelUUID = Node.getUUID()
-
-// Create root node
-globalRoot = newNode(0, 'Root Node', { root: true })
-NodesStore.addNode(globalRoot)
-
-// create a network
-const container = document.getElementById('mynetwork')
-
-// provide the data in the vis format
-const data = {
-  nodes: NodesStore.toVIS(EdgesStore),
-  edges: EdgesStore.edges
-}
-const options = {
-  layout: {
-    hierarchical: {
-      direction: 'UD',
-      sortMethod: 'directed',
-      nodeSpacing: 150,
-      levelSeparation: 100
-    }
-  },
-  interaction: { dragNodes: false },
-  physics: {
-    enabled: false
-  }
-}
-
-// initialize your network!
-globalNetwork = new vis.Network(container, data, options)
-
 function addNode () {
   // Add a child.
   const nextID = NodesStore.generateUniqueNodeID()
@@ -157,3 +131,41 @@ function importTree (event) {
   }
   reader.readAsText(event.target.files[0])
 }
+
+// Populate UI
+populateModels()
+
+// Attack Tree Setup
+EdgesStore = new Edges()
+NodesStore = new Nodes()
+ChosenModelUUID = Node.getUUID()
+
+// Create root node
+globalRoot = newNode(0, 'Root Node', { root: true })
+NodesStore.addNode(globalRoot)
+
+// create a network
+const container = document.getElementById('mynetwork')
+
+// provide the data in the vis format
+const data = {
+  nodes: NodesStore.toVIS(EdgesStore),
+  edges: EdgesStore.edges
+}
+const options = {
+  layout: {
+    hierarchical: {
+      direction: 'UD',
+      sortMethod: 'directed',
+      nodeSpacing: 150,
+      levelSeparation: 100
+    }
+  },
+  interaction: { dragNodes: false },
+  physics: {
+    enabled: false
+  }
+}
+
+// initialize your network!
+globalNetwork = new vis.Network(container, data, options)
