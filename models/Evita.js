@@ -11,7 +11,7 @@ class EvitaNode extends Node {
     return '4f483a97-0b3c-4755-83b0-085f674b6d94'
   }
 
-  modelLabelDisplay () {
+  modelLabelDisplay (edgesStore, nodesStore) {
     return this.label + ' | EVITA'
   }
 }

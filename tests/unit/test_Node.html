@@ -5,6 +5,7 @@
   </body>
   <script>
     var NodesStore = new Nodes();
+    var EdgesStore = new Edges();
 
     var root = new Node(NodesStore.generateUniqueNodeID(), "Root Node", {});
     NodesStore.addNode(root);
@@ -27,6 +28,17 @@
 
     if (third.id != 2) {
       fail += 100;
+    }
+
+    var fourth = new Node(NodesStore.generateUniqueNodeID(), "Fourth Node", {});
+    root.addChild(other, EdgesStore, NodesStore);
+
+    if (root.getChildren(EdgesStore, NodesStore).length !== 1) {
+      fail + 1000;
+    }
+
+    if (root.getChildren(EdgesStore, NodesStore).label !== "Fourth Node") {
+      fail + 10000;
     }
 
     if (fail != 0) {

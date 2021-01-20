@@ -1,6 +1,6 @@
 function redrawHelper () {
-  var data = {
-    nodes: NodesStore.toVIS(),
+  const data = {
+    nodes: NodesStore.toVIS(EdgesStore),
     edges: EdgesStore.edges
   }
 
@@ -76,14 +76,14 @@ globalRoot = newNode(0, 'Root Node', { root: true })
 NodesStore.addNode(globalRoot)
 
 // create a network
-var container = document.getElementById('mynetwork')
+const container = document.getElementById('mynetwork')
 
 // provide the data in the vis format
-var data = {
-  nodes: NodesStore.toVIS(),
+const data = {
+  nodes: NodesStore.toVIS(EdgesStore),
   edges: EdgesStore.edges
 }
-var options = {
+const options = {
   layout: {
     hierarchical: {
       direction: 'UD',
@@ -103,11 +103,11 @@ globalNetwork = new vis.Network(container, data, options)
 
 function addNode () {
   // Add a child.
-  var nextID = NodesStore.generateUniqueNodeID()
-  var child = newNode(nextID, 'Child Node ' + nextID, {})
+  const nextID = NodesStore.generateUniqueNodeID()
+  const child = newNode(nextID, 'Child Node ' + nextID, {})
 
   // Get selected Node
-  var selectedNodes = globalNetwork.getSelectedNodes()
+  const selectedNodes = globalNetwork.getSelectedNodes()
 
   if (selectedNodes === []) {
     return
@@ -118,7 +118,7 @@ function addNode () {
 }
 
 function editNode () {
-  var selectedNodes = globalNetwork.getSelectedNodes()
+  const selectedNodes = globalNetwork.getSelectedNodes()
 
   if (selectedNodes === []) {
     return

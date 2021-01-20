@@ -15,9 +15,21 @@ class Node {
     nodesStore.addNode(node)
 
     // Add edge from this.id to node.id
-    var newEdge = new Edge(this.id, node.id)
+    const newEdge = new Edge(this.id, node.id)
     edgesStore.addEdge(newEdge)
   }
+
+  getChildren (edgesStore, nodesStore) {
+     const children = [];
+
+     for (const anEdge of edgesStore.edges) {
+        if (anEdge.from === this.id) {
+            children.push(nodesStore.getNode(anEdge.to))
+        }
+     }
+
+     return children;
+ }
 
   editLabel (newLabel) {
     this.label = newLabel
@@ -31,7 +43,7 @@ class Node {
 
   // Returns a string representing what should be displayed as the title of a
   // node on an attack tree.
-  modelLabelDisplay () {
+  modelLabelDisplay (edgesStore, nodesStore) {
     return this.label
   }
 }
@@ -41,12 +53,12 @@ class Nodes {
     this.nodes = []
   }
 
-  toVIS () {
+  toVIS (edgesStore) {
     const visData = []
 
     for (const aNode of this.nodes) {
       const copyNode = new Node(aNode.id, aNode.label, aNode.attributes)
-      copyNode.label = aNode.modelLabelDisplay()
+      copyNode.label = aNode.modelLabelDisplay(edgesStore, this)
       visData.push(copyNode)
     }
 
@@ -63,7 +75,7 @@ class Nodes {
       return a.id - b.id
     })
 
-    for (var i = 0; i < this.nodes.length; i++) {
+    for (let i = 0; i < this.nodes.length; i++) {
       if (i == 0) {
         if (this.nodes[i].id != 0) {
           return 0
@@ -79,7 +91,7 @@ class Nodes {
   }
 
   getNode (id) {
-    for (var i = 0; i < this.nodes.length; i++) {
+    for (let i = 0; i < this.nodes.length; i++) {
       if (this.nodes[i].id == id) {
         return this.nodes[i]
       }

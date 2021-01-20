@@ -1,11 +1,11 @@
 function donePressed (ele_id) {
-  var ele = document.getElementById(ele_id)
+  const ele = document.getElementById(ele_id)
   ele.innerHTML = ''
 }
 
 function openEditDialog (obj, ele_id, redrawFunc) {
-  var attributes = Object.keys(obj.attributes)
-  var ele = document.getElementById(ele_id)
+  const attributes = Object.keys(obj.attributes)
+  const ele = document.getElementById(ele_id)
   ele.innerHTML = ''
 
   // Display name
