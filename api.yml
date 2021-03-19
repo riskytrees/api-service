@@ -1,0 +1,52 @@
+openapi: 3.0.1
+info:
+  title: attack_tree_modeler
+  description: 'API specification for the attack_tree_modeler API service.'
+  contact:
+    email: na@example.com
+  version: 1.0.0
+externalDocs:
+  description: attack_tree_modeler on GitHub
+  url: https://github.com/JosiahOne/attack_tree_modeler
+servers:
+- url: https://riskytrees.com/api/v1
+paths:
+  /auth/register:
+    post:
+      tags:
+      - auth
+      summary: Registers a new user
+      operationId: registerUser
+      requestBody:
+        description: User details that you want to register
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUser'
+        required: true
+      responses:
+        200:
+          description: User registered succesfully
+          content: {}
+
+components:
+  schemas:
+    RegisterUser:
+      type: object
+      properties:
+        email:
+          type: integer
+          format: int64
+
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+
+
