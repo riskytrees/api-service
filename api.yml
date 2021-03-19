@@ -28,6 +28,82 @@ paths:
         200:
           description: User registered succesfully
           content: {}
+  /auth/login:
+    post:
+      tags:
+      - auth
+      summary: Logins a new user and returns a session token
+      operationId: loginUser
+      requestBody:
+        description: User details that you want to login with
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUser'
+        required: true
+      responses:
+        200:
+          description: User logged in succesfully
+          content: {}
+  /auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Logouts the current user and invalidates the session token
+      operationId: logoutUser
+      responses:
+        200:
+          description: User logged out succesfully
+          content: {}
+
+  /projects:
+    post:
+      tags:
+      - project
+      summary: Creates a new empty project
+      operationId: createProject
+      requestBody:
+        description: Initial details about the project
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProject'
+        required: true
+      responses:
+        200:
+          description: Project created succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateProjectResponse'
+  /projects/{id}/trees:
+    get:
+      tags:
+      - project
+      summary: Gets a list of trees relevant to this project
+      operationId: getTrees
+      responses:
+        200:
+          description: Got list of trees successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListTreesResponse'
+
+
+  /models:
+    get:
+      tags:
+      - model
+      summary: Gets a list of available models
+      operationId: getModels
+      responses:
+        200:
+          description: Got list of models successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetModelsResponse'
 
 components:
   schemas:
@@ -35,18 +111,71 @@ components:
       type: object
       properties:
         email:
-          type: integer
-          format: int64
+          type: string
+          format: email
+
+    CreateProject:
+      type: object
+      properties:
+        title:
+          type: string
+
+
+    CreateProjectResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+
+    GetModelsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            models:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+
+    ListTreesResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            trees:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
 
     ApiResponse:
       type: object
       properties:
-        code:
-          type: integer
-          format: int32
-        type:
+        ok:
           type: string
         message:
           type: string
-
-
+        result:
+          type: object
