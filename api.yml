@@ -82,6 +82,12 @@ paths:
       - project
       summary: Gets a list of trees relevant to this project
       operationId: getTrees
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
       responses:
         200:
           description: Got list of trees successfully
@@ -89,8 +95,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListTreesResponse'
-
-
+    post:
+      tags:
+      - project
+      summary: Creates a new empty tree
+      operationId: createTree
+      requestBody:
+        description: Initial details about the tree
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTree'
+        required: true
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Tree created succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTreeResponse'
   /models:
     get:
       tags:
@@ -169,6 +198,25 @@ components:
                     type: integer
                   title:
                     type: string
+
+    CreateTree:
+      type: object
+      properties:
+        title:
+          type: string
+
+    CreateTreeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
 
     ApiResponse:
       type: object
