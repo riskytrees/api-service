@@ -144,7 +144,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TreeResponse'
-
+  /projects/{projectId}/model:
+    get:
+      tags:
+      - project
+      summary: View selected model for a project
+      operationId: getProjectModel
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got model successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectedModelResponse'
+    put:
+      tags:
+      - project
+      summary: Change selected model for a project
+      operationId: changeProjectModel
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired model
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectedModel'
+      responses:
+        200:
+          description: Changed model successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectedModelResponse'
   /projects/{projectId}/nodes/{nodeId}:
     get:
       tags:
@@ -198,6 +240,19 @@ components:
         title:
           type: string
 
+    SelectedModel:
+      type: object
+      properties:
+        modelId:
+          type: integer
+
+    SelectedModelResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/SelectedModel'
 
     CreateProjectResponse:
       allOf:
@@ -245,7 +300,14 @@ components:
           type: string
         treeRefId:
           type: integer
-
+        children:
+          type: array
+          items:
+            type: integer
+        parents:
+          type: array
+          items:
+            type: integer
 
     NodeResponse:
       allOf:
@@ -253,10 +315,7 @@ components:
       type: object
       properties:
         result:
-          type: object
-          properties:
-            schema:
-              $ref: '#/components/schemas/FullNodeData'
+          $ref: '#/components/schemas/FullNodeData'
 
     ListTreesResponse:
       allOf:
