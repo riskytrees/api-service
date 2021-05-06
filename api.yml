@@ -120,6 +120,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateTreeResponse'
+  /projects/{projectId}/trees/{treeId}:
+    get:
+      tags:
+      - project
+      summary: View details of a single tree
+      operationId: getTree
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got tree successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreeResponse'
+  /projects/{projectId}/nodes/{nodeId}:
+    get:
+      tags:
+      - project
+      summary: View details of a single node
+      operationId: getNode
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: nodeid
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got node successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
   /models:
     get:
       tags:
@@ -181,6 +229,34 @@ components:
                   title:
                     type: string
 
+    FullNodeData:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        modelAttributes:
+          type: object
+        conditionAttribute:
+          type: string
+        treeRefId:
+          type: integer
+
+
+    NodeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            schema:
+              $ref: '#/components/schemas/FullNodeData'
+
     ListTreesResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'
@@ -198,6 +274,34 @@ components:
                     type: integer
                   title:
                     type: string
+
+    FullTreeData:
+      allOf:
+        - $ref: '#/components/schemas/CreateTree'
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              nodeId:
+                type: integer
+        rootNode:
+          type: integer
+
+
+    TreeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            schema:
+              $ref: '#/components/schemas/FullTreeData'
+
 
     CreateTree:
       type: object
