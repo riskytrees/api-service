@@ -211,6 +211,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NodeResponse'
+  /projects/{projectId}/config:
+    get:
+      tags:
+      - project
+      summary: View config of a project
+      operationId: getProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectConfigResponse'
+
   /models:
     get:
       tags:
@@ -239,6 +259,17 @@ components:
       properties:
         title:
           type: string
+
+    ProjectConfigResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            attributes:
+              type: object
 
     SelectedModel:
       type: object
