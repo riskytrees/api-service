@@ -144,6 +144,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TreeResponse'
+
   /projects/{projectId}/nodes/{nodeId}:
     get:
       tags:
@@ -157,7 +158,7 @@ paths:
             type: integer
           required: true
         - in: path
-          name: nodeid
+          name: nodeId
           schema:
             type: integer
           required: true
