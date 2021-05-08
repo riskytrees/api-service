@@ -230,6 +230,106 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectConfigResponse'
+    put:
+      tags:
+      - project
+      summary: Change selected config of a project
+      operationId: switchProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired config id
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectConfigIdPayload'
+        required: true
+      responses:
+        200:
+          description: Changed config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectConfigResponse'
+  /projects/{projectId}/configs:
+    get:
+      tags:
+      - project
+      summary: View config options of a project
+      operationId: getProjectConfigList
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got config list successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectConfigListResponse'
+    post:
+      tags:
+      - project
+      summary: Add a new config of a project
+      operationId: addProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired config
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectConfigPayload'
+        required: true
+      responses:
+        200:
+          description: Changed config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectConfigResponse'
+  /projects/{projectId}/configs/{id}:
+    put:
+      tags:
+      - project
+      summary: Add a new config of a project
+      operationId: updateProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired config
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectConfigPayload'
+        required: true
+      responses:
+        200:
+          description: Changed config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecificProjectConfigResponse'
 
   /models:
     get:
@@ -260,7 +360,7 @@ components:
         title:
           type: string
 
-    ProjectConfigResponse:
+    ProjectConfigListResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'
       type: object
@@ -268,8 +368,44 @@ components:
         result:
           type: object
           properties:
+            ids:
+              type: array
+              items:
+                type: integer
+
+    SpecificProjectConfigResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          properties:
             attributes:
               type: object
+
+    ProjectConfigResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          properties:
+            selectedConfig:
+              type: integer
+            attributes:
+              type: object
+
+    ProjectConfigPayload:
+      type: object
+      properties:
+        attributes:
+          type: object
+
+    ProjectConfigIdPayload:
+      type: object
+      properties:
+        desiredConfig:
+          type: integer
 
     SelectedModel:
       type: object
