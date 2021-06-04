@@ -3,9 +3,9 @@
 #[macro_use] extern crate rocket;
 
 use mongodb::{
-    bson::{doc, Bson, Document},
-    sync::Client,
+    bson::{doc},
 };
+use rocket_contrib::json::Json;
 
 mod database;
 mod constants;
@@ -23,9 +23,18 @@ fn index() -> &'static str {
     }
 }
 
-#[post("/auth/login")]
-fn auth_login() -> &'static str {
-    "todo"
+#[post("/auth/login", data = "<body>")]
+fn auth_login(body: Json<models::ApiRegisterUser>) -> &'static str {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            if database::get_user(client.to_owned(), body.email.to_owned()).is_none() {
+                database::new_user(client, body.email.to_owned());
+            }
+            "Hello, world!"
+        },
+        Err(e) => "Failed to create user"
+    }
 }
 
 #[post("/auth/logout")]

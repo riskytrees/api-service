@@ -8,8 +8,14 @@ edition = "2018"
 
 [dependencies]
 rocket = "0.4.7"
+serde = { version = "1.0", features = ["derive"] }
 
 [dependencies.mongodb]
 version = "2.0.0-alpha.1"
 default-features = false
 features = ["sync"]
+
+[dependencies.rocket_contrib]
+version = "0.4.10"
+default-features = false
+features = ["json"]

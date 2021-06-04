@@ -1,8 +1,7 @@
 use mongodb::{
-    bson::{doc, Bson, Document},
+    bson::{doc, Document},
     sync::Client,
 };
-use std::io;
 
 use crate::constants;
 use crate::models;
@@ -18,10 +17,10 @@ pub fn get_user(client: mongodb::sync::Client, email: String) -> Option<models::
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("users");
 
-    match collection.count_documents(doc! {"email": email.clone()}, None) {
+    match collection.count_documents(doc! {"email": email.to_owned()}, None) {
         Ok(count) => {
             if count > 0 {
-                return match collection.find_one(doc! {"email": email.clone()}, None) {
+                return match collection.find_one(doc! {"email": email.to_owned()}, None) {
                     Ok(res) => {
                         match res {
                             Some(doc) => Some(models::User {
