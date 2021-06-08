@@ -6,9 +6,14 @@ use mongodb::{
     bson::{doc},
 };
 use rocket_contrib::json::Json;
+
+
 mod database;
 mod constants;
 mod models;
+
+#[cfg(test)]
+mod tests;
 
 #[get("/")]
 fn index() -> &'static str {
