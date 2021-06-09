@@ -64,10 +64,48 @@ fn auth_logout() -> &'static str {
     "todo"
 }
 
+#[post("/projects", data = "<body>")]
+fn projects_post(body: Json<models::ApiCreateProject>) -> Json<models::ApiCreateProjectResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            let project = database::get_project(client.to_owned(), body.title.to_owned());
+            match project {
+                Some(project) => {
+                    //database::new_user(client, body.email.to_owned());
+
+                    Json(models::ApiCreateProjectResponse {
+                        ok: true,
+                        message: "Project created succesfully".to_owned(),
+                        result: Some(models::CreateProjectResponseResult {
+                            title: project.title,
+                            id: project.id
+                        })
+                    })
+                },
+                None => {
+                    Json(models::ApiCreateProjectResponse {
+                        ok: true,
+                        message: "Got project logged in succesfully".to_owned(),
+                        result: None
+                    })
+                }
+            }
+        },
+        Err(e) =>  Json(models::ApiCreateProjectResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None
+        })
+    }
+}
+
+
 fn main() {
     rocket::ignite().mount("/", routes![
         index,
         auth_login,
-        auth_logout]).launch();
+        auth_logout,
+        projects_post]).launch();
 
 }
