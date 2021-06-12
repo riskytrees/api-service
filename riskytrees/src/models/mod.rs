@@ -8,7 +8,8 @@ pub struct User {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Project {
     pub title: String,
-    pub id: i32
+    pub id: String,
+    pub related_tree_ids: Vec<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -18,8 +19,14 @@ pub struct AuthLoginResponseResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreateProjectResponseResult {
-    pub id: i32,
+    pub id: String,
     pub title: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CreateTreeResponseResult {
+    pub title: String,
+    pub id: String
 }
 
 // Everything below is an OpenAPI structure
@@ -42,8 +49,22 @@ pub struct ApiCreateProject {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ApiCreateTree {
+    pub title: String
+}
+
+// Responses
+
+#[derive(Serialize, Deserialize)]
 pub struct ApiCreateProjectResponse {
     pub ok: bool,
     pub message: String,
     pub result: Option<CreateProjectResponseResult>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ApiCreateTreeResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<CreateTreeResponseResult>
 }

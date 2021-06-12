@@ -5,6 +5,8 @@ use mongodb::{
 
 use crate::constants;
 use crate::models;
+use crate::helpers;
+use crate::errors;
 
 pub fn get_instance() -> Result<mongodb::sync::Client, mongodb::error::Error> {
     let client = Client::with_uri_str(constants::DATABASE_HOST)?;
@@ -64,7 +66,8 @@ pub fn get_project(client: mongodb::sync::Client, title: String) -> Option<model
                         match res {
                             Some(doc) => Some(models::Project {
                                 title: doc.get_str("title").ok()?.to_string(),
-                                id: doc.get_i32("id").ok()?
+                                id: doc.get_str("_id").ok()?.to_string(),
+                                related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(doc.get_array("related_tree_ids").ok()?.clone())
                             }),
                             None => None
                         }
@@ -78,5 +81,36 @@ pub fn get_project(client: mongodb::sync::Client, title: String) -> Option<model
         Err(err) => {
             None
         }
+    }
+}
+
+pub fn new_project(client: mongodb::sync::Client, title: String) -> bool {
+    let database = client.database(constants::DATABASE_NAME);
+    let collection = database.collection::<Document>("projects");
+
+    collection.insert_one(doc! { "title": title }, None);
+
+    true
+}
+
+pub fn create_project_tree(client: mongodb::sync::Client, title: String, project_id: String) -> Result<String, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+    let project_collection = database.collection::<Document>("projects");
+
+    let insert_result = trees_collection.insert_one(doc! { "title": title }, None)?;
+    let inserted_id = insert_result.inserted_id;
+
+    project_collection.find_one_and_update(doc! {
+        "_id": project_id.to_owned()
+    }, doc! {
+        "$push": {
+            "related_tree_ids": inserted_id.clone()
+        }
+    }, None)?;
+
+    match inserted_id.as_object_id().clone() {
+        Some(oid) => Ok(oid.to_string()),
+        None => Err(errors::DatabaseError { message: "No object ID found.".to_string() })
     }
 }

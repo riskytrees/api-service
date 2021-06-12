@@ -11,6 +11,8 @@ use rocket_contrib::json::Json;
 mod database;
 mod constants;
 mod models;
+mod helpers;
+mod errors;
 
 #[cfg(test)]
 mod tests;
@@ -72,7 +74,7 @@ fn projects_post(body: Json<models::ApiCreateProject>) -> Json<models::ApiCreate
             let project = database::get_project(client.to_owned(), body.title.to_owned());
             match project {
                 Some(project) => {
-                    //database::new_user(client, body.email.to_owned());
+                    database::new_project(client, body.title.to_owned());
 
                     Json(models::ApiCreateProjectResponse {
                         ok: true,
@@ -100,12 +102,57 @@ fn projects_post(body: Json<models::ApiCreateProject>) -> Json<models::ApiCreate
     }
 }
 
+#[post("/projects/<id>/trees", data = "<body>")]
+fn projects_trees_post(id: String, body: Json<models::ApiCreateTree>) -> Json<models::ApiCreateTreeResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            let project = database::get_project(client.to_owned(), body.title.to_owned());
+            match project {
+                Some(project) => {
+                    // Create tree
+                    match database::create_project_tree(client.to_owned(), body.title.to_owned(), id) {
+                        Ok(db_res) => {
+                            Json(models::ApiCreateTreeResponse {
+                                ok: true,
+                                message: "Added tree".to_owned(),
+                                result: Some(models::CreateTreeResponseResult {
+                                    title: body.title.to_owned(),
+                                    id: db_res
+                                })
+                            })
+                        },
+                        Err(err) => Json(models::ApiCreateTreeResponse {
+                            ok: false,
+                            message: format!("Failed to create new tree and link to project: {}", err),
+                            result: None
+                        })
+                    }
+
+                },
+                None => Json(models::ApiCreateTreeResponse {
+                    ok: true,
+                    message: "Could not find project".to_owned(),
+                    result: None
+                })
+            }
+        },
+        Err(e) =>  Json(models::ApiCreateTreeResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None
+        })
+    }
+}
+
+
 
 fn main() {
     rocket::ignite().mount("/", routes![
         index,
         auth_login,
         auth_logout,
-        projects_post]).launch();
+        projects_post,
+        projects_trees_post]).launch();
 
 }

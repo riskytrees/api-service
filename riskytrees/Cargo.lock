@@ -1593,6 +1593,7 @@ dependencies = [
 name = "riskytrees"
 version = "0.1.0"
 dependencies = [
+ "bson",
  "mongodb",
  "rocket",
  "rocket_contrib",
