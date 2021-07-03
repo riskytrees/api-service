@@ -84,14 +84,19 @@ pub fn get_project(client: mongodb::sync::Client, title: String) -> Option<model
     }
 }
 
-pub fn new_project(client: mongodb::sync::Client, title: String) -> bool {
+pub fn new_project(client: mongodb::sync::Client, title: String) -> Result<String, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
 
-    collection.insert_one(doc! { "title": title }, None);
+    let insert_result = collection.insert_one(doc! { "title": title }, None)?;
+    let inserted_id = insert_result.inserted_id;
 
-    true
+    match inserted_id.as_object_id().clone() {
+        Some(oid) => Ok(oid.to_string()),
+        None => Err(errors::DatabaseError { message: "No object ID found.".to_string() })
+    }
 }
+
 
 pub fn create_project_tree(client: mongodb::sync::Client, title: String, project_id: String) -> Result<String, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);

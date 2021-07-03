@@ -74,23 +74,32 @@ fn projects_post(body: Json<models::ApiCreateProject>) -> Json<models::ApiCreate
             let project = database::get_project(client.to_owned(), body.title.to_owned());
             match project {
                 Some(project) => {
-                    database::new_project(client, body.title.to_owned());
-
                     Json(models::ApiCreateProjectResponse {
                         ok: true,
-                        message: "Project created succesfully".to_owned(),
-                        result: Some(models::CreateProjectResponseResult {
-                            title: project.title,
-                            id: project.id
-                        })
+                        message: "Tree already exists".to_owned(),
+                        result: None
                     })
                 },
                 None => {
-                    Json(models::ApiCreateProjectResponse {
-                        ok: true,
-                        message: "Got project logged in succesfully".to_owned(),
-                        result: None
-                    })
+                    match database::new_project(client, body.title.to_owned()) {
+                        Ok(new_project_id) => {
+                            Json(models::ApiCreateProjectResponse {
+                                ok: true,
+                                message: "Project created succesfully".to_owned(),
+                                result: Some(models::CreateProjectResponseResult {
+                                    title: body.title.to_owned(),
+                                    id: new_project_id
+                                })
+                            })
+                        },
+                        Err(err) => {
+                            Json(models::ApiCreateProjectResponse {
+                                ok: false,
+                                message: format!("Failed to create project: {}", err),
+                                result: None
+                            })
+                        }
+                    }
                 }
             }
         },

@@ -15,3 +15,13 @@ def test_auth_login():
 
   assert(res['ok'] == True)
   assert("created" not in res['message'])
+
+
+def test_project_post():
+  r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+  res = r.json()
+
+  assert(res['ok'] == True)
+  assert("created" in res['message'])
+  assert(res['result']['title'] == 'test project')
