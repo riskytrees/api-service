@@ -25,3 +25,23 @@ def test_project_post():
   assert(res['ok'] == True)
   assert("created" in res['message'])
   assert(res['result']['title'] == 'test project')
+
+
+def test_project_tree_post():
+  r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+  res = r.json()
+
+  assert(res['ok'] == True)
+  assert("created" in res['message'])
+  assert(res['result']['title'] == 'test project')
+
+  project_id = res['result']['id']
+
+  r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'bad things'})
+
+  res = r.json()
+
+  assert(res['ok'] == True)
+  assert("Added tree" in res['message'])
+  assert(res['result']['title'] == 'bad things')

@@ -71,7 +71,7 @@ fn projects_post(body: Json<models::ApiCreateProject>) -> Json<models::ApiCreate
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            let project = database::get_project(client.to_owned(), body.title.to_owned());
+            let project = database::get_project_by_title(client.to_owned(), body.title.to_owned());
             match project {
                 Some(project) => {
                     Json(models::ApiCreateProjectResponse {
@@ -116,7 +116,7 @@ fn projects_trees_post(id: String, body: Json<models::ApiCreateTree>) -> Json<mo
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            let project = database::get_project(client.to_owned(), body.title.to_owned());
+            let project = database::get_project_by_id(client.to_owned(), id.to_owned());
             match project {
                 Some(project) => {
                     // Create tree

@@ -54,7 +54,7 @@ pub fn new_user(client: mongodb::sync::Client, email: String) -> bool {
 
 
 // Checks if a project already exists in the databse. If it does, it is returned.
-pub fn get_project(client: mongodb::sync::Client, title: String) -> Option<models::Project> {
+pub fn get_project_by_title(client: mongodb::sync::Client, title: String) -> Option<models::Project> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
 
@@ -84,11 +84,63 @@ pub fn get_project(client: mongodb::sync::Client, title: String) -> Option<model
     }
 }
 
+pub fn get_project_by_id(client: mongodb::sync::Client, id: String) -> Option<models::Project> {
+    let database = client.database(constants::DATABASE_NAME);
+    let collection = database.collection::<Document>("projects");
+
+    match collection.find_one(doc! {"_id":  bson::oid::ObjectId::with_string(&id.to_owned()).expect("infallible")}, None) {
+        Ok(res) => {
+            match res {
+                Some(doc) => {
+                    let title = match doc.get_str("title").ok() {
+                        Some(val) => val,
+                        None => {
+                            println!("Found record does not have title field.");
+                            ""
+                        }
+                    };
+
+                    let id = match doc.get_object_id("_id").ok() {
+                        Some(val) => val.to_hex(),
+                        None => {
+                            println!("Found record does not have id field.");
+                            "".to_string()
+                        }
+                    };
+
+                    let tree_ids = match doc.get_array("related_tree_ids").ok() {
+                        Some(val) => val.clone(),
+                        None => {
+                            println!("Found record does not have related_tree_ids");
+                            Vec::new()
+                        }
+                    };
+
+                    let returnres = Some(models::Project {
+                        title: title.to_string(),
+                        id: id.to_string(),
+                        related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(tree_ids)
+                    });
+                    returnres
+                },
+                None => {
+                    println!("Could not find project with _id = {}", id);
+                    None
+                }
+            }
+        },
+        Err(err) => {
+            println!("find one failed with project with _id = {}", id);
+            None
+        }
+    }
+}
+
 pub fn new_project(client: mongodb::sync::Client, title: String) -> Result<String, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
 
-    let insert_result = collection.insert_one(doc! { "title": title }, None)?;
+    let insert_result = collection.insert_one(doc! { "title": title, "related_tree_ids": [] }, None)?;
     let inserted_id = insert_result.inserted_id;
 
     match inserted_id.as_object_id().clone() {
