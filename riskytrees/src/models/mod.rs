@@ -29,6 +29,17 @@ pub struct CreateTreeResponseResult {
     pub id: String
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ListTreeResponseResult {
+    pub trees: Vec<ListTreeResponseItem>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ListTreeResponseItem {
+    pub title: String,
+    pub id: String
+}
+
 // Everything below is an OpenAPI structure
 
 #[derive(Serialize, Deserialize)]
@@ -54,6 +65,14 @@ pub struct ApiCreateTree {
 }
 
 // Responses
+
+#[derive(Serialize, Deserialize)]
+pub struct ApiListTreeResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ListTreeResponseResult>
+}
+
 
 #[derive(Serialize, Deserialize)]
 pub struct ApiCreateProjectResponse {
