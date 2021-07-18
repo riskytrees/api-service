@@ -184,6 +184,46 @@ pub fn create_project_tree(
     }
 }
 
+fn get_tree_items_from_tree_ids(client: mongodb::sync::Client, tree_ids: Vec<String>) {
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+    let mut result = Vec::new();
+
+    for tree_id in tree_ids {
+        let matched_records = trees_collection.find(
+            doc! {
+                "related_tree_ids": tree_id
+            },
+            None,
+        );
+
+        match matched_records {
+            Ok(mut records) => {
+                while let Some(record) = records.next() {
+                    println!("Found a match");
+
+                    let _ = match record {
+                        Ok(record) => result.push(models::ListTreeResponseItem {
+                            title: record
+                                .get_str("title")
+                                .expect("Title should always exist")
+                                .to_string(),
+                            id: record
+                                .get_object_id("_id")
+                                .expect("_id should always exist")
+                                .to_string(),
+                        }),
+                        Err(err) => eprintln!("MongoDB returned an error: {}", err),
+                    };
+                }
+            }
+            Err(err) => eprintln!("Getting matched records failed: {}", err),
+        }
+    };
+
+    result
+}
+
 pub fn get_trees_by_project_id(
     client: mongodb::sync::Client,
     project_id: String,
@@ -192,33 +232,16 @@ pub fn get_trees_by_project_id(
     let project_collection = database.collection::<Document>("projects");
     let mut result = Vec::new();
 
-    let matched_records = project_collection.find(
-        doc! {
-            "related_tree_ids": project_id
-        },
-        None,
-    );
+    let matched_project = get_project_by_id(client, project_id.to_owned());
 
-    match matched_records {
-        Ok(mut records) => {
-            while let Some(record) = records.next() {
-                let _ = match record {
-                    Ok(record) => result.push(models::ListTreeResponseItem {
-                        title: record
-                            .get_str("title")
-                            .expect("Title should always exist")
-                            .to_string(),
-                        id: record
-                            .get_object_id("_id")
-                            .expect("_id should always exist")
-                            .to_string(),
-                    }),
-                    Err(err) => eprintln!("MongoDB returned an error: {}", err),
-                };
-            }
+    match matched_project {
+        Some(project) => {
+            let tree_ids = project.related_tree_ids;
+
+            Ok(result)
         }
-        Err(err) => eprintln!("Getting matched records failed: {}", err),
+        None => Err(errors::DatabaseError {
+            message: "Failed to search for matching trees".to_string(),
+        }),
     }
-
-    Ok(result)
 }
