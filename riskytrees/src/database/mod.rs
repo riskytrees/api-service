@@ -230,7 +230,6 @@ pub fn get_trees_by_project_id(
     client: &mongodb::sync::Client,
     project_id: String,
 ) -> Result<Vec<models::ListTreeResponseItem>, errors::DatabaseError> {
-    let database = client.database(constants::DATABASE_NAME);
 
     let matched_project = get_project_by_id(client, project_id.to_owned());
 

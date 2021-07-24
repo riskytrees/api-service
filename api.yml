@@ -151,7 +151,7 @@ paths:
                 $ref: '#/components/schemas/SelectedModelResponse'
     put:
       tags:
-        - nodes
+        - project
       summary: Change selected model for a project
       operationId: changeProjectModel
       parameters:
@@ -178,7 +178,7 @@ paths:
   /projects/{projectId}/nodes:
     post:
       tags:
-        - nodes
+        - project
       summary: Create a new node for this tree
       operationId: addNode
       parameters:
