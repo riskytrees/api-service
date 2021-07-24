@@ -147,6 +147,13 @@ paths:
           schema:
             type: integer
           required: true
+      requestBody:
+        description: Initial details about the node
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNode'
+        required: true
       responses:
         200:
           description: Created node successfully
@@ -477,10 +484,24 @@ components:
                     type: string
 
     FullNodeData:
+      allOf:
+        - $ref: '#/components/schemas/CreateNode'
       type: object
       properties:
         id:
           type: string
+        children:
+          type: array
+          items:
+            type: integer
+
+
+    CreateNode:
+      type: object
+      required:
+        - title
+        - parents
+      properties:
         title:
           type: string
         description:
@@ -489,12 +510,6 @@ components:
           type: object
         conditionAttribute:
           type: string
-        treeRefId:
-          type: string
-        children:
-          type: array
-          items:
-            type: integer
         parents:
           type: array
           items:
