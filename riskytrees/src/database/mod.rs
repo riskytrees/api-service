@@ -80,7 +80,7 @@ pub fn get_project_by_title(
     }
 }
 
-pub fn get_project_by_id(client: mongodb::sync::Client, id: String) -> Option<models::Project> {
+pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<models::Project> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
 
@@ -162,29 +162,31 @@ pub fn create_project_tree(
     let project_collection = database.collection::<Document>("projects");
 
     let insert_result = trees_collection.insert_one(doc! { "title": title }, None)?;
-    let inserted_id = insert_result.inserted_id;
+    let inserted_id = insert_result.inserted_id.as_object_id();
 
-    project_collection.find_one_and_update(
-        doc! {
-            "_id": project_id.to_owned()
-        },
-        doc! {
-            "$push": {
-                "related_tree_ids": inserted_id.clone()
-            }
-        },
-        None,
-    )?;
+    match inserted_id.clone() {
+        Some(oid) => {
+            project_collection.find_one_and_update(
+                doc! {
+                    "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible")
+                },
+                doc! {
+                    "$push": {
+                        "related_tree_ids": oid.clone()
+                    }
+                },
+                None,
+            )?;
 
-    match inserted_id.as_object_id().clone() {
-        Some(oid) => Ok(oid.to_string()),
+            Ok(oid.to_string().clone())
+        },
         None => Err(errors::DatabaseError {
             message: "No object ID found.".to_string(),
         }),
     }
 }
 
-fn get_tree_items_from_tree_ids(client: mongodb::sync::Client, tree_ids: Vec<String>) {
+fn get_tree_items_from_tree_ids(client: &mongodb::sync::Client, tree_ids: Vec<String>) -> Vec<models::ListTreeResponseItem> {
     let database = client.database(constants::DATABASE_NAME);
     let trees_collection = database.collection::<Document>("trees");
     let mut result = Vec::new();
@@ -192,7 +194,7 @@ fn get_tree_items_from_tree_ids(client: mongodb::sync::Client, tree_ids: Vec<Str
     for tree_id in tree_ids {
         let matched_records = trees_collection.find(
             doc! {
-                "related_tree_ids": tree_id
+                "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible")
             },
             None,
         );
@@ -219,26 +221,25 @@ fn get_tree_items_from_tree_ids(client: mongodb::sync::Client, tree_ids: Vec<Str
             }
             Err(err) => eprintln!("Getting matched records failed: {}", err),
         }
-    };
+    }
 
     result
 }
 
 pub fn get_trees_by_project_id(
-    client: mongodb::sync::Client,
+    client: &mongodb::sync::Client,
     project_id: String,
 ) -> Result<Vec<models::ListTreeResponseItem>, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
-    let project_collection = database.collection::<Document>("projects");
-    let mut result = Vec::new();
 
     let matched_project = get_project_by_id(client, project_id.to_owned());
 
     match matched_project {
         Some(project) => {
             let tree_ids = project.related_tree_ids;
+            let trees = get_tree_items_from_tree_ids(client, tree_ids);
 
-            Ok(result)
+            Ok(trees)
         }
         None => Err(errors::DatabaseError {
             message: "Failed to search for matching trees".to_string(),

@@ -108,7 +108,7 @@ fn projects_trees_post(
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            let project = database::get_project_by_id(client.to_owned(), id.to_owned());
+            let project = database::get_project_by_id(&client, id.to_owned());
             match project {
                 Some(project) => {
                     // Create tree
@@ -156,11 +156,11 @@ fn projects_trees_get(id: String) -> Json<models::ApiListTreeResponse> {
     match db_client {
         Ok(client) => {
             let project: Option<models::Project> =
-                database::get_project_by_id(client.to_owned(), id.to_owned());
+                database::get_project_by_id(&client, id.to_owned());
             match project {
                 Some(project) => {
                     // Get trees
-                    let trees = database::get_trees_by_project_id(client.to_owned(), project.id);
+                    let trees = database::get_trees_by_project_id(&client, project.id);
 
                     match trees {
                         Ok(trees) => Json(models::ApiListTreeResponse {
