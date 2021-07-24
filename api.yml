@@ -11,23 +11,6 @@ externalDocs:
 servers:
 - url: https://riskytrees.com/api/v1
 paths:
-  /auth/register:
-    post:
-      tags:
-      - auth
-      summary: Registers a new user
-      operationId: registerUser
-      requestBody:
-        description: User details that you want to register
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterUser'
-        required: true
-      responses:
-        200:
-          description: User registered succesfully
-          content: {}
   /auth/login:
     post:
       tags:
@@ -35,7 +18,7 @@ paths:
       summary: Logins a new user and returns a session token
       operationId: loginUser
       requestBody:
-        description: User details that you want to login with
+        description: User details that you want to login with. One day this will be a SAML callback.
         content:
           application/json:
             schema:
@@ -43,8 +26,11 @@ paths:
         required: true
       responses:
         200:
-          description: User logged in succesfully
-          content: {}
+          description: User logged in succesfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
   /auth/logout:
     post:
       tags:
@@ -144,6 +130,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TreeResponse'
+  /projects/{projectId}/trees/{treeId}/nodes:
+    post:
+      tags:
+        - project
+      summary: Create a new node for this tree
+      operationId: addNode
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Created node successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+
   /projects/{projectId}/model:
     get:
       tags:
@@ -211,6 +222,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NodeResponse'
+
   /projects/{projectId}/config:
     get:
       tags:
@@ -360,6 +372,18 @@ components:
         title:
           type: string
 
+    AuthLoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            sessionToken:
+              type: string
+
+
     ProjectConfigListResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'
@@ -411,7 +435,7 @@ components:
       type: object
       properties:
         modelId:
-          type: integer
+          type: string
 
     SelectedModelResponse:
       allOf:
@@ -430,7 +454,7 @@ components:
           type: object
           properties:
             id:
-              type: integer
+              type: string
             title:
               type: string
 
@@ -448,7 +472,7 @@ components:
                 type: object
                 properties:
                   id:
-                    type: integer
+                    type: string
                   title:
                     type: string
 
@@ -456,7 +480,7 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
         title:
           type: string
         description:
@@ -466,7 +490,7 @@ components:
         conditionAttribute:
           type: string
         treeRefId:
-          type: integer
+          type: string
         children:
           type: array
           items:
@@ -498,7 +522,7 @@ components:
                 type: object
                 properties:
                   id:
-                    type: integer
+                    type: string
                   title:
                     type: string
 
@@ -510,12 +534,9 @@ components:
         nodes:
           type: array
           items:
-            type: object
-            properties:
-              nodeId:
-                type: integer
-        rootNode:
-          type: integer
+            $ref: '#/components/schemas/FullNodeData'
+        rootNodeId:
+          type: string
 
 
     TreeResponse:
@@ -524,10 +545,7 @@ components:
       type: object
       properties:
         result:
-          type: object
-          properties:
-            schema:
-              $ref: '#/components/schemas/FullTreeData'
+          $ref: '#/components/schemas/FullTreeData'
 
 
     CreateTree:
@@ -545,7 +563,7 @@ components:
           type: object
           properties:
             id:
-              type: integer
+              type: string
             title:
               type: string
 
@@ -553,7 +571,7 @@ components:
       type: object
       properties:
         ok:
-          type: string
+          type: boolean
         message:
           type: string
         result:
