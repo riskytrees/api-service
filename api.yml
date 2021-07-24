@@ -130,38 +130,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TreeResponse'
-  /projects/{projectId}/trees/{treeId}/nodes:
-    post:
-      tags:
-        - project
-      summary: Create a new node for this tree
-      operationId: addNode
-      parameters:
-        - in: path
-          name: projectId
-          schema:
-            type: integer
-          required: true
-        - in: path
-          name: treeId
-          schema:
-            type: integer
-          required: true
-      requestBody:
-        description: Initial details about the node
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateNode'
-        required: true
-      responses:
-        200:
-          description: Created node successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NodeResponse'
-
   /projects/{projectId}/model:
     get:
       tags:
@@ -183,7 +151,7 @@ paths:
                 $ref: '#/components/schemas/SelectedModelResponse'
     put:
       tags:
-      - project
+        - nodes
       summary: Change selected model for a project
       operationId: changeProjectModel
       parameters:
@@ -205,6 +173,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SelectedModelResponse'
+
+
+  /projects/{projectId}/nodes:
+    post:
+      tags:
+        - nodes
+      summary: Create a new node for this tree
+      operationId: addNode
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Initial details about the node
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNode'
+        required: true
+      responses:
+        200:
+          description: Created node successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
   /projects/{projectId}/nodes/{nodeId}:
     get:
       tags:
