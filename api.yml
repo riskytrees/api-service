@@ -175,57 +175,6 @@ paths:
                 $ref: '#/components/schemas/SelectedModelResponse'
 
 
-  /projects/{projectId}/nodes:
-    post:
-      tags:
-        - project
-      summary: Create a new node for this tree
-      operationId: addNode
-      parameters:
-        - in: path
-          name: projectId
-          schema:
-            type: integer
-          required: true
-      requestBody:
-        description: Initial details about the node
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateNode'
-        required: true
-      responses:
-        200:
-          description: Created node successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NodeResponse'
-  /projects/{projectId}/nodes/{nodeId}:
-    get:
-      tags:
-      - project
-      summary: View details of a single node
-      operationId: getNode
-      parameters:
-        - in: path
-          name: projectId
-          schema:
-            type: integer
-          required: true
-        - in: path
-          name: nodeId
-          schema:
-            type: integer
-          required: true
-      responses:
-        200:
-          description: Got node successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NodeResponse'
-
   /projects/{projectId}/config:
     get:
       tags:
