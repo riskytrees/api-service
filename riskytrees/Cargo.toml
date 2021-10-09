@@ -1,0 +1,22 @@
+[package]
+name = "riskytrees"
+version = "0.1.0"
+authors = ["Josiah Bruner <jsbruner@umich.edu>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rocket = "0.4.10"
+serde = { version = "1.0", features = ["derive"] }
+bson = "1.2.2"
+
+[dependencies.mongodb]
+version = "2.0.0-alpha.1"
+default-features = false
+features = ["sync"]
+
+[dependencies.rocket_contrib]
+version = "0.4.10"
+default-features = false
+features = ["json"]

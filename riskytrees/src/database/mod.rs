@@ -1,0 +1,392 @@
+use mongodb::{
+    bson::{doc, Document},
+    sync::Client,
+};
+
+use std::collections::HashMap;
+use bson::Bson;
+
+use crate::constants;
+use crate::errors;
+use crate::helpers;
+use crate::models;
+
+pub fn get_instance() -> Result<mongodb::sync::Client, mongodb::error::Error> {
+    let client = Client::with_uri_str(constants::DATABASE_HOST)?;
+
+    Ok(client)
+}
+
+// Checks if user already exists in the databse. If it does, it is returned.
+pub fn get_user(client: mongodb::sync::Client, email: String) -> Option<models::User> {
+    let database = client.database(constants::DATABASE_NAME);
+    let collection = database.collection::<Document>("users");
+
+    match collection.count_documents(doc! {"email": email.to_owned()}, None) {
+        Ok(count) => {
+            if count > 0 {
+                return match collection.find_one(doc! {"email": email.to_owned()}, None) {
+                    Ok(res) => match res {
+                        Some(doc) => Some(models::User {
+                            email: doc.get_str("email").ok()?.to_string(),
+                        }),
+                        None => None,
+                    },
+                    Err(err) => None,
+                };
+            }
+
+            None
+        }
+        Err(err) => None,
+    }
+}
+
+pub fn new_user(client: mongodb::sync::Client, email: String) -> bool {
+    let database = client.database(constants::DATABASE_NAME);
+    let collection = database.collection::<Document>("users");
+
+    collection.insert_one(doc! { "email": email }, None);
+
+    true
+}
+
+// Checks if a project already exists in the databse. If it does, it is returned.
+pub fn get_project_by_title(
+    client: mongodb::sync::Client,
+    title: String,
+) -> Option<models::Project> {
+    let database = client.database(constants::DATABASE_NAME);
+    let collection = database.collection::<Document>("projects");
+
+    match collection.count_documents(doc! {"title": title.to_owned()}, None) {
+        Ok(count) => {
+            if count > 0 {
+                return match collection.find_one(doc! {"title": title.to_owned()}, None) {
+                    Ok(res) => match res {
+                        Some(doc) => Some(models::Project {
+                            title: doc.get_str("title").ok()?.to_string(),
+                            id: doc.get_str("_id").ok()?.to_string(),
+                            related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(
+                                doc.get_array("related_tree_ids").ok()?.clone(),
+                            ),
+                        }),
+                        None => None,
+                    },
+                    Err(err) => None,
+                };
+            }
+
+            None
+        }
+        Err(err) => None,
+    }
+}
+
+pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<models::Project> {
+    let database = client.database(constants::DATABASE_NAME);
+    let collection = database.collection::<Document>("projects");
+
+    match collection.find_one(
+        doc! {"_id":  bson::oid::ObjectId::with_string(&id.to_owned()).expect("infallible")},
+        None,
+    ) {
+        Ok(res) => match res {
+            Some(doc) => {
+                let title = match doc.get_str("title").ok() {
+                    Some(val) => val,
+                    None => {
+                        println!("Found record does not have title field.");
+                        ""
+                    }
+                };
+
+                let id = match doc.get_object_id("_id").ok() {
+                    Some(val) => val.to_hex(),
+                    None => {
+                        println!("Found record does not have id field.");
+                        "".to_string()
+                    }
+                };
+
+                let tree_ids = match doc.get_array("related_tree_ids").ok() {
+                    Some(val) => val.clone(),
+                    None => {
+                        println!("Found record does not have related_tree_ids");
+                        Vec::new()
+                    }
+                };
+
+                let returnres = Some(models::Project {
+                    title: title.to_string(),
+                    id: id.to_string(),
+                    related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(tree_ids),
+                });
+                returnres
+            }
+            None => {
+                println!("Could not find project with _id = {}", id);
+                None
+            }
+        },
+        Err(err) => {
+            println!("find one failed with project with _id = {}", id);
+            None
+        }
+    }
+}
+
+pub fn new_project(
+    client: mongodb::sync::Client,
+    title: String,
+) -> Result<String, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let collection = database.collection::<Document>("projects");
+
+    let insert_result =
+        collection.insert_one(doc! { "title": title, "related_tree_ids": [] }, None)?;
+    let inserted_id = insert_result.inserted_id;
+
+    match inserted_id.as_object_id().clone() {
+        Some(oid) => Ok(oid.to_string()),
+        None => Err(errors::DatabaseError {
+            message: "No object ID found.".to_string(),
+        }),
+    }
+}
+
+pub fn create_project_tree(
+    client: mongodb::sync::Client,
+    title: String,
+    project_id: String,
+) -> Result<String, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+    let project_collection = database.collection::<Document>("projects");
+
+    let insert_result = trees_collection.insert_one(doc! {
+        "title": title,
+        "rootNodeId": "" // Start with no root
+    }, None)?;
+    let inserted_id = insert_result.inserted_id.as_object_id();
+
+    match inserted_id.clone() {
+        Some(oid) => {
+            project_collection.find_one_and_update(
+                doc! {
+                    "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible")
+                },
+                doc! {
+                    "$push": {
+                        "related_tree_ids": oid.clone()
+                    }
+                },
+                None,
+            )?;
+
+            Ok(oid.to_string().clone())
+        },
+        None => Err(errors::DatabaseError {
+            message: "No object ID found.".to_string(),
+        }),
+    }
+}
+
+fn get_tree_items_from_tree_ids(client: &mongodb::sync::Client, tree_ids: Vec<String>) -> Vec<models::ListTreeResponseItem> {
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+    let mut result = Vec::new();
+
+    for tree_id in tree_ids {
+        let matched_records = trees_collection.find(
+            doc! {
+                "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible")
+            },
+            None,
+        );
+
+        match matched_records {
+            Ok(mut records) => {
+                while let Some(record) = records.next() {
+                    println!("Found a match");
+
+                    let _ = match record {
+                        Ok(record) => result.push(models::ListTreeResponseItem {
+                            title: record
+                                .get_str("title")
+                                .expect("Title should always exist")
+                                .to_string(),
+                            id: record
+                                .get_object_id("_id")
+                                .expect("_id should always exist")
+                                .to_string(),
+                        }),
+                        Err(err) => eprintln!("MongoDB returned an error: {}", err),
+                    };
+                }
+            }
+            Err(err) => eprintln!("Getting matched records failed: {}", err),
+        }
+    }
+
+    result
+}
+
+fn convert_bson_document_to_ModelAttribute_map(bson_doc: &Document) -> HashMap<String, models::ModelAttribute> {
+    let mut new_map: HashMap<String, models::ModelAttribute> = HashMap::new();
+
+    for (key, val) in bson_doc.into_iter() {
+        match val.as_document() {
+            Some(val) => {
+                let attribute_type = val.get_str("type").expect("All model attributes should have a type");
+                if attribute_type == "str" {
+                    new_map.insert(key.clone(), models::ModelAttribute {
+                        value_string: val.get_str("value").expect("Should match type field").to_owned(),
+                        value_int: 0,
+                        value_float: 0.0,
+                        value_type: "str".to_owned()
+                    });
+                } else if attribute_type == "int" {
+                    new_map.insert(key.clone(), models::ModelAttribute {
+                        value_string: "".to_owned(),
+                        value_int: val.get_i32("value").expect("Should match type field"),
+                        value_float: 0.0,
+                        value_type: "int".to_owned()
+                    });
+                } else if attribute_type == "float" {
+                    new_map.insert(key.clone(), models::ModelAttribute {
+                        value_string: "".to_owned(),
+                        value_int: 0,
+                        value_float: val.get_f64("value").expect("Should match type field"),
+                        value_type: "float".to_owned()
+                    });
+                } else {
+
+                }
+            },
+            None => {
+                eprintln!("Stored model attribute not a document!");
+            }
+        };
+    }
+
+    new_map
+}
+
+// Returns all the data contained in a single tree
+fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+
+    let matched_record = trees_collection.find_one(
+        doc! {
+            "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible")
+        },
+        None,
+    )?;
+
+    match matched_record {
+        Some(tree_record) => {
+            let empty_bson_array = bson::Array::new();
+            let title = tree_record.get_str("title").expect("title should always exist");
+            let root_node_id = tree_record.get_str("rootNodeId").expect("rootNodeId should always exist");
+            let nodes = tree_record.get_array("nodes").unwrap_or(&empty_bson_array);
+            let mut nodes_vec = Vec::new();
+
+            for node in nodes.into_iter() {
+                match node.as_document() {
+                    Some(node) => {
+                        let title = node.get_str("title").expect("title should always exist");
+
+                        let condition_attribute = node.get_str("condition_attribute").ok();
+                        let parents: Option<Vec<String>> = match node.get_array("parents") {
+                            Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
+                            Err(err) => None
+                        };
+                        let children: Option<Vec<String>> = match node.get_array("children") {
+                            Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
+                            Err(err) => None
+                        };
+
+                        let model_attributes = match node.get_document("model_attributes") {
+                            Ok(val) => Some(convert_bson_document_to_ModelAttribute_map(val)),
+                            Err(err) => None
+                        };
+
+                        nodes_vec.push(models::ApiFullNodeData {
+                            title: title.to_owned(),
+                            conditionAttribute: condition_attribute.unwrap_or("").to_owned(),
+                            parents: parents.unwrap_or(Vec::new()),
+                            children: children.unwrap_or(Vec::new()),
+                            modelAttributes: model_attributes.unwrap_or(HashMap::new())
+                        })
+                    },
+                    None => {
+                        eprint!("nodes should be an array of objects, but isn't!")
+                    }
+                }
+
+            }
+
+            Ok(models::ApiFullTreeData {
+                title: title.to_owned(),
+                rootNodeId: root_node_id.to_owned(),
+                nodes: nodes_vec
+            })
+        },
+        None => {
+            Err(errors::DatabaseError {
+                message: "Couldn't find tree".to_owned()
+            })
+        }
+    }
+}
+
+pub fn get_trees_by_project_id(
+    client: &mongodb::sync::Client,
+    project_id: String,
+) -> Result<Vec<models::ListTreeResponseItem>, errors::DatabaseError> {
+
+    let matched_project = get_project_by_id(client, project_id.to_owned());
+
+    match matched_project {
+        Some(project) => {
+            let tree_ids = project.related_tree_ids;
+            let trees = get_tree_items_from_tree_ids(client, tree_ids);
+
+            Ok(trees)
+        }
+        None => Err(errors::DatabaseError {
+            message: "Failed to search for matching trees".to_string(),
+        }),
+    }
+}
+
+pub fn get_tree_by_id(
+    client: &mongodb::sync::Client,
+    tree_id: String,
+) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
+
+    get_full_tree_data(client, tree_id)
+
+}
+
+pub fn update_tree_by_id(
+    client: &mongodb::sync::Client,
+    tree_id: String,
+    tree_data: models::ApiFullTreeData
+) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+
+    let doc = tree_data.to_bson_doc();
+
+
+
+    trees_collection.find_one_and_replace(doc! {
+        "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible")
+    }, doc, None);
+
+
+    get_full_tree_data(client, tree_id)
+}

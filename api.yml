@@ -1,0 +1,568 @@
+openapi: 3.0.1
+info:
+  title: attack_tree_modeler
+  description: 'API specification for the attack_tree_modeler API service.'
+  contact:
+    email: na@example.com
+  version: 1.0.0
+externalDocs:
+  description: attack_tree_modeler on GitHub
+  url: https://github.com/JosiahOne/attack_tree_modeler
+servers:
+- url: https://riskytrees.com/api/v1
+paths:
+  /auth/login:
+    post:
+      tags:
+      - auth
+      summary: Logins a new user and returns a session token
+      operationId: loginUser
+      requestBody:
+        description: User details that you want to login with. One day this will be a SAML callback.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUser'
+        required: true
+      responses:
+        200:
+          description: User logged in succesfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+  /auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Logouts the current user and invalidates the session token
+      operationId: logoutUser
+      responses:
+        200:
+          description: User logged out succesfully
+          content: {}
+
+  /projects:
+    post:
+      tags:
+      - project
+      summary: Creates a new empty project
+      operationId: createProject
+      requestBody:
+        description: Initial details about the project
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProject'
+        required: true
+      responses:
+        200:
+          description: Project created succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateProjectResponse'
+  /projects/{id}/trees:
+    get:
+      tags:
+      - project
+      summary: Gets a list of trees relevant to this project
+      operationId: getTrees
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got list of trees successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListTreesResponse'
+    post:
+      tags:
+      - project
+      summary: Creates a new empty tree
+      operationId: createTree
+      requestBody:
+        description: Initial details about the tree
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTree'
+        required: true
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Tree created succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTreeResponse'
+  /projects/{projectId}/trees/{treeId}:
+    get:
+      tags:
+      - project
+      summary: View details of a single tree
+      operationId: getTree
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got tree successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreeResponse'
+    put:
+      tags:
+      - project
+      summary: Updates a tree to match the specified payload.
+      operationId: updateTree
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired tree contents
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FullTreeData'
+      responses:
+        200:
+          description: Got tree successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreeResponse'
+
+  /projects/{projectId}/model:
+    get:
+      tags:
+      - project
+      summary: View selected model for a project
+      operationId: getProjectModel
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got model successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectedModelResponse'
+    put:
+      tags:
+        - project
+      summary: Change selected model for a project
+      operationId: changeProjectModel
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired model
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectedModel'
+      responses:
+        200:
+          description: Changed model successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectedModelResponse'
+
+
+  /projects/{projectId}/config:
+    get:
+      tags:
+      - project
+      summary: View config of a project
+      operationId: getProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectConfigResponse'
+    put:
+      tags:
+      - project
+      summary: Change selected config of a project
+      operationId: switchProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired config id
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectConfigIdPayload'
+        required: true
+      responses:
+        200:
+          description: Changed config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectConfigResponse'
+  /projects/{projectId}/configs:
+    get:
+      tags:
+      - project
+      summary: View config options of a project
+      operationId: getProjectConfigList
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got config list successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectConfigListResponse'
+    post:
+      tags:
+      - project
+      summary: Add a new config of a project
+      operationId: addProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired config
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectConfigPayload'
+        required: true
+      responses:
+        200:
+          description: Changed config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectConfigResponse'
+  /projects/{projectId}/configs/{id}:
+    put:
+      tags:
+      - project
+      summary: Add a new config of a project
+      operationId: updateProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired config
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectConfigPayload'
+        required: true
+      responses:
+        200:
+          description: Changed config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecificProjectConfigResponse'
+
+  /models:
+    get:
+      tags:
+      - model
+      summary: Gets a list of available models
+      operationId: getModels
+      responses:
+        200:
+          description: Got list of models successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetModelsResponse'
+
+components:
+  schemas:
+    RegisterUser:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+
+    CreateProject:
+      type: object
+      properties:
+        title:
+          type: string
+
+    AuthLoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            sessionToken:
+              type: string
+
+
+    ProjectConfigListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            ids:
+              type: array
+              items:
+                type: integer
+
+    SpecificProjectConfigResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          properties:
+            attributes:
+              type: object
+
+    ProjectConfigResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          properties:
+            selectedConfig:
+              type: integer
+            attributes:
+              type: object
+
+    ProjectConfigPayload:
+      type: object
+      properties:
+        attributes:
+          type: object
+
+    ProjectConfigIdPayload:
+      type: object
+      properties:
+        desiredConfig:
+          type: integer
+
+    SelectedModel:
+      type: object
+      properties:
+        modelId:
+          type: string
+
+    SelectedModelResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/SelectedModel'
+
+    CreateProjectResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+
+    GetModelsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            models:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+
+    FullNodeData:
+      allOf:
+        - $ref: '#/components/schemas/CreateNode'
+      type: object
+      properties:
+        id:
+          type: string
+        children:
+          type: array
+          items:
+            type: integer
+
+
+    CreateNode:
+      type: object
+      required:
+        - title
+        - parents
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        modelAttributes:
+          type: object
+        conditionAttribute:
+          type: string
+        parents:
+          type: array
+          items:
+            type: integer
+
+    NodeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/FullNodeData'
+
+    ListTreesResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            trees:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+
+    FullTreeData:
+      allOf:
+        - $ref: '#/components/schemas/CreateTree'
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FullNodeData'
+        rootNodeId:
+          type: string
+
+
+    TreeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/FullTreeData'
+
+
+    CreateTree:
+      type: object
+      properties:
+        title:
+          type: string
+
+    CreateTreeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+
+    ApiResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        result:
+          type: object
