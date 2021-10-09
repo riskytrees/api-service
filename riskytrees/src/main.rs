@@ -63,6 +63,35 @@ fn auth_logout() -> &'static str {
     "todo"
 }
 
+#[get("/projects")]
+fn projects_get() -> Json<models::ApiProjectsListResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            let ids = database::get_available_project_ids(&client);
+            match ids {
+                Ok(ids) => Json(models::ApiProjectsListResponse {
+                    ok: true,
+                    message: "Got projects".to_owned(),
+                    result: Some(models::ApiProjectsListResponseResult {
+                        projects: ids
+                    }),
+                }),
+                Err(err) => Json(models::ApiProjectsListResponse {
+                    ok: false,
+                    message: "Failed to find project ids".to_owned(),
+                    result: None,
+                })
+            }
+        }
+        Err(e) => Json(models::ApiProjectsListResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        }),
+    }
+}
+
 #[post("/projects", data = "<body>")]
 fn projects_post(body: Json<models::ApiCreateProject>) -> Json<models::ApiCreateProjectResponse> {
     let db_client = database::get_instance();
@@ -289,6 +318,7 @@ fn main() {
                 index,
                 auth_login,
                 auth_logout,
+                projects_get,
                 projects_post,
                 projects_trees_post,
                 projects_trees_get,

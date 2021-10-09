@@ -136,6 +136,36 @@ pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<m
     }
 }
 
+// Gets a list of project ids that the current user can access
+pub fn get_available_project_ids(client: &mongodb::sync::Client
+) -> Result<Vec<String>, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let collection = database.collection::<Document>("projects");
+
+    let matched_records = collection.find(doc!{}, None);
+
+    let mut resulting_ids = Vec::new();
+
+    match matched_records {
+        Ok(mut records) => {
+            while let Some(record) = records.next() {
+
+                let _ = match record {
+                    Ok(record) => {
+                        let id = record.get_object_id("_id").expect("_id is always an oid");
+                        resulting_ids.push(id.to_hex());
+                    },
+                    Err(err) => eprintln!("MongoDB returned an error: {}", err),
+                };
+            }
+            Ok(resulting_ids)
+        },
+        Err(err) => Err(errors::DatabaseError {
+            message: "Database failed to lookup projects!".to_string(),
+        })
+    }
+}
+
 pub fn new_project(
     client: mongodb::sync::Client,
     title: String,

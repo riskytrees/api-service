@@ -89,7 +89,7 @@ pub struct NodeResponseResult {
     pub children: Vec<String>
 }
 
-// Everything below is an OpenAPI structure
+// Everything below is an OpenAPI structure or part of one
 
 #[derive(Serialize, Deserialize)]
 pub struct ApiRegisterUser {
@@ -185,6 +185,11 @@ impl ApiFullTreeData {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ApiProjectsListResponseResult {
+    pub projects: Vec<String>
+}
+
 // Responses
 
 #[derive(Serialize, Deserialize)]
@@ -206,6 +211,13 @@ pub struct ApiCreateProjectResponse {
     pub ok: bool,
     pub message: String,
     pub result: Option<CreateProjectResponseResult>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ApiProjectsListResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiProjectsListResponseResult>
 }
 
 #[derive(Serialize, Deserialize)]

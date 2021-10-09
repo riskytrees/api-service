@@ -447,12 +447,10 @@ components:
         result:
           type: object
           properties:
-            projects:
-              type: array
-              items:
-                type: string
-                example: projectId
-
+            id:
+              type: string
+            title:
+              type: string
 
     ProjectsListResponse:
       allOf:
@@ -462,10 +460,12 @@ components:
         result:
           type: object
           properties:
-            id:
-              type: string
-            title:
-              type: string
+            projects:
+              type: array
+              items:
+                type: string
+                example: projectId
+
     GetModelsResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'

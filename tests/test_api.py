@@ -27,6 +27,15 @@ def test_project_post():
     assert(res['result']['title'] == 'test project')
 
 
+def test_projects_get():
+    r = requests.get('http://localhost:8000/projects')
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("Got" in res['message'])
+    assert(len(res['result']['projects']) > 0)
+
 def test_project_tree_post():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
 
