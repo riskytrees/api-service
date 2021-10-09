@@ -43,6 +43,18 @@ paths:
           content: {}
 
   /projects:
+    get:
+      tags:
+      - project
+      summary: Gets a list of projects you have access to
+      operationId: getProjects
+      responses:
+        200:
+          description: Got list of projects successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectsListResponse'
     post:
       tags:
       - project
@@ -435,11 +447,25 @@ components:
         result:
           type: object
           properties:
+            projects:
+              type: array
+              items:
+                type: string
+                example: projectId
+
+
+    ProjectsListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
             id:
               type: string
             title:
               type: string
-
     GetModelsResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'
