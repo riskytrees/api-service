@@ -176,13 +176,56 @@ fn projects_trees_get(id: String) -> Json<models::ApiListTreeResponse> {
                     }
                 }
                 None => Json(models::ApiListTreeResponse {
-                    ok: true,
+                    ok: false,
                     message: "Could not find project".to_owned(),
                     result: None,
                 }),
             }
         }
         Err(e) => Json(models::ApiListTreeResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        }),
+    }
+}
+
+#[get("/projects/<id>/trees/<tree_id>")]
+fn projects_trees_tree_get(id: String, tree_id: String) -> Json<models::ApiTreeResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            let project: Option<models::Project> =
+                database::get_project_by_id(&client, id.to_owned());
+            match project {
+                Some(project) => {
+                    let tree = database::get_tree_by_id(&client, tree_id.to_owned());
+                    match tree {
+                        Ok(tree) => {
+                            Json(models::ApiTreeResponse {
+                                ok: false,
+                                message: "Could not find project".to_owned(),
+                                result: Some(tree),
+                            })
+                        },
+                        Err(err) => {
+                            Json(models::ApiTreeResponse {
+                                ok: false,
+                                message: "Could not find tree using id".to_owned(),
+                                result: None,
+                            })
+                        }
+                    }
+
+                }
+                None => Json(models::ApiTreeResponse {
+                    ok: false,
+                    message: "Could not find project".to_owned(),
+                    result: None,
+                }),
+            }
+        }
+        Err(e) => Json(models::ApiTreeResponse {
             ok: false,
             message: "Could not connect to DB".to_owned(),
             result: None,
@@ -200,7 +243,8 @@ fn main() {
                 auth_logout,
                 projects_post,
                 projects_trees_post,
-                projects_trees_get
+                projects_trees_get,
+                projects_trees_tree_get
             ],
         )
         .launch();

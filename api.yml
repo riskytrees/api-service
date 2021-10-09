@@ -130,6 +130,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TreeResponse'
+    put:
+      tags:
+      - project
+      summary: Updates a tree to match the specified payload.
+      operationId: updateTree
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired tree contents
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FullTreeData'
+      responses:
+        200:
+          description: Got tree successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreeResponse'
+
   /projects/{projectId}/model:
     get:
       tags:

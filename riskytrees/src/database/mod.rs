@@ -3,6 +3,9 @@ use mongodb::{
     sync::Client,
 };
 
+use std::collections::HashMap;
+use bson::Bson;
+
 use crate::constants;
 use crate::errors;
 use crate::helpers;
@@ -226,6 +229,94 @@ fn get_tree_items_from_tree_ids(client: &mongodb::sync::Client, tree_ids: Vec<St
     result
 }
 
+fn convert_bson_document_to_ModelAttribute_map(bson_doc: &Document) -> HashMap<String, models::ModelAttribute> {
+    let mut new_map: HashMap<String, models::ModelAttribute> = HashMap::new();
+
+    for (key, val) in bson_doc.into_iter() {
+        match val.as_document() {
+            Some(val) => {
+                let attribute_type = val.get_str("type").expect("All model attributes should have a type");
+                if attribute_type == "str" {
+                    new_map.insert(key.clone(), models::ModelAttribute {
+                        value_string: val.get_str("value").expect("Should match type field").to_owned(),
+                        value_int: 0,
+                        value_float: 0.0,
+                        value_type: "str".to_owned()
+                    });
+                } else if attribute_type == "int" {
+                    new_map.insert(key.clone(), models::ModelAttribute {
+                        value_string: "".to_owned(),
+                        value_int: val.get_i32("value").expect("Should match type field"),
+                        value_float: 0.0,
+                        value_type: "int".to_owned()
+                    });
+                } else if attribute_type == "float" {
+                    new_map.insert(key.clone(), models::ModelAttribute {
+                        value_string: "".to_owned(),
+                        value_int: 0,
+                        value_float: val.get_f64("value").expect("Should match type field"),
+                        value_type: "float".to_owned()
+                    });
+                } else {
+
+                }
+            },
+            None => {
+                eprintln!("Stored model attribute not a document!");
+            }
+        };
+    }
+
+    new_map
+}
+
+// Returns all the data contained in a single tree
+fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+
+    let matched_record = trees_collection.find_one(
+        doc! {
+            "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible")
+        },
+        None,
+    )?;
+
+    match matched_record {
+        Some(tree_record) => {
+            let title = tree_record.get_str("title").expect("title should always exist");
+            let condition_attribute = tree_record.get_str("condition_attribute").ok();
+            let parents: Option<Vec<String>> = match tree_record.get_array("parents") {
+                Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
+                Err(err) => None
+            };
+            let children: Option<Vec<String>> = match tree_record.get_array("children") {
+                Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
+                Err(err) => None
+            };
+
+            let model_attributes = match tree_record.get_document("model_attributes") {
+                Ok(val) => Some(convert_bson_document_to_ModelAttribute_map(val)),
+                Err(err) => None
+            };
+
+
+            Ok(models::ApiFullTreeData {
+                title: title.to_owned(),
+                conditionAttribute: condition_attribute.unwrap_or("").to_owned(),
+                parents: parents.unwrap_or(Vec::new()),
+                children: children.unwrap_or(Vec::new()),
+                modelAttributes: model_attributes.unwrap_or(HashMap::new())
+            })
+        },
+        None => {
+            Err(errors::DatabaseError {
+                message: "Couldn't find tree".to_owned()
+            })
+        }
+    }
+}
+
 pub fn get_trees_by_project_id(
     client: &mongodb::sync::Client,
     project_id: String,
@@ -245,3 +336,31 @@ pub fn get_trees_by_project_id(
         }),
     }
 }
+
+pub fn get_tree_by_id(
+    client: &mongodb::sync::Client,
+    tree_id: String,
+) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
+
+    get_full_tree_data(client, tree_id)
+
+}
+
+/*
+pub fn add_node_to_project(
+    client: &mongodb::sync::Client,
+    project_id: String,
+    title: String,
+    description: String,
+    model_attributes: HashMap<String, models::ModelAttribute>,
+    condition_attribute: String,
+    parents: Vec<String>) -> Result<models::NodeResponseResult, errors:DatabaseError> {
+
+    let database = client.database(constants::DATABASE_NAME);
+    let nodes_collection = database.collection::<Document>("nodes");
+
+
+    let insert_result = nodes_collection.insert_one(doc! { "title": title }, None)?;
+    let inserted_id = insert_result.inserted_id.as_object_id();
+
+}*/
