@@ -1,4 +1,4 @@
-# attack_tree_modeler
+# riskytrees API Service
 
-Web service and front-end used for managing complex, configurable, attack trees. 
+Primary web service for managing complex, configurable, attack trees. 
 
