@@ -203,8 +203,56 @@ fn projects_trees_tree_get(id: String, tree_id: String) -> Json<models::ApiTreeR
                     match tree {
                         Ok(tree) => {
                             Json(models::ApiTreeResponse {
+                                ok: true,
+                                message: "Found tree".to_owned(),
+                                result: Some(tree),
+                            })
+                        },
+                        Err(err) => {
+                            Json(models::ApiTreeResponse {
                                 ok: false,
-                                message: "Could not find project".to_owned(),
+                                message: "Could not find tree using id".to_owned(),
+                                result: None,
+                            })
+                        }
+                    }
+
+                }
+                None => Json(models::ApiTreeResponse {
+                    ok: false,
+                    message: "Could not find project".to_owned(),
+                    result: None,
+                }),
+            }
+        }
+        Err(e) => Json(models::ApiTreeResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        }),
+    }
+}
+
+#[put("/projects/<id>/trees/<tree_id>", data = "<body>")]
+fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFullTreeData>) -> Json<models::ApiTreeResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            let project: Option<models::Project> =
+                database::get_project_by_id(&client, id.to_owned());
+            match project {
+                Some(project) => {
+                    // Update tree and return
+                    let tree = database::update_tree_by_id(&client, tree_id.to_owned(), models::ApiFullTreeData {
+                        title: body.title.to_owned(),
+                        rootNodeId: body.rootNodeId.to_owned(),
+                        nodes: body.nodes.clone()
+                    });
+                    match tree {
+                        Ok(tree) => {
+                            Json(models::ApiTreeResponse {
+                                ok: true,
+                                message: "Found tree".to_owned(),
                                 result: Some(tree),
                             })
                         },
@@ -244,7 +292,8 @@ fn main() {
                 projects_post,
                 projects_trees_post,
                 projects_trees_get,
-                projects_trees_tree_get
+                projects_trees_tree_get,
+                projects_trees_tree_put
             ],
         )
         .launch();

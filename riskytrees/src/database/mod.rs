@@ -284,29 +284,51 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
 
     match matched_record {
         Some(tree_record) => {
+            let empty_bson_array = bson::Array::new();
             let title = tree_record.get_str("title").expect("title should always exist");
-            let condition_attribute = tree_record.get_str("condition_attribute").ok();
-            let parents: Option<Vec<String>> = match tree_record.get_array("parents") {
-                Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
-                Err(err) => None
-            };
-            let children: Option<Vec<String>> = match tree_record.get_array("children") {
-                Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
-                Err(err) => None
-            };
+            let root_node_id = tree_record.get_str("rootNodeId").expect("rootNodeId should always exist");
+            let nodes = tree_record.get_array("nodes").unwrap_or(&empty_bson_array);
+            let mut nodes_vec = Vec::new();
 
-            let model_attributes = match tree_record.get_document("model_attributes") {
-                Ok(val) => Some(convert_bson_document_to_ModelAttribute_map(val)),
-                Err(err) => None
-            };
+            for node in nodes.into_iter() {
+                match node.as_document() {
+                    Some(node) => {
+                        let title = node.get_str("title").expect("title should always exist");
 
+                        let condition_attribute = node.get_str("condition_attribute").ok();
+                        let parents: Option<Vec<String>> = match node.get_array("parents") {
+                            Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
+                            Err(err) => None
+                        };
+                        let children: Option<Vec<String>> = match node.get_array("children") {
+                            Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
+                            Err(err) => None
+                        };
+
+                        let model_attributes = match node.get_document("model_attributes") {
+                            Ok(val) => Some(convert_bson_document_to_ModelAttribute_map(val)),
+                            Err(err) => None
+                        };
+
+                        nodes_vec.push(models::ApiFullNodeData {
+                            title: title.to_owned(),
+                            conditionAttribute: condition_attribute.unwrap_or("").to_owned(),
+                            parents: parents.unwrap_or(Vec::new()),
+                            children: children.unwrap_or(Vec::new()),
+                            modelAttributes: model_attributes.unwrap_or(HashMap::new())
+                        })
+                    },
+                    None => {
+                        eprint!("nodes should be an array of objects, but isn't!")
+                    }
+                }
+
+            }
 
             Ok(models::ApiFullTreeData {
                 title: title.to_owned(),
-                conditionAttribute: condition_attribute.unwrap_or("").to_owned(),
-                parents: parents.unwrap_or(Vec::new()),
-                children: children.unwrap_or(Vec::new()),
-                modelAttributes: model_attributes.unwrap_or(HashMap::new())
+                rootNodeId: root_node_id.to_owned(),
+                nodes: nodes_vec
             })
         },
         None => {
@@ -346,21 +368,22 @@ pub fn get_tree_by_id(
 
 }
 
-/*
-pub fn add_node_to_project(
+pub fn update_tree_by_id(
     client: &mongodb::sync::Client,
-    project_id: String,
-    title: String,
-    description: String,
-    model_attributes: HashMap<String, models::ModelAttribute>,
-    condition_attribute: String,
-    parents: Vec<String>) -> Result<models::NodeResponseResult, errors:DatabaseError> {
-
+    tree_id: String,
+    tree_data: models::ApiFullTreeData
+) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
-    let nodes_collection = database.collection::<Document>("nodes");
+    let trees_collection = database.collection::<Document>("trees");
+
+    let doc = tree_data.to_bson_doc();
 
 
-    let insert_result = nodes_collection.insert_one(doc! { "title": title }, None)?;
-    let inserted_id = insert_result.inserted_id.as_object_id();
 
-}*/
+    trees_collection.find_one_and_replace(doc! {
+        "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible")
+    }, doc, None);
+
+
+    get_full_tree_data(client, tree_id)
+}

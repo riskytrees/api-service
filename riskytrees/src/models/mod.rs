@@ -1,5 +1,12 @@
 use serde::{Serialize, Serializer, Deserialize};
 use std::collections::HashMap;
+use bson::Bson;
+
+use mongodb::{
+    bson::{doc, Document},
+    sync::Client,
+};
+
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ModelAttribute {
@@ -7,6 +14,28 @@ pub struct ModelAttribute {
     pub value_int: i32,
     pub value_float: f64,
     pub value_type: String // str, int, float
+}
+
+impl ModelAttribute {
+    fn to_bson_doc(self) -> Document {
+        doc! {
+            "value_int": self.value_int,
+            "value_type": self.value_type.to_owned(),
+            "value_float": self.value_float,
+            "value_string": self.value_string.to_owned()
+        }
+    }
+}
+
+impl Clone for ModelAttribute {
+    fn clone(&self) -> ModelAttribute {
+        ModelAttribute {
+            value_string: self.value_string.to_owned(),
+            value_type: self.value_type.to_owned(),
+            value_float: self.value_float,
+            value_int: self.value_int
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -94,12 +123,66 @@ pub struct ApiCreateNode {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ApiFullTreeData {
+pub struct ApiFullNodeData {
     pub title: String,
     pub modelAttributes: HashMap<String, ModelAttribute>,
     pub conditionAttribute: String,
     pub parents: Vec<String>,
     pub children: Vec<String>
+}
+
+impl Clone for ApiFullNodeData {
+    fn clone(&self) -> ApiFullNodeData {
+        ApiFullNodeData {
+            title: self.title.to_owned(),
+            modelAttributes: self.modelAttributes.clone(),
+            conditionAttribute: self.conditionAttribute.to_owned(),
+            parents: self.parents.clone(),
+            children: self.children.clone()
+        }
+    }
+}
+
+impl ApiFullNodeData {
+    fn into_bson_doc(self) -> Document {
+        let mut model_attributes = doc! {};
+
+        for (key, val) in self.modelAttributes.into_iter() {
+            model_attributes.insert(key, val.to_bson_doc());
+        }
+
+
+        doc! {
+            "title": self.title,
+            "modelAttributes": model_attributes,
+            "conditionAttribute": self.conditionAttribute,
+            "parents": self.parents,
+            "children": self.children
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ApiFullTreeData {
+    pub title: String,
+    pub rootNodeId: String,
+    pub nodes: Vec<ApiFullNodeData>
+}
+
+impl ApiFullTreeData {
+    pub fn to_bson_doc(self) -> Document {
+        let mut nodes_as_docs = Vec::new();
+
+        for node in self.nodes {
+            nodes_as_docs.push(node.into_bson_doc());
+        }
+
+        doc! {
+            "title": self.title,
+            "rootNodeId": self.rootNodeId,
+            "nodes": nodes_as_docs
+        }
+    }
 }
 
 // Responses

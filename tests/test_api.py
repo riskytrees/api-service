@@ -74,3 +74,29 @@ def test_project_trees_get():
 
     assert(res['ok'] == True)
     assert(res['result']['trees'][0]['title'] == 'bad things')
+
+
+def test_project_tree_get():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'bad things'})
+
+    res = r.json()
+    tree_id = res['result']['id']
+
+    # GETing the tree list should return a single tree.
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id))
+
+    res = r.json()
+    print(res)
+
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'bad things')
