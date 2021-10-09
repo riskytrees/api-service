@@ -164,7 +164,10 @@ pub fn create_project_tree(
     let trees_collection = database.collection::<Document>("trees");
     let project_collection = database.collection::<Document>("projects");
 
-    let insert_result = trees_collection.insert_one(doc! { "title": title }, None)?;
+    let insert_result = trees_collection.insert_one(doc! {
+        "title": title,
+        "rootNodeId": "" // Start with no root
+    }, None)?;
     let inserted_id = insert_result.inserted_id.as_object_id();
 
     match inserted_id.clone() {
