@@ -327,6 +327,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
                 match node.as_document() {
                     Some(node) => {
                         let title = node.get_str("title").expect("title should always exist");
+                        let id = node.get_str("id").expect("id should always exist");
 
                         let condition_attribute = node.get_str("condition_attribute").ok();
                         let parents: Option<Vec<String>> = match node.get_array("parents") {
@@ -344,6 +345,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
                         };
 
                         nodes_vec.push(models::ApiFullNodeData {
+                            id: id.to_owned(),
                             title: title.to_owned(),
                             conditionAttribute: condition_attribute.unwrap_or("").to_owned(),
                             parents: parents.unwrap_or(Vec::new()),

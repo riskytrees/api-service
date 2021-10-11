@@ -124,6 +124,7 @@ pub struct ApiCreateNode {
 
 #[derive(Serialize, Deserialize)]
 pub struct ApiFullNodeData {
+    pub id: String,
     pub title: String,
     pub modelAttributes: HashMap<String, ModelAttribute>,
     pub conditionAttribute: String,
@@ -134,6 +135,7 @@ pub struct ApiFullNodeData {
 impl Clone for ApiFullNodeData {
     fn clone(&self) -> ApiFullNodeData {
         ApiFullNodeData {
+            id: self.id.to_owned(),
             title: self.title.to_owned(),
             modelAttributes: self.modelAttributes.clone(),
             conditionAttribute: self.conditionAttribute.to_owned(),
@@ -153,6 +155,7 @@ impl ApiFullNodeData {
 
 
         doc! {
+            "id": self.id,
             "title": self.title,
             "modelAttributes": model_attributes,
             "conditionAttribute": self.conditionAttribute,

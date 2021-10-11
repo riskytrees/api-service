@@ -175,7 +175,7 @@ def test_project_tree_put_with_nodes():
             'modelAttributes': {},
             'conditionAttribute': '',
             'parents': [],
-            'children': ["1", "0"],
+            'children': ["1", "2"],
 
         }, {
             'id': "1",
