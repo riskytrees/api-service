@@ -16,6 +16,15 @@ def test_auth_login():
     assert(res['ok'] == True)
     assert("created" not in res['message'])
 
+def test_projects_get_empty():
+    r = requests.get('http://localhost:8000/projects')
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("Got" in res['message'])
+    assert(len(res['result']['projects']) == 0)
+
 
 def test_project_post():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
@@ -138,3 +147,60 @@ def test_project_tree_put():
 
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'Test Confirm Tree Put')
+
+
+def test_project_tree_put_with_nodes():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'})
+
+    res = r.json()
+    tree_id = res['result']['id']
+
+    # PUTing the tree list should return the modified version
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'My Tree',
+        'nodes': [{
+            'id': "0",
+            'title': "I'm the root",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': '',
+            'parents': [],
+            'children': ["1", "0"],
+
+        }, {
+            'id': "1",
+            'title': "I'm a child",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': '',
+            'parents': ["0"],
+            'children': [],
+
+        }, {
+            'id': "2",
+            'title': "I'm the forgotten child",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': '',
+            'parents': ["1"],
+            'children': [],
+
+        }],
+        'rootNodeId': '0'
+        })
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'My Tree')
+    assert(len(res['result']['nodes']) == 3)
