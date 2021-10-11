@@ -204,3 +204,4 @@ def test_project_tree_put_with_nodes():
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'My Tree')
     assert(len(res['result']['nodes']) == 3)
+    assert(len(res['result']['nodes'][0]['children']) or len(res['result']['nodes'][0]['parents']))

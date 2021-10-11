@@ -330,11 +330,11 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
 
                         let condition_attribute = node.get_str("condition_attribute").ok();
                         let parents: Option<Vec<String>> = match node.get_array("parents") {
-                            Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
+                            Ok(val) => Some(helpers::convert_bson_str_array_to_str_array(val.clone())),
                             Err(err) => None
                         };
                         let children: Option<Vec<String>> = match node.get_array("children") {
-                            Ok(val) => Some(helpers::convert_bson_objectid_array_to_str_array(val.clone())),
+                            Ok(val) => Some(helpers::convert_bson_str_array_to_str_array(val.clone())),
                             Err(err) => None
                         };
 
