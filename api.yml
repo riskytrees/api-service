@@ -511,10 +511,6 @@ components:
           type: object
         conditionAttribute:
           type: string
-        parents:
-          type: array
-          items:
-            type: integer
 
     NodeResponse:
       allOf:
