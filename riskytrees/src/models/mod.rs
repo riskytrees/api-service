@@ -84,7 +84,6 @@ pub struct NodeResponseResult {
     pub description: String,
     pub modelAttributes: HashMap<String, ModelAttribute>,
     pub conditionAttribute: String,
-    pub parents: Vec<String>,
     pub id: String,
     pub children: Vec<String>
 }
@@ -118,8 +117,7 @@ pub struct ApiCreateNode {
     pub title: String,
     pub description: String,
     pub modelAttributes: HashMap<String, ModelAttribute>,
-    pub conditionAttribute: String,
-    pub parents: Vec<String>
+    pub conditionAttribute: String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -128,7 +126,6 @@ pub struct ApiFullNodeData {
     pub title: String,
     pub modelAttributes: HashMap<String, ModelAttribute>,
     pub conditionAttribute: String,
-    pub parents: Vec<String>,
     pub children: Vec<String>
 }
 
@@ -139,7 +136,6 @@ impl Clone for ApiFullNodeData {
             title: self.title.to_owned(),
             modelAttributes: self.modelAttributes.clone(),
             conditionAttribute: self.conditionAttribute.to_owned(),
-            parents: self.parents.clone(),
             children: self.children.clone()
         }
     }
@@ -159,7 +155,6 @@ impl ApiFullNodeData {
             "title": self.title,
             "modelAttributes": model_attributes,
             "conditionAttribute": self.conditionAttribute,
-            "parents": self.parents,
             "children": self.children
         }
     }
