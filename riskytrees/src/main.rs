@@ -2,9 +2,16 @@
 
 #[macro_use]
 extern crate rocket;
+extern crate rocket_cors;
 
 use mongodb::bson::doc;
 use rocket_contrib::json::Json;
+
+use rocket::http::Method;
+
+use rocket_cors::{
+    AllowedHeaders, AllowedOrigins, Error, Cors, CorsOptions
+};
 
 mod constants;
 mod database;
@@ -14,6 +21,29 @@ mod models;
 
 #[cfg(test)]
 mod tests;
+
+fn make_cors() -> Cors {
+    let allowed_origins = AllowedOrigins::Some(rocket_cors::Origins{
+        allow_null: true,
+        exact: None,
+        regex: None
+    });
+
+    CorsOptions {
+        allowed_origins,
+        allowed_methods: vec![Method::Get].into_iter().map(From::from).collect(),
+        allowed_headers: AllowedHeaders::some(&[
+            "Authorization",
+            "Accept",
+            "Access-Control-Allow-Origin",
+        ]),
+        allow_credentials: true,
+        ..Default::default()
+    }
+    .to_cors()
+    .expect("error while building CORS")
+}
+
 
 #[get("/")]
 fn index() -> &'static str {
@@ -326,5 +356,6 @@ fn main() {
                 projects_trees_tree_put
             ],
         )
+        .attach(make_cors())
         .launch();
 }
