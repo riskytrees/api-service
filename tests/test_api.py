@@ -172,9 +172,15 @@ def test_project_tree_put_with_nodes():
             'id': "0",
             'title': "I'm the root",
             'description': "Hello",
-            'modelAttributes': {},
+            'modelAttributes': {
+                'randomProp': {
+                    'value_int': 150
+                },
+                'otherProp': {
+                    'value_string': 'test'
+                }
+            },
             'conditionAttribute': '',
-            'parents': [],
             'children': ["1", "2"],
 
         }, {
@@ -183,7 +189,6 @@ def test_project_tree_put_with_nodes():
             'description': "Hello",
             'modelAttributes': {},
             'conditionAttribute': '',
-            'parents': ["0"],
             'children': [],
 
         }, {
@@ -192,7 +197,6 @@ def test_project_tree_put_with_nodes():
             'description': "Hello",
             'modelAttributes': {},
             'conditionAttribute': '',
-            'parents': ["1"],
             'children': [],
 
         }],
@@ -204,4 +208,10 @@ def test_project_tree_put_with_nodes():
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'My Tree')
     assert(len(res['result']['nodes']) == 3)
-    assert(len(res['result']['nodes'][0]['children']) or len(res['result']['nodes'][0]['parents']))
+
+    for node in res['result']['nodes']:
+        if node['id'] == '0':
+            print(node)
+            assert(len(node['children']) == 2)
+            assert(node['modelAttributes']['randomProp']['value_int'] == 150)
+            assert(node['modelAttributes']['otherProp']['value_string'] == 'test')

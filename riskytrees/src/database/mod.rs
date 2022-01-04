@@ -268,27 +268,23 @@ fn convert_bson_document_to_ModelAttribute_map(bson_doc: &Document) -> HashMap<S
     for (key, val) in bson_doc.into_iter() {
         match val.as_document() {
             Some(val) => {
-                let attribute_type = val.get_str("type").expect("All model attributes should have a type");
-                if attribute_type == "str" {
+                if !val.is_null("value_string") {
                     new_map.insert(key.clone(), models::ModelAttribute {
-                        value_string: val.get_str("value").expect("Should match type field").to_owned(),
-                        value_int: 0,
-                        value_float: 0.0,
-                        value_type: "str".to_owned()
+                        value_string: Some(val.get_str("value_string").expect("Should match type field").to_owned()),
+                        value_int: None,
+                        value_float: None
                     });
-                } else if attribute_type == "int" {
+                } else if !val.is_null("value_int") {
                     new_map.insert(key.clone(), models::ModelAttribute {
-                        value_string: "".to_owned(),
-                        value_int: val.get_i32("value").expect("Should match type field"),
-                        value_float: 0.0,
-                        value_type: "int".to_owned()
+                        value_string: None,
+                        value_int: Some(val.get_i32("value_int").expect("Should match type field")),
+                        value_float: None
                     });
-                } else if attribute_type == "float" {
+                } else if !val.is_null("value_float") {
                     new_map.insert(key.clone(), models::ModelAttribute {
-                        value_string: "".to_owned(),
-                        value_int: 0,
-                        value_float: val.get_f64("value").expect("Should match type field"),
-                        value_type: "float".to_owned()
+                        value_string: None,
+                        value_int: None,
+                        value_float: Some(val.get_f64("value_float").expect("Should match type field"))
                     });
                 } else {
 
@@ -329,16 +325,18 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
                         let title = node.get_str("title").expect("title should always exist");
                         let id = node.get_str("id").expect("id should always exist");
 
-                        let condition_attribute = node.get_str("condition_attribute").ok();
+                        let condition_attribute = node.get_str("conditionAttribute").ok();
                         let children: Option<Vec<String>> = match node.get_array("children") {
                             Ok(val) => Some(helpers::convert_bson_str_array_to_str_array(val.clone())),
                             Err(err) => None
                         };
 
-                        let model_attributes = match node.get_document("model_attributes") {
+                        let model_attributes = match node.get_document("modelAttributes") {
                             Ok(val) => Some(convert_bson_document_to_ModelAttribute_map(val)),
                             Err(err) => None
                         };
+
+                        println!("{:?}", model_attributes);
 
                         nodes_vec.push(models::ApiFullNodeData {
                             id: id.to_owned(),
@@ -354,7 +352,6 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
                 }
 
             }
-
             Ok(models::ApiFullTreeData {
                 title: title.to_owned(),
                 rootNodeId: root_node_id.to_owned(),

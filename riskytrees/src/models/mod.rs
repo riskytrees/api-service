@@ -10,19 +10,31 @@ use mongodb::{
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ModelAttribute {
-    pub value_string: String,
-    pub value_int: i32,
-    pub value_float: f64,
-    pub value_type: String // str, int, float
+    pub value_string: Option<String>,
+    pub value_int: Option<i32>,
+    pub value_float: Option<f64>,
 }
 
 impl ModelAttribute {
     fn to_bson_doc(self) -> Document {
-        doc! {
-            "value_int": self.value_int,
-            "value_type": self.value_type.to_owned(),
-            "value_float": self.value_float,
-            "value_string": self.value_string.to_owned()
+        if self.value_string.is_some() {
+            doc! {
+                "value_int": Bson::Null,
+                "value_float": Bson::Null,
+                "value_string": Bson::String(self.value_string.to_owned().unwrap_or("".to_owned()))
+            }
+        } else if self.value_int.is_some() {
+            doc! {
+                "value_int": self.value_int.unwrap_or(0),
+                "value_float": Bson::Null,
+                "value_string": Bson::Null
+            }
+        } else {
+            doc! {
+                "value_int": Bson::Null,
+                "value_float": self.value_float.unwrap_or(0.0),
+                "value_string": Bson::Null
+            }
         }
     }
 }
@@ -31,7 +43,6 @@ impl Clone for ModelAttribute {
     fn clone(&self) -> ModelAttribute {
         ModelAttribute {
             value_string: self.value_string.to_owned(),
-            value_type: self.value_type.to_owned(),
             value_float: self.value_float,
             value_int: self.value_int
         }
@@ -148,7 +159,6 @@ impl ApiFullNodeData {
         for (key, val) in self.modelAttributes.into_iter() {
             model_attributes.insert(key, val.to_bson_doc());
         }
-
 
         doc! {
             "id": self.id,
