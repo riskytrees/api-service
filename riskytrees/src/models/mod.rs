@@ -135,6 +135,7 @@ pub struct ApiCreateNode {
 pub struct ApiFullNodeData {
     pub id: String,
     pub title: String,
+    pub description: String,
     pub modelAttributes: HashMap<String, ModelAttribute>,
     pub conditionAttribute: String,
     pub children: Vec<String>
@@ -145,6 +146,7 @@ impl Clone for ApiFullNodeData {
         ApiFullNodeData {
             id: self.id.to_owned(),
             title: self.title.to_owned(),
+            description: self.description.to_owned(),
             modelAttributes: self.modelAttributes.clone(),
             conditionAttribute: self.conditionAttribute.to_owned(),
             children: self.children.clone()
@@ -163,6 +165,7 @@ impl ApiFullNodeData {
         doc! {
             "id": self.id,
             "title": self.title,
+            "description": self.description,
             "modelAttributes": model_attributes,
             "conditionAttribute": self.conditionAttribute,
             "children": self.children

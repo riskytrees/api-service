@@ -315,6 +315,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
         Some(tree_record) => {
             let empty_bson_array = bson::Array::new();
             let title = tree_record.get_str("title").expect("title should always exist");
+
             let root_node_id = tree_record.get_str("rootNodeId").expect("rootNodeId should always exist");
             let nodes = tree_record.get_array("nodes").unwrap_or(&empty_bson_array);
             let mut nodes_vec = Vec::new();
@@ -323,6 +324,8 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
                 match node.as_document() {
                     Some(node) => {
                         let title = node.get_str("title").expect("title should always exist");
+                        let description = node.get_str("description").expect("description should always exist");
+
                         let id = node.get_str("id").expect("id should always exist");
 
                         let condition_attribute = node.get_str("conditionAttribute").ok();
@@ -341,6 +344,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
                         nodes_vec.push(models::ApiFullNodeData {
                             id: id.to_owned(),
                             title: title.to_owned(),
+                            description: description.to_owned(),
                             conditionAttribute: condition_attribute.unwrap_or("").to_owned(),
                             children: children.unwrap_or(Vec::new()),
                             modelAttributes: model_attributes.unwrap_or(HashMap::new())
@@ -404,8 +408,6 @@ pub fn update_tree_by_id(
     let trees_collection = database.collection::<Document>("trees");
 
     let doc = tree_data.to_bson_doc();
-
-
 
     trees_collection.find_one_and_replace(doc! {
         "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible")

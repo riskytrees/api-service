@@ -180,7 +180,7 @@ def test_project_tree_put_with_nodes():
                     'value_string': 'test'
                 }
             },
-            'conditionAttribute': '',
+            'conditionAttribute': 'config[\'test\'] == 150',
             'children': ["1", "2"],
 
         }, {
@@ -213,5 +213,7 @@ def test_project_tree_put_with_nodes():
         if node['id'] == '0':
             print(node)
             assert(len(node['children']) == 2)
+            assert(node['description'] == 'Hello')
             assert(node['modelAttributes']['randomProp']['value_int'] == 150)
             assert(node['modelAttributes']['otherProp']['value_string'] == 'test')
+            assert(node['conditionAttribute'] == 'config[\'test\'] == 150')
