@@ -4,6 +4,7 @@
 extern crate rocket;
 extern crate rocket_cors;
 
+use std::collections::HashSet;
 use mongodb::bson::doc;
 use rocket_contrib::json::Json;
 
@@ -23,9 +24,13 @@ mod models;
 mod tests;
 
 fn make_cors() -> Cors {
+    let mut origins = HashSet::new();
+
+    origins.insert("http://localhost:8080".to_string());
+
     let allowed_origins = AllowedOrigins::Some(rocket_cors::Origins{
         allow_null: true,
-        exact: None,
+        exact: Some(origins),
         regex: None
     });
 
