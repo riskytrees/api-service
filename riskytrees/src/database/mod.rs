@@ -416,3 +416,22 @@ pub fn update_tree_by_id(
 
     get_full_tree_data(client, tree_id)
 }
+
+pub fn get_projects_from_ids(ids: Vec<String>, client: &mongodb::sync::Client) -> Vec<models::ApiProjectsListProjectItem> {
+    let mut result = Vec::new();
+
+    for id in ids {
+        let project_data = get_project_by_id(client, id);
+        match project_data {
+            Some(project_data) => {
+                result.push(models::ApiProjectsListProjectItem {
+                    projectId: project_data.id,
+                    name: project_data.title
+                })
+            },
+            None => { /* Skip */ }
+        }
+    }
+
+    result
+}
