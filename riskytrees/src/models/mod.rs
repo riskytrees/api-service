@@ -197,8 +197,14 @@ impl ApiFullTreeData {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ApiProjectsListProjectItem {
+    pub projectId: String,
+    pub name: String
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct ApiProjectsListResponseResult {
-    pub projects: Vec<String>
+    pub projects: Vec<ApiProjectsListProjectItem>
 }
 
 // Responses

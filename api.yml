@@ -463,8 +463,14 @@ components:
             projects:
               type: array
               items:
-                type: string
-                example: projectId
+                type: object
+                properties:
+                  projectId:
+                    type: string
+                    example: 61aewfhewfh1u124
+                  name:
+                    type: string
+                    example: Project Name
 
     GetModelsResponse:
       allOf:

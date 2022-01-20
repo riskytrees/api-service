@@ -109,7 +109,7 @@ fn projects_get() -> Json<models::ApiProjectsListResponse> {
                     ok: true,
                     message: "Got projects".to_owned(),
                     result: Some(models::ApiProjectsListResponseResult {
-                        projects: ids
+                        projects: database::get_projects_from_ids(ids, &client)
                     }),
                 }),
                 Err(err) => Json(models::ApiProjectsListResponse {
