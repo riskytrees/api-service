@@ -22,7 +22,7 @@ resource "aws_docdb_cluster_instance" "cluster_instances" {
 
 // Create ECR repo
 resource "aws_ecr_repository" "riskytrees" {
-  name                 = "riskytrees-dev"
+  name                 = "riskyserv-dev"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
