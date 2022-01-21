@@ -20,6 +20,15 @@ resource "aws_docdb_cluster_instance" "cluster_instances" {
   instance_class     = "db.t3.medium"
 }
 
-// Upload image to ECR
+// Create ECR repo
+resource "aws_ecr_repository" "riskytrees" {
+  name                 = "riskytrees-dev"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
 
 // Deploy ECR via ECS
