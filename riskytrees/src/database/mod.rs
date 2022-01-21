@@ -12,7 +12,7 @@ use crate::helpers;
 use crate::models;
 
 pub fn get_instance() -> Result<mongodb::sync::Client, mongodb::error::Error> {
-    let client = Client::with_uri_str(constants::DATABASE_HOST)?;
+    let client = Client::with_uri_str(constants::get_database_host().as_str())?;
 
     Ok(client)
 }
