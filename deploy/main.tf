@@ -32,3 +32,36 @@ resource "aws_ecr_repository" "riskytrees" {
 
 
 // Deploy ECR via ECS
+resource "aws_ecs_cluster" "cluster" {
+  name = "riskycluster-dev"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+}
+
+
+resource "aws_ecs_task_definition" "risky_service" {
+  family = "riskyserv-dev"
+  container_definitions = jsonencode([
+    {
+      name      = "riskyserv-dev"
+      image     = "571837724543.dkr.ecr.us-east-2.amazonaws.com/riskyserv-dev:latest"
+      cpu       = 256
+      memory    = 512
+      essential = true
+      portMappings = [
+        {
+          containerPort = 8000
+          hostPort      = 8000
+        }
+      ]
+    }
+  ])
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = "arn:aws:iam::571837724543:role/ecsTaskExecutionRole"
+}
