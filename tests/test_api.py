@@ -217,3 +217,12 @@ def test_project_tree_put_with_nodes():
             assert(node['modelAttributes']['randomProp']['value_int'] == 150)
             assert(node['modelAttributes']['otherProp']['value_string'] == 'test')
             assert(node['conditionAttribute'] == 'config[\'test\'] == 150')
+
+def test_get_model_list():
+    r = requests.get('http://localhost:8000/models')
+
+    res = r.json()
+    models = res['result']['models']
+
+    assert(len(models) > 0)
+

@@ -345,6 +345,43 @@ fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFu
     }
 }
 
+#[get("/models")]
+fn models_get() -> Json<models::ApiListModelResponse> {
+    let db_client = database::get_instance();
+
+    let model_list = vec![
+        models::ListModelResponseItem {
+            id: "b9ff54e0-37cf-41d4-80ea-f3a9b1e3af74".to_owned(), // V4 UUID
+            title: "Attacker Likelihood".to_owned(),
+        },
+        models::ListModelResponseItem {
+            id: "f1644cb9-b2a5-4abb-813f-98d0277e42f2".to_owned(), // V4 UUID
+            title: "Attacker Risk".to_owned(),
+        },
+        models::ListModelResponseItem {
+            id: "bf4397f7-93ae-4502-a4a2-397f40f5cc49".to_owned(), // V4 UUID
+            title: "EVITA".to_owned(),
+        }
+    ];
+
+    match db_client {
+        Ok(client) => {
+            Json(models::ApiListModelResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: Some(models::ListModelResult { 
+                    models: model_list
+                }),
+            })
+        }
+        Err(e) => Json(models::ApiListModelResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        }),
+    }
+}
+
 fn main() {
     rocket::ignite()
         .mount(
@@ -358,7 +395,8 @@ fn main() {
                 projects_trees_post,
                 projects_trees_get,
                 projects_trees_tree_get,
-                projects_trees_tree_put
+                projects_trees_tree_put,
+                models_get
             ],
         )
         .attach(make_cors())

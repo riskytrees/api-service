@@ -99,6 +99,18 @@ pub struct NodeResponseResult {
     pub children: Vec<String>
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ListModelResult {
+    pub models: Vec<ListModelResponseItem>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+
+pub struct ListModelResponseItem {
+    pub id: String,
+    pub title: String
+}
+
 // Everything below is an OpenAPI structure or part of one
 
 #[derive(Serialize, Deserialize)]
@@ -249,4 +261,11 @@ pub struct ApiNodeResponse {
     pub ok: bool,
     pub message: String,
     pub result: Option<NodeResponseResult>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiListModelResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ListModelResult>
 }
