@@ -199,6 +199,42 @@ pub fn new_project(
     }
 }
 
+pub fn update_project_model(client: mongodb::sync::Client, project_id: String, modelId: String) -> Result<bool, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let project_collection = database.collection::<Document>("projects");
+
+    
+    let matched_record = project_collection.find_one(
+        doc! {
+            "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible")
+        },
+        None,
+    )?;
+
+    match matched_record {
+        Some(record) => {
+            let title = record.get_str("title").expect("infalliable");
+            let tree_ids = record.get_array("related_tree_ids").expect("infalliable");
+            let new_doc = doc! {
+                "title": title, "related_tree_ids": tree_ids, "selectedModel": modelId
+            };
+
+            project_collection.find_one_and_replace(doc! {
+                "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible")
+            }, new_doc, None);
+
+            Ok(true)
+        },
+        None => {
+            return Err(errors::DatabaseError {
+                message: "Could not find project with _id = {}".to_string(),
+            });
+        }
+    }
+
+    
+}
+
 pub fn create_project_tree(
     client: mongodb::sync::Client,
     title: String,

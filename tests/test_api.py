@@ -246,4 +246,4 @@ def test_get_and_update_project_model():
 
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model')
 
-    assert(r.json()['result']['modelId'] == '')
+    assert(r.json()['result']['modelId'] == 'test')

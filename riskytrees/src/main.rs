@@ -379,6 +379,50 @@ fn projects_model_get(id: String) -> Json<models::ApiSelectedModelResponse> {
     }
 }
 
+#[put("/projects/<id>/model", data = "<body>")]
+fn projects_model_put(id: String, body: Json<models::SelectedModelResult>) -> Json<models::ApiSelectedModelResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            let project: Option<models::Project> =
+                database::get_project_by_id(&client, id.to_owned());
+            match project {
+                Some(project) => {
+                    match database::update_project_model(client, id.to_owned(), body.modelId.to_owned()) {
+                        Ok(_) => {
+                            Json(models::ApiSelectedModelResponse {
+                                ok: true,
+                                message: "Updated project".to_owned(),
+                                result: Some(models::SelectedModelResult {
+                                    modelId: body.modelId.to_owned(),
+                                }),
+                            })
+                        },
+                        Err(err) => {
+                            Json(models::ApiSelectedModelResponse {
+                                ok: false,
+                                message: "Could not update project".to_owned(),
+                                result: None,
+                            })
+                        }
+                    }
+                
+                }
+                None => Json(models::ApiSelectedModelResponse {
+                    ok: false,
+                    message: "Could not find project".to_owned(),
+                    result: None,
+                }),
+            }
+        }
+        Err(e) => Json(models::ApiSelectedModelResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        }),
+    }
+}
+
 #[get("/models")]
 fn models_get() -> Json<models::ApiListModelResponse> {
     let db_client = database::get_instance();
@@ -431,6 +475,7 @@ fn main() {
                 projects_trees_tree_get,
                 projects_trees_tree_put,
                 projects_model_get,
+                projects_model_put,
                 models_get
             ],
         )
