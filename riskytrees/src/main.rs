@@ -345,6 +345,40 @@ fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFu
     }
 }
 
+
+#[get("/projects/<id>/model")]
+fn projects_model_get(id: String) -> Json<models::ApiSelectedModelResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            let project: Option<models::Project> =
+                database::get_project_by_id(&client, id.to_owned());
+            match project {
+                Some(project) => {
+                    Json(models::ApiSelectedModelResponse {
+                        ok: true,
+                        message: "Found tree".to_owned(),
+                        result: Some(models::SelectedModelResult {
+                            modelId: project.selected_model.unwrap_or_default(),
+                        }),
+                    })
+                
+                }
+                None => Json(models::ApiSelectedModelResponse {
+                    ok: false,
+                    message: "Could not find project".to_owned(),
+                    result: None,
+                }),
+            }
+        }
+        Err(e) => Json(models::ApiSelectedModelResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        }),
+    }
+}
+
 #[get("/models")]
 fn models_get() -> Json<models::ApiListModelResponse> {
     let db_client = database::get_instance();
@@ -396,6 +430,7 @@ fn main() {
                 projects_trees_get,
                 projects_trees_tree_get,
                 projects_trees_tree_put,
+                projects_model_get,
                 models_get
             ],
         )

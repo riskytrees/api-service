@@ -4,8 +4,8 @@ use mongodb::{
 };
 
 use std::collections::HashMap;
-use bson::Bson;
 
+use bson::bson;
 use crate::constants;
 use crate::errors;
 use crate::helpers;
@@ -70,6 +70,12 @@ pub fn get_project_by_title(
                             related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(
                                 doc.get_array("related_tree_ids").ok()?.clone(),
                             ),
+                            selected_model: match doc.get_str("selectedModel").ok() {
+                                Some(val) => Some(val.to_string()),
+                                None => {
+                                    None
+                                }
+                            }
                         }),
                         None => None,
                     },
@@ -101,6 +107,13 @@ pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<m
                     }
                 };
 
+                let selected_model = match doc.get_str("selectedModel").ok() {
+                    Some(val) => Some(val.to_string()),
+                    None => {
+                        None
+                    }
+                };
+
                 let id = match doc.get_object_id("_id").ok() {
                     Some(val) => val.to_hex(),
                     None => {
@@ -121,6 +134,7 @@ pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<m
                     title: title.to_string(),
                     id: id.to_string(),
                     related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(tree_ids),
+                    selected_model: selected_model
                 });
                 returnres
             }
@@ -174,7 +188,7 @@ pub fn new_project(
     let collection = database.collection::<Document>("projects");
 
     let insert_result =
-        collection.insert_one(doc! { "title": title, "related_tree_ids": [] }, None)?;
+        collection.insert_one(doc! { "title": title, "related_tree_ids": [], "selectedModel": bson!(null) }, None)?;
     let inserted_id = insert_result.inserted_id;
 
     match inserted_id.as_object_id().clone() {
