@@ -58,7 +58,8 @@ pub struct User {
 pub struct Project {
     pub title: String,
     pub id: String,
-    pub related_tree_ids: Vec<String>
+    pub related_tree_ids: Vec<String>,
+    pub selected_model: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -109,6 +110,12 @@ pub struct ListModelResult {
 pub struct ListModelResponseItem {
     pub id: String,
     pub title: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+
+pub struct SelectedModelResult {
+    pub modelId: String
 }
 
 // Everything below is an OpenAPI structure or part of one
@@ -268,4 +275,12 @@ pub struct ApiListModelResponse {
     pub ok: bool,
     pub message: String,
     pub result: Option<ListModelResult>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+
+pub struct ApiSelectedModelResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<SelectedModelResult>
 }

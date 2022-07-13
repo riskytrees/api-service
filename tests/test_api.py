@@ -226,3 +226,24 @@ def test_get_model_list():
 
     assert(len(models) > 0)
 
+def test_get_and_update_project_model():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model')
+
+    assert(r.json()['result']['modelId'] == '')
+
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/model', json = {'modelId': 'test'})
+    assert(r.json()['ok'] == True)
+
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model')
+
+    assert(r.json()['result']['modelId'] == 'test')
