@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use mongodb::bson::doc;
 use rocket_contrib::json::Json;
 
-use rocket::http::Method;
+use rocket::{http::Method, Config, config::Environment, fairing::AdHoc};
 
 use rocket_cors::{
     AllowedHeaders, AllowedOrigins, Error, Cors, CorsOptions
@@ -26,13 +26,15 @@ mod tests;
 fn make_cors() -> Cors {
     let mut origins = HashSet::new();
 
-    origins.insert("http://localhost:8080".to_string());
+    origins.insert("*".to_string());
 
-    let allowed_origins = AllowedOrigins::Some(rocket_cors::Origins{
+    /*let allowed_origins = AllowedOrigins::Some(rocket_cors::Origins{
         allow_null: true,
         exact: Some(origins),
         regex: None
-    });
+    });*/
+
+    let allowed_origins = AllowedOrigins::All;
 
     CorsOptions {
         allowed_origins,
@@ -461,7 +463,11 @@ fn models_get() -> Json<models::ApiListModelResponse> {
 }
 
 fn main() {
-    rocket::ignite()
+    let config = Config::build(Environment::Staging)
+    .address("0.0.0.0")
+    .unwrap();
+
+    rocket::custom(config)
         .mount(
             "/",
             routes![
@@ -480,5 +486,6 @@ fn main() {
             ],
         )
         .attach(make_cors())
+
         .launch();
 }
