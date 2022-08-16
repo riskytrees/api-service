@@ -436,7 +436,7 @@ fn models_get() -> Json<models::ApiListModelResponse> {
         },
         models::ListModelResponseItem {
             id: "f1644cb9-b2a5-4abb-813f-98d0277e42f2".to_owned(), // V4 UUID
-            title: "Attacker Risk".to_owned(),
+            title: "Risk of Attack".to_owned(),
         },
         models::ListModelResponseItem {
             id: "bf4397f7-93ae-4502-a4a2-397f40f5cc49".to_owned(), // V4 UUID
