@@ -63,6 +63,7 @@ def test_project_tree_post():
     assert(res['ok'] == True)
     assert("Added tree" in res['message'])
     assert(res['result']['title'] == 'bad things')
+    assert(res['result']['id'] != '')
 
 
 def test_project_trees_get():
@@ -88,7 +89,6 @@ def test_project_trees_get():
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees')
 
     res = r.json()
-    print(res)
 
     assert(res['ok'] == True)
     assert(res['result']['trees'][0]['title'] == 'bad things')
@@ -114,7 +114,6 @@ def test_project_tree_get():
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id))
 
     res = r.json()
-    print(res)
 
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'bad things')
@@ -211,7 +210,6 @@ def test_project_tree_put_with_nodes():
 
     for node in res['result']['nodes']:
         if node['id'] == '0':
-            print(node)
             assert(len(node['children']) == 2)
             assert(node['description'] == 'Hello')
             assert(node['modelAttributes']['randomProp']['value_int'] == 150)
