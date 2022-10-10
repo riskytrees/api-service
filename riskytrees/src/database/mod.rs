@@ -6,7 +6,7 @@ use mongodb::{
 use std::collections::HashMap;
 
 use bson::bson;
-use crate::constants;
+use crate::{constants, errors::DatabaseError};
 use crate::errors;
 use crate::helpers;
 use crate::models;
@@ -484,4 +484,39 @@ pub fn get_projects_from_ids(ids: Vec<String>, client: &mongodb::sync::Client) -
     }
 
     result
+}
+
+pub fn get_tree_from_node_id(node_id: String, client: &mongodb::sync::Client) -> Result<models::ApiGetNodeResponse, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+
+    match trees_collection.find_one(doc! {
+        "nodes": {
+            "$elemMatch": {
+                "id": node_id.to_string()
+            }
+        }
+    }, None) {
+        Ok(res) => {
+            match res {
+                Some(found_doc) => {
+                    Ok(models::ApiGetNodeResponse {
+                        ok: true,
+                        message: "Found node".to_string(),
+                        result: Some(models::ApiGetNodeResponseResult {
+                            treeId: found_doc.get_object_id("_id").expect("Should always exist").to_string()
+                        })
+                    })
+                },
+                None => {
+                    Err(DatabaseError { message: "No matching node".to_string() })
+                }
+            }
+        },
+        Err(err) => {
+            Err(DatabaseError {
+                message: err.to_string()
+            })
+        }
+    }
 }

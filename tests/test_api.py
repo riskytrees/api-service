@@ -245,3 +245,67 @@ def test_get_and_update_project_model():
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model')
 
     assert(r.json()['result']['modelId'] == 'test')
+
+def test_get_node_response():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'})
+
+    res = r.json()
+    tree_id = res['result']['id']
+
+    # PUTing the tree list should return the modified version
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'My Tree',
+        'nodes': [{
+            'id': "unique-node-0",
+            'title': "I'm the root",
+            'description': "Hello",
+            'modelAttributes': {
+                'randomProp': {
+                    'value_int': 150
+                },
+                'otherProp': {
+                    'value_string': 'test'
+                }
+            },
+            'conditionAttribute': 'config[\'test\'] == 150',
+            'children': ["1", "2"],
+
+        }, {
+            'id': "1",
+            'title': "I'm a child",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': '',
+            'children': [],
+
+        }, {
+            'id': "2",
+            'title': "I'm the forgotten child",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': '',
+            'children': [],
+
+        }],
+        'rootNodeId': '0'
+        })
+
+    create_res = r.json()
+    assert(create_res['ok'] == True)
+
+    r = requests.get('http://localhost:8000/nodes/unique-node-0')
+    node_res = r.json()
+    print(r.json())
+    assert(node_res['ok'] == True)
+
+

@@ -278,9 +278,20 @@ pub struct ApiListModelResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-
 pub struct ApiSelectedModelResponse {
     pub ok: bool,
     pub message: String,
     pub result: Option<SelectedModelResult>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiGetNodeResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiGetNodeResponseResult>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiGetNodeResponseResult {
+    pub treeId: String
 }

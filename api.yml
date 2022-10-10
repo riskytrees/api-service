@@ -93,6 +93,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListTreesResponse'
+  /nodes/{id}:
+    get:
+      tags:
+      - nodes
+      summary: Gets a specific node and some relevant metadata
+      operationId: getNode
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got node details succesfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetNodeResponse'
     post:
       tags:
       - project
@@ -424,6 +443,18 @@ components:
       properties:
         desiredConfig:
           type: integer
+
+    GetNodeResponse:
+      allOf:
+      - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            treeId:
+              type: string
+              example: "uuid string"
 
     SelectedModel:
       type: object
