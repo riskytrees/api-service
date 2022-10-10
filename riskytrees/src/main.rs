@@ -5,6 +5,7 @@ extern crate rocket;
 extern crate rocket_cors;
 
 use std::collections::HashSet;
+use database::get_tree_from_node_id;
 use mongodb::bson::doc;
 use rocket_contrib::json::Json;
 
@@ -462,6 +463,29 @@ fn models_get() -> Json<models::ApiListModelResponse> {
     }
 }
 
+#[get("/nodes/<id>")]
+fn node_get(id: String) -> Json<models::ApiGetNodeResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            match get_tree_from_node_id(id, &client) {
+                Ok(res) => Json(res),
+                Err(err) => Json(models::ApiGetNodeResponse {
+                    ok: false,
+                    message: "Could not find node".to_owned(),
+                    result: None,
+                })
+            }
+        },
+        Err(err) => Json(models::ApiGetNodeResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
 fn main() {
     let config = Config::build(Environment::Staging)
     .address("0.0.0.0")
@@ -482,7 +506,8 @@ fn main() {
                 projects_trees_tree_put,
                 projects_model_get,
                 projects_model_put,
-                models_get
+                models_get,
+                node_get
             ],
         )
         .attach(make_cors())

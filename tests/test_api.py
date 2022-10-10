@@ -305,6 +305,7 @@ def test_get_node_response():
 
     r = requests.get('http://localhost:8000/nodes/unique-node-0')
     node_res = r.json()
+    print(r.json())
     assert(node_res['ok'] == True)
 
 
