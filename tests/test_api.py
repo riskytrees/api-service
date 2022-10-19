@@ -1,3 +1,4 @@
+import uuid
 import requests
 
 def test_auth_login():
@@ -309,3 +310,84 @@ def test_get_node_response():
     assert(node_res['ok'] == True)
 
 
+def test_tree_with_subtree():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'})
+
+    res = r.json()
+    tree_id = res['result']['id']
+
+    unique_id = uuid.uuid4().urn
+
+    # PUTing the tree list should return the modified version
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'My Tree',
+        'nodes': [{
+            'id': unique_id,
+            'title': "I'm the root",
+            'description': "Hello",
+            'modelAttributes': {
+                'randomProp': {
+                    'value_int': 150
+                },
+                'otherProp': {
+                    'value_string': 'test'
+                }
+            },
+            'conditionAttribute': 'config[\'test\'] == 150',
+            'children': ["1", "2"],
+
+        }, {
+            'id': "1",
+            'title': "I'm a child",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': '',
+            'children': [],
+
+        }, {
+            'id': "2",
+            'title': "I'm the forgotten child",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': '',
+            'children': [],
+
+        }],
+        'rootNodeId': unique_id
+        })
+
+    create_res = r.json()
+    assert(create_res['ok'] == True)
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'With subtree'})
+    res = r.json()
+    tree_id = res['result']['id']
+
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'My Tree',
+        'nodes': [{
+            'id': "root-id",
+            'title': "I'm the root",
+            'description': "Hello",
+            'modelAttributes': {
+
+            },
+            'conditionAttribute': '',
+            'children': [unique_id],
+
+        }],
+        'rootNodeId': 'root-id'
+        })
+
+    create_res = r.json()
+    assert(create_res['ok'] == True)
