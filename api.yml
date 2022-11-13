@@ -112,6 +112,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetNodeResponse'
+
+  /projects/{projectId}/trees/{treeId}:
+    get:
+      tags:
+      - project
+      summary: View details of a single tree
+      operationId: getTree
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got tree successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreeResponse'
     post:
       tags:
       - project
@@ -137,30 +162,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateTreeResponse'
-  /projects/{projectId}/trees/{treeId}:
-    get:
-      tags:
-      - project
-      summary: View details of a single tree
-      operationId: getTree
-      parameters:
-        - in: path
-          name: projectId
-          schema:
-            type: integer
-          required: true
-        - in: path
-          name: treeId
-          schema:
-            type: integer
-          required: true
-      responses:
-        200:
-          description: Got tree successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TreeResponse'
     put:
       tags:
       - project
