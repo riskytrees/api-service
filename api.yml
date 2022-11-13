@@ -93,6 +93,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListTreesResponse'
+    post:
+      tags:
+      - project
+      summary: Creates a new empty tree
+      operationId: createTree
+      requestBody:
+        description: Initial details about the tree
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTree'
+        required: true
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Tree created succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTreeResponse'
   /nodes/{id}:
     get:
       tags:
@@ -137,31 +162,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TreeResponse'
-    post:
-      tags:
-      - project
-      summary: Creates a new empty tree
-      operationId: createTree
-      requestBody:
-        description: Initial details about the tree
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateTree'
-        required: true
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-          required: true
-      responses:
-        200:
-          description: Tree created succesfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateTreeResponse'
     put:
       tags:
       - project
