@@ -426,6 +426,8 @@ components:
     TreeDagItem:
       type: object
       properties:
+        id:
+          type: string
         children:
           type: array
           items:
