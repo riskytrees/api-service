@@ -486,7 +486,7 @@ fn node_get(id: String) -> Json<models::ApiGetNodeResponse> {
     }
 }
 
-#[get("/projects/<projectId>/<treeId>/dag/down")]
+#[get("/projects/<projectId>/trees/<treeId>/dag/down")]
 fn projects_trees_tree_dag_down_get(projectId: String, treeId: String) -> Json<models::ApiTreeDagResponse> {
     let db_client = database::get_instance();
 
