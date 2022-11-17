@@ -93,25 +93,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListTreesResponse'
-  /nodes/{id}:
-    get:
-      tags:
-      - nodes
-      summary: Gets a specific node and some relevant metadata
-      operationId: getNode
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-          required: true
-      responses:
-        200:
-          description: Got node details succesfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetNodeResponse'
     post:
       tags:
       - project
@@ -137,6 +118,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateTreeResponse'
+  /nodes/{id}:
+    get:
+      tags:
+      - nodes
+      summary: Gets a specific node and some relevant metadata
+      operationId: getNode
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got node details succesfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetNodeResponse'
+
   /projects/{projectId}/trees/{treeId}:
     get:
       tags:
@@ -190,6 +191,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TreeResponse'
+
+  /projects/{projectId}/trees/{treeId}/dag/down:
+    get:
+      tags:
+      - project
+      summary: Returns a DAG-like representation of the relationship between this tree and the subtrees of it
+      operationId: getTreeDagDown
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Got DAG successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreeDAGResponse'
+
 
   /projects/{projectId}/model:
     get:
@@ -396,6 +423,26 @@ components:
             sessionToken:
               type: string
 
+    TreeDagItem:
+      type: object
+      properties:
+        id:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreeDagItem'
+
+    TreeDAGResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            root: 
+              $ref: '#/components/schemas/TreeDagItem'
 
     ProjectConfigListResponse:
       allOf:

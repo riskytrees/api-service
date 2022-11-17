@@ -9,10 +9,10 @@ use database::get_tree_from_node_id;
 use mongodb::bson::doc;
 use rocket_contrib::json::Json;
 
-use rocket::{http::Method, Config, config::Environment, fairing::AdHoc};
+use rocket::{http::Method, Config, config::Environment};
 
 use rocket_cors::{
-    AllowedHeaders, AllowedOrigins, Error, Cors, CorsOptions
+    AllowedHeaders, AllowedOrigins, Cors, CorsOptions
 };
 
 mod constants;
@@ -486,6 +486,33 @@ fn node_get(id: String) -> Json<models::ApiGetNodeResponse> {
     }
 }
 
+#[get("/projects/<projectId>/trees/<treeId>/dag/down")]
+fn projects_trees_tree_dag_down_get(projectId: String, treeId: String) -> Json<models::ApiTreeDagResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let result = models::ApiTreeDagResponseResult {
+                root: models::ApiTreeDagItem {
+                    id: treeId.clone(),
+                    children: database::get_tree_relationships_down(&treeId, &client)
+                }
+            };
+
+            Json(models::ApiTreeDagResponse {
+                ok: true,
+                message: "Got relationship".to_string(),
+                result: Some(result)
+            })
+        },
+        Err(err) => Json(models::ApiTreeDagResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
 fn main() {
     let config = Config::build(Environment::Staging)
     .address("0.0.0.0")
@@ -504,6 +531,7 @@ fn main() {
                 projects_trees_get,
                 projects_trees_tree_get,
                 projects_trees_tree_put,
+                projects_trees_tree_dag_down_get,
                 projects_model_get,
                 projects_model_put,
                 models_get,

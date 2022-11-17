@@ -295,3 +295,21 @@ pub struct ApiGetNodeResponse {
 pub struct ApiGetNodeResponseResult {
     pub treeId: String
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiTreeDagResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiTreeDagResponseResult>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiTreeDagResponseResult {
+    pub root: ApiTreeDagItem
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiTreeDagItem {
+    pub id: String,
+    pub children: Vec<ApiTreeDagItem>
+}

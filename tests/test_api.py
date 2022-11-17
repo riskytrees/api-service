@@ -391,3 +391,8 @@ def test_tree_with_subtree():
 
     create_res = r.json()
     assert(create_res['ok'] == True)
+
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "/dag/down")
+    dag_res = r.json()
+    assert(create_res['ok'] == True)
+

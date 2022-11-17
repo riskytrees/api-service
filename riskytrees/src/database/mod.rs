@@ -3,10 +3,10 @@ use mongodb::{
     sync::Client,
 };
 
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 use bson::bson;
-use crate::{constants, errors::DatabaseError};
+use crate::{constants, errors::DatabaseError, models::ApiTreeDagItem};
 use crate::errors;
 use crate::helpers;
 use crate::models;
@@ -517,6 +517,67 @@ pub fn get_tree_from_node_id(node_id: String, client: &mongodb::sync::Client) ->
             Err(DatabaseError {
                 message: err.to_string()
             })
+        }
+    }
+}
+
+pub fn get_tree_relationships_down(startTreeId: &String, client: &mongodb::sync::Client) -> Vec<ApiTreeDagItem> {
+    let mut result = vec![];
+
+    let childrenNodes = get_nodes_from_tree(startTreeId, client);
+
+    // Figure out which nodes have children that aren't included in this list of nodes
+    let mut childrenOfConcern = std::collections::HashSet::new();
+    let mut nodeInclusionMap = HashMap::new();
+
+    for node in &childrenNodes {
+        nodeInclusionMap.insert(node.id.clone(), true);
+    }
+
+    for node in &childrenNodes {
+        for child in &(node.children) {
+            if !nodeInclusionMap.contains_key(child) {
+                childrenOfConcern.insert(child);
+            }
+        }
+    }
+
+    // Resolve children
+    let mut childTrees = vec![];
+
+    for node in childrenOfConcern {
+        let lookup = get_tree_from_node_id(node.to_string(), client);
+        match lookup {
+            Ok(res) => {
+                match res.result {
+                    Some(res) => {
+                        childTrees.push(res.treeId);
+                    },
+                    None => {}
+                }
+            }, Err(err) => {
+                eprintln!("{}", err);
+            }
+        }
+    }
+
+    for childTree in &childTrees {
+        result.push(ApiTreeDagItem { id: childTree.to_string(), children: get_tree_relationships_down(childTree, client) });
+    }
+
+    result
+}
+
+pub fn get_nodes_from_tree(treeId: &String, client: &mongodb::sync::Client) -> Vec<models::ApiFullNodeData> {
+    let data = get_full_tree_data(client, treeId.to_string());
+
+    match data {
+        Ok(res) => {
+            res.nodes
+        },
+        Err(err) => {
+            eprintln!("{}", err);
+            vec![]
         }
     }
 }
