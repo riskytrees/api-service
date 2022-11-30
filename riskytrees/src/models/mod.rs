@@ -59,7 +59,8 @@ pub struct Project {
     pub title: String,
     pub id: String,
     pub related_tree_ids: Vec<String>,
-    pub selected_model: Option<String>
+    pub selected_model: Option<String>,
+    pub related_config_ids: Vec<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -312,4 +313,16 @@ pub struct ApiTreeDagResponseResult {
 pub struct ApiTreeDagItem {
     pub id: String,
     pub children: Vec<ApiTreeDagItem>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiProjectConfigListResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiProjectConfigListResponseResult> 
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiProjectConfigListResponseResult {
+    pub ids: Vec<String>
 }

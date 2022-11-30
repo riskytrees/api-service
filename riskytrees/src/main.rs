@@ -6,6 +6,7 @@ extern crate rocket_cors;
 
 use std::collections::HashSet;
 use database::get_tree_from_node_id;
+use models::ApiProjectConfigListResponseResult;
 use mongodb::bson::doc;
 use rocket_contrib::json::Json;
 
@@ -513,6 +514,30 @@ fn projects_trees_tree_dag_down_get(projectId: String, treeId: String) -> Json<m
     }
 }
 
+#[get("/projects/<projectId>/configs")]
+fn projects_configs_get(projectId: String) -> Json<models::ApiProjectConfigListResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let matching_configs = database::get_configs_for_project(&projectId, &client);
+
+            Json(models::ApiProjectConfigListResponse {
+                ok: true,
+                message: "Got configs".to_string(),
+                result: Some(ApiProjectConfigListResponseResult {
+                    ids: matching_configs
+                })
+            })
+        },
+        Err(err) => Json(models::ApiProjectConfigListResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
 fn main() {
     let config = Config::build(Environment::Staging)
     .address("0.0.0.0")
@@ -534,6 +559,7 @@ fn main() {
                 projects_trees_tree_dag_down_get,
                 projects_model_get,
                 projects_model_put,
+                projects_configs_get,
                 models_get,
                 node_get
             ],

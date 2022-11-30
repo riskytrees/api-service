@@ -396,3 +396,20 @@ def test_tree_with_subtree():
     dag_res = r.json()
     assert(create_res['ok'] == True)
 
+def test_get_configs():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs")
+
+    res = r.json()
+    assert(res['ok'] == True)
+    assert("Got" in res['message'])
+    assert(len(res['result']['ids']) == 0)

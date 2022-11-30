@@ -3,7 +3,7 @@ use mongodb::{
     sync::Client,
 };
 
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hash, vec};
 
 use bson::bson;
 use crate::{constants, errors::DatabaseError, models::ApiTreeDagItem};
@@ -70,6 +70,9 @@ pub fn get_project_by_title(
                             related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(
                                 doc.get_array("related_tree_ids").ok()?.clone(),
                             ),
+                            related_config_ids: helpers::convert_bson_objectid_array_to_str_array(
+                                doc.get_array("related_config_ids").ok()?.clone(),
+                            ),
                             selected_model: match doc.get_str("selectedModel").ok() {
                                 Some(val) => Some(val.to_string()),
                                 None => {
@@ -130,10 +133,19 @@ pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<m
                     }
                 };
 
+                let config_ids = match doc.get_array("related_config_ids").ok() {
+                    Some(val) => val.clone(),
+                    None => {
+                        println!("Found record does not have related_config_ids");
+                        Vec::new()
+                    }
+                };
+
                 let returnres = Some(models::Project {
                     title: title.to_string(),
                     id: id.to_string(),
                     related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(tree_ids),
+                    related_config_ids: helpers::convert_bson_objectid_array_to_str_array(config_ids),
                     selected_model: selected_model
                 });
                 returnres
@@ -579,5 +591,16 @@ pub fn get_nodes_from_tree(treeId: &String, client: &mongodb::sync::Client) -> V
             eprintln!("{}", err);
             vec![]
         }
+    }
+}
+
+pub fn get_configs_for_project(project_id: &String, client:  &mongodb::sync::Client) -> Vec<String> {
+    let project = get_project_by_id(client, project_id.to_string());
+
+    match project {
+        Some(project) => {
+            project.related_config_ids
+        },
+        None => vec![]
     }
 }
