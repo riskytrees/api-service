@@ -604,3 +604,7 @@ pub fn get_configs_for_project(project_id: &String, client:  &mongodb::sync::Cli
         None => vec![]
     }
 }
+
+pub fn new_config(project_id: &String, body: &rocket_contrib::json::Json<models::ApiProjectConfigPayload>, client: &mongodb::sync::Client) -> String {
+    todo!()
+}

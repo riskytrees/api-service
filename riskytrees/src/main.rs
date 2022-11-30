@@ -538,6 +538,22 @@ fn projects_configs_get(projectId: String) -> Json<models::ApiProjectConfigListR
     }
 }
 
+#[post("/projects/<projectId>/configs", data = "<body>")]
+fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigPayload>) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let new_config_id: String = database::new_config(&projectId, &body, &client);
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
 fn main() {
     let config = Config::build(Environment::Staging)
     .address("0.0.0.0")

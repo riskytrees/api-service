@@ -1,3 +1,4 @@
+use rocket_contrib::json::JsonValue;
 use serde::{Serialize, Serializer, Deserialize};
 use std::collections::HashMap;
 use bson::Bson;
@@ -325,4 +326,22 @@ pub struct ApiProjectConfigListResponse {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiProjectConfigListResponseResult {
     pub ids: Vec<String>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiProjectConfigPayload {
+    pub attributes: JsonValue
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiProjectConfigResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiProjectConfigResponseResult> 
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiProjectConfigResponseResult {
+    pub id: String,
+    pub attributes: JsonValue
 }
