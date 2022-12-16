@@ -8,8 +8,7 @@ use std::collections::HashSet;
 use database::get_tree_from_node_id;
 use models::ApiProjectConfigListResponseResult;
 use mongodb::bson::doc;
-use rocket_contrib::json::Json;
-
+use rocket_contrib::json::{Json, self};
 use rocket::{http::Method, Config, config::Environment};
 
 use rocket_cors::{
@@ -544,7 +543,63 @@ fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigP
 
     match db_client {
         Ok(client) => {
-            let new_config_id: String = database::new_config(&projectId, &body, &client);
+            let thing = body.into_inner();
+
+            let new_config_id: Result<String, errors::DatabaseError> = database::new_config(&projectId, &thing, &client);
+            match new_config_id {
+                Ok(new_config_id) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Created config".to_owned(),
+                        result: Some(models::ApiProjectConfigResponseResult {
+                            id: new_config_id,
+                            attributes: rocket_contrib::json!(thing)
+                        })
+                    })
+                },
+                Err(err) => Json(models::ApiProjectConfigResponse {
+                    ok: false,
+                    message: "Creation of config failed".to_owned(),
+                    result: None,
+                })
+            }
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
+#[post("/projects/<projectId>/configs/<configId>", data = "<body>")]
+fn projects_configs_put(projectId: String, configId: String, body: Json<models::ApiProjectConfigPayload>) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let thing = body.into_inner();
+            let new_config = database::update_config(&projectId, &configId, &thing, &client);
+
+            match new_config {
+                Ok(updated_id) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Updated config".to_owned(),
+                        result: Some(models::ApiProjectConfigResponseResult {
+                            id: updated_id,
+                            attributes: rocket_contrib::json!(thing)
+                        }),
+                    })
+                },
+                Err(err) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: false,
+                        message: "Update config failed".to_owned(),
+                        result: None,
+                    })
+                }
+            }
         },
         Err(err) => Json(models::ApiProjectConfigResponse {
             ok: false,
@@ -576,6 +631,7 @@ fn main() {
                 projects_model_get,
                 projects_model_put,
                 projects_configs_get,
+                projects_configs_post,
                 models_get,
                 node_get
             ],

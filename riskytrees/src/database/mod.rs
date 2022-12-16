@@ -2,6 +2,7 @@ use mongodb::{
     bson::{doc, Document},
     sync::Client,
 };
+use rocket_contrib::json;
 
 use std::{collections::HashMap, hash::Hash, vec};
 
@@ -605,6 +606,75 @@ pub fn get_configs_for_project(project_id: &String, client:  &mongodb::sync::Cli
     }
 }
 
-pub fn new_config(project_id: &String, body: &rocket_contrib::json::Json<models::ApiProjectConfigPayload>, client: &mongodb::sync::Client) -> String {
-    todo!()
+pub fn new_config(project_id: &String, body: &models::ApiProjectConfigPayload, client: &mongodb::sync::Client) -> Result<String, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let config_collection = database.collection::<Document>("configs");
+    let project_collection = database.collection::<Document>("projects");
+
+    let bson_attributes = bson::to_bson(&body.attributes);
+
+    match bson_attributes {
+        Ok(bson_attributes) => {
+            let insert_result = config_collection.insert_one(doc! {
+                "attributes": bson_attributes,
+            }, None)?;
+        
+            let inserted_id = insert_result.inserted_id.as_object_id();
+        
+            match inserted_id.clone() {
+                Some(oid) => {
+                    project_collection.find_one_and_update(
+                        doc! {
+                            "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible")
+                        },
+                        doc! {
+                            "$push": {
+                                "related_config_ids": oid.clone()
+                            }
+                        },
+                        None,
+                    )?;
+        
+                    Ok(oid.to_string().clone())
+                },
+                None => Err(errors::DatabaseError {
+                    message: "No object ID found.".to_string(),
+                }),
+            }
+        },
+        Err(err) => {
+            Err(errors::DatabaseError {
+                message: "New config body to json failed.".to_string(),
+            })
+        }
+    }
+
+
+}
+
+pub fn update_config(project_id: &String, config_id: &String, body: &models::ApiProjectConfigPayload, client: &mongodb::sync::Client) -> Result<String, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let config_collection = database.collection::<Document>("configs");
+    let project_collection = database.collection::<Document>("projects");
+
+    let bson_attributes = bson::to_bson(&body.attributes);
+
+    match bson_attributes {
+        Ok(bson_attributes) => {
+            let new_doc = doc! {
+                "attributes": bson_attributes
+            };
+        
+            let doc = body;
+        
+            config_collection.find_one_and_replace(doc! {
+                "_id": bson::oid::ObjectId::with_string(&config_id.to_owned()).expect("infallible")
+            }, new_doc, None);
+        
+            Ok(config_id.to_owned())
+        },
+        Err(err) => {
+            Err(DatabaseError { message: "Could not convert body attribute to JSON".to_owned() })
+        }
+    }
 }
