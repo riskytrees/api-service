@@ -61,7 +61,8 @@ pub struct Project {
     pub id: String,
     pub related_tree_ids: Vec<String>,
     pub selected_model: Option<String>,
-    pub related_config_ids: Vec<String>
+    pub related_config_ids: Vec<String>,
+    pub selected_config: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]

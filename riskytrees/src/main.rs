@@ -609,6 +609,37 @@ fn projects_configs_put(projectId: String, configId: String, body: Json<models::
     }
 }
 
+#[get("/projects/<projectId>/config")]
+fn projects_config_get(projectId: String) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let config = database::get_selected_config(&projectId, &client);
+
+            match config {
+                Ok(config) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Found selected config".to_owned(),
+                        result: Some(config),
+                    })
+                },
+                Err(err) => Json(models::ApiProjectConfigResponse {
+                    ok: false,
+                    message: "Error finding selected config".to_owned(),
+                    result: None,
+                })
+            }
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
 fn main() {
     let config = Config::build(Environment::Staging)
     .address("0.0.0.0")
@@ -632,6 +663,7 @@ fn main() {
                 projects_model_put,
                 projects_configs_get,
                 projects_configs_post,
+                projects_config_get,
                 models_get,
                 node_get
             ],

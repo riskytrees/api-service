@@ -355,7 +355,7 @@ paths:
     put:
       tags:
       - project
-      summary: Add a new config of a project
+      summary: Update an existing config of a project
       operationId: updateProjectConfig
       parameters:
         - in: path

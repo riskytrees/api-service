@@ -7,7 +7,7 @@ use rocket_contrib::json;
 use std::{collections::HashMap, hash::Hash, vec};
 
 use bson::bson;
-use crate::{constants, errors::DatabaseError, models::ApiTreeDagItem};
+use crate::{constants, errors::DatabaseError, models::{ApiTreeDagItem, ApiProjectConfigResponseResult}};
 use crate::errors;
 use crate::helpers;
 use crate::models;
@@ -79,6 +79,12 @@ pub fn get_project_by_title(
                                 None => {
                                     None
                                 }
+                            },
+                            selected_config: match doc.get_str("selectedConfig").ok() {
+                                Some(val) => Some(val.to_string()),
+                                None => {
+                                    None
+                                }
                             }
                         }),
                         None => None,
@@ -118,6 +124,13 @@ pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<m
                     }
                 };
 
+                let selected_config = match doc.get_str("selectedConfig").ok() {
+                    Some(val) => Some(val.to_string()),
+                    None => {
+                        None
+                    }
+                };
+
                 let id = match doc.get_object_id("_id").ok() {
                     Some(val) => val.to_hex(),
                     None => {
@@ -147,7 +160,8 @@ pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<m
                     id: id.to_string(),
                     related_tree_ids: helpers::convert_bson_objectid_array_to_str_array(tree_ids),
                     related_config_ids: helpers::convert_bson_objectid_array_to_str_array(config_ids),
-                    selected_model: selected_model
+                    selected_model: selected_model,
+                    selected_config: selected_config
                 });
                 returnres
             }
@@ -675,6 +689,54 @@ pub fn update_config(project_id: &String, config_id: &String, body: &models::Api
         },
         Err(err) => {
             Err(DatabaseError { message: "Could not convert body attribute to JSON".to_owned() })
+        }
+    }
+}
+
+pub fn get_selected_config(project_id: &String, client: &mongodb::sync::Client) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError>  {
+    let database = client.database(constants::DATABASE_NAME);
+    let config_collection = database.collection::<Document>("configs");
+    let project_collection = database.collection::<Document>("projects");
+
+    let project = get_project_by_id(client, project_id.to_string());
+
+    match project {
+        Some(project) => {
+            let config_id = project.selected_config;
+
+            match config_id {
+                Some(config_id) => {
+                    let matched_record = config_collection.find_one(
+                        doc! {
+                            "_id": bson::oid::ObjectId::with_string(&config_id.to_owned()).expect("infallible")
+                        },
+                        None,
+                    );
+
+                    match matched_record {
+                        Ok(matched_record) => {
+                            match matched_record {
+                                Some(matched_record) => {
+                                    let attributes = matched_record.get_document("attributes").expect("Should always exist");
+
+                                    Ok(ApiProjectConfigResponseResult {
+                                        id: matched_record.get_object_id("_id").expect("Should always exist").to_string(),
+                                        attributes: json!(attributes)
+                                    })
+                                },
+                                None => Err(DatabaseError { message: "No matched record".to_string()})
+                            }
+                        },
+                        Err(err) => Err(DatabaseError { message: format!("{}", err)})
+                    }
+
+
+                },
+                None => Err(DatabaseError { message: "Could not find selected config".to_owned() })
+            }
+        },
+        None => {
+            Err(DatabaseError { message: "Could not find project".to_owned() })
         }
     }
 }
