@@ -743,11 +743,12 @@ pub fn get_selected_config(project_id: &String, client: &mongodb::sync::Client) 
 
 pub fn update_project_selected_config(project_id: &String, config: &models::ApiProjectConfigIdPayload, client: &mongodb::sync::Client) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
-    let config_collection = database.collection::<Document>("configs");
     let project_collection = database.collection::<Document>("projects");
 
     let new_doc = doc! {
-        "selectedConfig": config.desiredConfig
+        "$set": {
+            "selectedConfig": config.desiredConfig.clone()
+        }
     };
 
     let res = project_collection.find_one_and_update(doc! {

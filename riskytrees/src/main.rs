@@ -657,11 +657,14 @@ fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdP
                         result: Some(res),
                     })
                 },
-                Err(err) => Json(models::ApiProjectConfigResponse {
-                    ok: false,
-                    message: "Error updating config".to_owned(),
-                    result: None,
-                })
+                Err(err) => {
+                    eprintln!("{}", err);
+                    Json(models::ApiProjectConfigResponse {
+                        ok: false,
+                        message: "Error updating config".to_owned(),
+                        result: None,
+                    })
+                }
             }
         },
         Err(err) => Json(models::ApiProjectConfigResponse {
