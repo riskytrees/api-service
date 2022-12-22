@@ -355,7 +355,7 @@ paths:
     put:
       tags:
       - project
-      summary: Add a new config of a project
+      summary: Update an existing config of a project
       operationId: updateProjectConfig
       parameters:
         - in: path
@@ -455,7 +455,7 @@ components:
             ids:
               type: array
               items:
-                type: integer
+                type: string
 
     SpecificProjectConfigResponse:
       allOf:
@@ -474,8 +474,8 @@ components:
       properties:
         result:
           properties:
-            selectedConfig:
-              type: integer
+            id:
+              type: string
             attributes:
               type: object
 
@@ -489,7 +489,7 @@ components:
       type: object
       properties:
         desiredConfig:
-          type: integer
+          type: string
 
     GetNodeResponse:
       allOf:

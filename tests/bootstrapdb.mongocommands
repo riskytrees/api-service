@@ -2,3 +2,4 @@ use riskytrees
 db.createCollection("users")
 db.createCollection("projects")
 db.createCollection("trees")
+db.createCollection("configs")

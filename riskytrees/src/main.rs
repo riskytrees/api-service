@@ -6,9 +6,9 @@ extern crate rocket_cors;
 
 use std::collections::HashSet;
 use database::get_tree_from_node_id;
+use models::ApiProjectConfigListResponseResult;
 use mongodb::bson::doc;
-use rocket_contrib::json::Json;
-
+use rocket_contrib::json::{Json, self};
 use rocket::{http::Method, Config, config::Environment};
 
 use rocket_cors::{
@@ -513,6 +513,168 @@ fn projects_trees_tree_dag_down_get(projectId: String, treeId: String) -> Json<m
     }
 }
 
+#[get("/projects/<projectId>/configs")]
+fn projects_configs_get(projectId: String) -> Json<models::ApiProjectConfigListResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let matching_configs = database::get_configs_for_project(&projectId, &client);
+
+            Json(models::ApiProjectConfigListResponse {
+                ok: true,
+                message: "Got configs".to_string(),
+                result: Some(ApiProjectConfigListResponseResult {
+                    ids: matching_configs
+                })
+            })
+        },
+        Err(err) => Json(models::ApiProjectConfigListResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
+#[post("/projects/<projectId>/configs", data = "<body>")]
+fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigPayload>) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let thing = body.into_inner();
+
+            let new_config_id: Result<String, errors::DatabaseError> = database::new_config(&projectId, &thing, &client);
+            match new_config_id {
+                Ok(new_config_id) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Created config".to_owned(),
+                        result: Some(models::ApiProjectConfigResponseResult {
+                            id: new_config_id,
+                            attributes: rocket_contrib::json!(thing)
+                        })
+                    })
+                },
+                Err(err) => Json(models::ApiProjectConfigResponse {
+                    ok: false,
+                    message: "Creation of config failed".to_owned(),
+                    result: None,
+                })
+            }
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
+#[post("/projects/<projectId>/configs/<configId>", data = "<body>")]
+fn projects_configs_put(projectId: String, configId: String, body: Json<models::ApiProjectConfigPayload>) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let thing = body.into_inner();
+            let new_config = database::update_config(&projectId, &configId, &thing, &client);
+
+            match new_config {
+                Ok(updated_id) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Updated config".to_owned(),
+                        result: Some(models::ApiProjectConfigResponseResult {
+                            id: updated_id,
+                            attributes: rocket_contrib::json!(thing)
+                        }),
+                    })
+                },
+                Err(err) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: false,
+                        message: "Update config failed".to_owned(),
+                        result: None,
+                    })
+                }
+            }
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
+#[get("/projects/<projectId>/config")]
+fn projects_config_get(projectId: String) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let config = database::get_selected_config(&projectId, &client);
+
+            match config {
+                Ok(config) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Found selected config".to_owned(),
+                        result: Some(config),
+                    })
+                },
+                Err(err) => Json(models::ApiProjectConfigResponse {
+                    ok: false,
+                    message: "Error finding selected config".to_owned(),
+                    result: None,
+                })
+            }
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
+#[put("/projects/<projectId>/config", data = "<body>")]
+fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdPayload>) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let thing: models::ApiProjectConfigIdPayload = body.into_inner();
+            let res = database::update_project_selected_config(&projectId, &thing, &client);
+
+            match res {
+                Ok(res) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Found selected config".to_owned(),
+                        result: Some(res),
+                    })
+                },
+                Err(err) => {
+                    eprintln!("{}", err);
+                    Json(models::ApiProjectConfigResponse {
+                        ok: false,
+                        message: "Error updating config".to_owned(),
+                        result: None,
+                    })
+                }
+            }
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
 fn main() {
     let config = Config::build(Environment::Staging)
     .address("0.0.0.0")
@@ -534,6 +696,10 @@ fn main() {
                 projects_trees_tree_dag_down_get,
                 projects_model_get,
                 projects_model_put,
+                projects_configs_get,
+                projects_configs_post,
+                projects_config_get,
+                projects_config_put,
                 models_get,
                 node_get
             ],

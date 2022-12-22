@@ -396,3 +396,85 @@ def test_tree_with_subtree():
     dag_res = r.json()
     assert(create_res['ok'] == True)
 
+def test_get_configs():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs")
+
+    res = r.json()
+    assert(res['ok'] == True)
+    assert("Got" in res['message'])
+    assert(len(res['result']['ids']) == 0)
+
+def test_create_config():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.post('http://localhost:8000/projects/' + project_id + "/configs", json = {
+      "attributes": {
+        "Hello": "Test"
+      }  
+    })
+    res = r.json()
+    assert(res['ok'] == True)
+
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs")
+
+    res = r.json()
+    assert(res['ok'] == True)
+    assert("Got" in res['message'])
+    assert(len(res['result']['ids']) == 1)
+
+def test_create_config():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    # Selected config should error (beacuse none is selected)
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/config")
+    res = r.json()
+    assert(res['ok'] == False)
+
+
+    r = requests.post('http://localhost:8000/projects/' + project_id + "/configs", json = {
+      "attributes": {
+        "Hello": "Test"
+      }  
+    })
+    res = r.json()
+    assert(res['ok'] == True)
+
+    config_id = res['result']['id']
+
+    r = requests.put('http://localhost:8000/projects/' + project_id + "/config", json = {
+      "desiredConfig": config_id
+    })
+    res = r.json()
+    print(res)
+    assert(res['ok'] == True)
+
+    # Selected config should not error (beacuse config_id is selected)
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/config")
+    res = r.json()
+    assert(res['ok'] == True)
