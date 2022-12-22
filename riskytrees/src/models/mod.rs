@@ -346,3 +346,8 @@ pub struct ApiProjectConfigResponseResult {
     pub id: String,
     pub attributes: JsonValue
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiProjectConfigIdPayload {
+    pub desiredConfig: String
+}

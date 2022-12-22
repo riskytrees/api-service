@@ -740,3 +740,29 @@ pub fn get_selected_config(project_id: &String, client: &mongodb::sync::Client) 
         }
     }
 }
+
+pub fn update_project_selected_config(project_id: &String, config: &models::ApiProjectConfigIdPayload, client: &mongodb::sync::Client) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let config_collection = database.collection::<Document>("configs");
+    let project_collection = database.collection::<Document>("projects");
+
+    let new_doc = doc! {
+        "selectedConfig": config.desiredConfig
+    };
+
+    let res = project_collection.find_one_and_update(doc! {
+        "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible")
+    }, new_doc, None);
+
+    match res {
+        Ok(res) => {
+            match res {
+                Some(res) => {
+                    get_selected_config(project_id, client)
+                },
+                None => Err(DatabaseError { message: "Could not find project to update".to_owned() })
+            }
+        },
+        Err(err) => Err(DatabaseError { message: format!("{}", err)})
+    }
+}

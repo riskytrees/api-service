@@ -640,6 +640,38 @@ fn projects_config_get(projectId: String) -> Json<models::ApiProjectConfigRespon
     }
 }
 
+#[put("/projects/<projectId>/config", data = "<body>")]
+fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdPayload>) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let thing: models::ApiProjectConfigIdPayload = body.into_inner();
+            let res = database::update_project_selected_config(&projectId, &thing, &client);
+
+            match res {
+                Ok(res) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Found selected config".to_owned(),
+                        result: Some(res),
+                    })
+                },
+                Err(err) => Json(models::ApiProjectConfigResponse {
+                    ok: false,
+                    message: "Error updating config".to_owned(),
+                    result: None,
+                })
+            }
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
 fn main() {
     let config = Config::build(Environment::Staging)
     .address("0.0.0.0")
@@ -664,6 +696,7 @@ fn main() {
                 projects_configs_get,
                 projects_configs_post,
                 projects_config_get,
+                projects_config_put,
                 models_get,
                 node_get
             ],
