@@ -1,0 +1,9 @@
+on:
+  pull_request:
+    branches:
+    - main
+name: infracost
+jobs:
+  infracost:
+    - name: Infracost Actions
+      uses: infracost/actions@v2.0.0
