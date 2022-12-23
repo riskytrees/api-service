@@ -65,28 +65,12 @@ fn index() -> &'static str {
     }
 }
 
-#[post("/auth/login", data = "<body>")]
-fn auth_login(body: Json<models::ApiRegisterUser>) -> Json<models::ApiAuthLoginResponse> {
+#[post("/auth/login?<code>")]
+fn auth_login(code: String) -> Json<models::ApiAuthLoginResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            if database::get_user(client.to_owned(), body.email.to_owned()).is_none() {
-                database::new_user(client, body.email.to_owned());
-
-                Json(models::ApiAuthLoginResponse {
-                    ok: true,
-                    message: "User created and logged in succesfully".to_owned(),
-                    result: Some(models::AuthLoginResponseResult {
-                        sessionToken: "testtoken".to_owned(),
-                    }),
-                })
-            } else {
-                Json(models::ApiAuthLoginResponse {
-                    ok: true,
-                    message: "User logged in succesfully".to_owned(),
-                    result: None,
-                })
-            }
+            
         }
         Err(e) => Json(models::ApiAuthLoginResponse {
             ok: false,

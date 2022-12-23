@@ -17,13 +17,14 @@ paths:
       - auth
       summary: Logins a new user and returns a session token
       operationId: loginUser
-      requestBody:
-        description: User details that you want to login with. One day this will be a SAML callback.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterUser'
-        required: true
+      parameters:
+        - in: query
+          name: code
+          description: OAuth 2.0 code
+          schema:
+            type: string
+          required: true
+
       responses:
         200:
           description: User logged in succesfully.
@@ -405,6 +406,7 @@ components:
         email:
           type: string
           format: email
+
 
     CreateProject:
       type: object
