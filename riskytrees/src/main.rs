@@ -20,6 +20,7 @@ mod database;
 mod errors;
 mod helpers;
 mod models;
+mod oidc;
 
 #[cfg(test)]
 mod tests;

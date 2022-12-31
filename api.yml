@@ -16,6 +16,7 @@ paths:
       tags:
       - auth
       summary: Logins a new user and returns a session token
+      description: If the code parameter is not provided, but provider is, this returns a URI request that the client should send to trigger the OIDC flow. If the code provider is provided, this validates the user and returns a signed JWT to be used with riskytrees requests.
       operationId: loginUser
       parameters:
         - in: query
@@ -23,8 +24,14 @@ paths:
           description: OAuth 2.0 code
           schema:
             type: string
-          required: true
-
+          required: false
+        - in: query
+          name: provider
+          description: A provider you want to use to login with.
+          schema:
+            type: string
+            enum: [google]
+          required: false
       responses:
         200:
           description: User logged in succesfully.
@@ -424,6 +431,18 @@ components:
           properties:
             sessionToken:
               type: string
+            loginRequest:
+              type: string
+              example:
+                https://accounts.google.com/o/oauth2/v2/auth?
+                response_type=code&
+                client_id=424911365001.apps.googleusercontent.com&
+                scope=openid%20email&
+                redirect_uri=https%3A//oauth2.example.com/code&
+                state=security_token%3D138r5719ru3e1%26url%3Dhttps%3A%2F%2Foauth2-login-demo.example.com%2FmyHome&
+                login_hint=jsmith@example.com&
+                nonce=0394852-3190485-2490358&
+                hd=example.com
 
     TreeDagItem:
       type: object
