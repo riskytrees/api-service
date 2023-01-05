@@ -2,6 +2,7 @@ use mongodb::{
     bson::{doc, Document},
     sync::Client,
 };
+use rocket::Data;
 use rocket_contrib::json;
 
 use std::{collections::HashMap, hash::Hash, vec};
@@ -765,5 +766,40 @@ pub fn update_project_selected_config(project_id: &String, config: &models::ApiP
             }
         },
         Err(err) => Err(DatabaseError { message: format!("{}", err)})
+    }
+}
+
+pub fn store_csrf_token(token: &openidconnect::CsrfToken, client: &mongodb::sync::Client) -> Result<bool, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let csrf_collection = database.collection::<Document>("csrf_tokens");
+
+    csrf_collection.insert_one(doc! {
+        "csrf": token.secret()
+    }, None)?;
+
+
+
+    Ok(true)
+}
+
+// Deletes token at time of validation. i.e. good for one use
+// Returns true if validated, throws an error otherwise.
+pub fn validate_csrf_token(state_parameter: &String, client: &mongodb::sync::Client) -> Result<bool, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let csrf_collection = database.collection::<Document>("csrf_tokens");
+
+    let result = csrf_collection.find_one_and_delete(doc! {
+        "csrf": state_parameter
+    }, None)?;
+
+    match result {
+        Some(result) => {
+            Ok(true)
+        },
+        None => {
+            Err(DatabaseError {
+                message: "No matching CSRF Token!".to_owned(),
+            })
+        }
     }
 }

@@ -1,4 +1,5 @@
-use oauth2::{
+use openidconnect::core::{CoreGenderClaim, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm, CoreJsonWebKeyType};
+use openidconnect::{
     AuthorizationCode,
     AuthUrl,
     ClientId,
@@ -8,49 +9,52 @@ use oauth2::{
     RedirectUrl,
     Scope,
     TokenResponse,
-    TokenUrl
+    TokenUrl, ExtraTokenFields, IdToken, EmptyAdditionalClaims
 };
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::http_client;
+use openidconnect::reqwest::http_client;
 
 use crate::errors::{AuthError, self};
 
 pub struct AuthRequestData {
-   pub url: oauth2::url::Url,
+   pub url: openidconnect::url::Url,
    pub csrf_token: CsrfToken
-};
+}
 
 pub fn start_flow() -> Result<AuthRequestData, AuthError> {
     let auth_url = AuthUrl::new("http://authorize".to_string());
     let redirect_url = RedirectUrl::new("http://redirect".to_string());
+
+
+    let provider_metadata = openidconnect::core::CoreProviderMetadata::discover(
+        &openidconnect::IssuerUrl::new("https://accounts.example.com".to_string())?,
+        http_client
+    ).map_err(|e| AuthError {
+        message: "Error getting provider metadata".to_owned()
+    })?;
 
     match auth_url {
         Ok(auth_url) => {
             match redirect_url {
                 Ok(redirect_url) => {
                     let client =
-                    BasicClient::new(
+                    openidconnect::core::CoreClient::from_provider_metadata(
+                        provider_metadata,
                         ClientId::new("client_id".to_string()),
-                        Some(ClientSecret::new("client_secret".to_string())),
-                        auth_url,
-                        None
+                        Some(ClientSecret::new("client_secret".to_string()))
                     )
                     // Set the URL the user will be redirected to after the authorization process.
                     .set_redirect_uri(redirect_url);
 
-                    // Generate a PKCE challenge.
-                    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
                     // Generate the full authorization URL.
-                    let (auth_url, csrf_token) = client
-                        .authorize_url(CsrfToken::new_random)
+                    let (auth_url, csrf_token, nonce) = client
+                        .authorize_url(openidconnect::core::CoreAuthenticationFlow::AuthorizationCode,
+                            CsrfToken::new_random,
+                            openidconnect::Nonce::new_random,)
                         // Set the desired scopes.
                         .add_scope(Scope::new("read".to_string()))
                         .add_scope(Scope::new("write".to_string()))
-                        // Set the PKCE code challenge.
-                        .set_pkce_challenge(pkce_challenge)
                         .url();
-
 
                     Ok(AuthRequestData {
                         url: auth_url,
@@ -74,3 +78,52 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
     }
 
 }
+
+pub fn trade_token(code: &String) -> Result<IdToken<EmptyAdditionalClaims, CoreGenderClaim, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm, CoreJsonWebKeyType>, AuthError> {
+    let auth_url = AuthUrl::new("http://authorize".to_string()).map_err(|e| AuthError {
+        message: "Error getting auth URL".to_owned()
+    })?;
+    let token_url = AuthUrl::new("http://token".to_string()).map_err(|e| AuthError {
+        message: "Error getting auth URL".to_owned()
+    })?;
+    let redirect_url = RedirectUrl::new("http://redirect".to_string()).map_err(|e| AuthError {
+        message: "Error getting redirect URL".to_owned()
+    })?;
+    let provider_metadata = openidconnect::core::CoreProviderMetadata::discover(
+        &openidconnect::IssuerUrl::new("https://accounts.example.com".to_string())?,
+        http_client
+    ).map_err(|e| AuthError {
+        message: "Error getting provider metadata".to_owned()
+    })?;
+
+    let client =
+    openidconnect::core::CoreClient::from_provider_metadata(
+        provider_metadata,
+        ClientId::new("client_id".to_string()),
+        Some(ClientSecret::new("client_secret".to_string()))
+    )
+    // Set the URL the user will be redirected to after the authorization process.
+    .set_redirect_uri(redirect_url);
+
+    let token_result =
+    client
+        .exchange_code(AuthorizationCode::new("some authorization code".to_string()))
+        .request(http_client);
+
+    match token_result {
+        Ok(token_result) => {
+            let id_token = token_result.id_token();
+            match id_token {
+                Some(id_token) => {
+                    Ok(id_token.clone())
+                },
+                None =>  Err(AuthError { message: "Did not receive an ID Token".to_owned() })
+            }
+        },
+        Err(err) => {
+            Err(AuthError { message: "Trade token failed".to_owned() })
+        }
+    }
+
+}
+

@@ -20,17 +20,29 @@ paths:
       operationId: loginUser
       parameters:
         - in: query
+          name: provider
+          description: A provider you want to use to login with.
+          schema:
+            type: string
+            enum: [google]
+          required: false
+        - in: query
           name: code
           description: OAuth 2.0 code
           schema:
             type: string
           required: false
         - in: query
-          name: provider
-          description: A provider you want to use to login with.
+          name: state
+          description: OAuth state data
           schema:
             type: string
-            enum: [google]
+          required: false
+        - in: query
+          name: scope
+          description: OAuth scope data
+          schema:
+            type: string
           required: false
       responses:
         200:

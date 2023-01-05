@@ -37,3 +37,11 @@ impl std::convert::From<mongodb::error::Error> for AuthError {
         }
     }
 }
+
+impl std::convert::From<openidconnect::url::ParseError> for AuthError {
+    fn from(oidc_error: openidconnect::url::ParseError) -> AuthError {
+        AuthError {
+            message: oidc_error.to_string()
+        }
+    }
+}

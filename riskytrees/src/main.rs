@@ -66,8 +66,8 @@ fn index() -> &'static str {
     }
 }
 
-#[post("/auth/login?<code>")]
-fn auth_login(code: String) -> Json<models::ApiAuthLoginResponse> {
+#[post("/auth/login?<provider>&<code>&<state>&<scope>")]
+fn auth_login(provider: String, code: String, state: String, scope: String) -> Json<models::ApiAuthLoginResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -77,9 +77,8 @@ fn auth_login(code: String) -> Json<models::ApiAuthLoginResponse> {
                 match start_data {
                     Ok(start_data) => {
                         // Store csrf_token for lookup later
-                        
+                        database::store_csrf_token(&start_data.csrf_token, &client);
                         // Done
-
                         Json(models::ApiAuthLoginResponse {
                             ok: true,
                             message: "Got request URI".to_owned(),
@@ -100,7 +99,18 @@ fn auth_login(code: String) -> Json<models::ApiAuthLoginResponse> {
 
             } else {
                 // Validate flow
-                todo!()
+
+                match database::validate_csrf_token(&state, &client) {
+                    Ok(valid) => {
+                        let id_token = auth::trade_token(&code);
+                        todo!()
+                    },
+                    Err(err) => Json(models::ApiAuthLoginResponse {
+                        ok: false,
+                        message: "CSRF Validation failed".to_owned(),
+                        result: None,
+                    })
+                }
             }
         }
         
