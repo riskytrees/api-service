@@ -77,7 +77,7 @@ fn auth_login(provider: String, code: String, state: String, scope: String) -> J
                 match start_data {
                     Ok(start_data) => {
                         // Store csrf_token for lookup later
-                        database::store_csrf_token(&start_data.csrf_token, &client);
+                        database::store_csrf_token(&start_data.csrf_token, &start_data.nonce, &client);
                         // Done
                         Json(models::ApiAuthLoginResponse {
                             ok: true,
@@ -101,8 +101,8 @@ fn auth_login(provider: String, code: String, state: String, scope: String) -> J
                 // Validate flow
 
                 match database::validate_csrf_token(&state, &client) {
-                    Ok(valid) => {
-                        let id_token = auth::trade_token(&code);
+                    Ok(nonce) => {
+                        let email = auth::trade_token(&code, nonce);
                         todo!()
                     },
                     Err(err) => Json(models::ApiAuthLoginResponse {

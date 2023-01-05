@@ -9,7 +9,7 @@ use openidconnect::{
     RedirectUrl,
     Scope,
     TokenResponse,
-    TokenUrl, ExtraTokenFields, IdToken, EmptyAdditionalClaims
+    TokenUrl, ExtraTokenFields, IdToken, EmptyAdditionalClaims, Nonce
 };
 use openidconnect::reqwest::http_client;
 
@@ -17,7 +17,8 @@ use crate::errors::{AuthError, self};
 
 pub struct AuthRequestData {
    pub url: openidconnect::url::Url,
-   pub csrf_token: CsrfToken
+   pub csrf_token: CsrfToken,
+   pub nonce: Nonce
 }
 
 pub fn start_flow() -> Result<AuthRequestData, AuthError> {
@@ -58,7 +59,8 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
 
                     Ok(AuthRequestData {
                         url: auth_url,
-                        csrf_token: csrf_token
+                        csrf_token: csrf_token,
+                        nonce: nonce
                     })
                 },
                 Err(err) => {
@@ -79,7 +81,8 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
 
 }
 
-pub fn trade_token(code: &String) -> Result<IdToken<EmptyAdditionalClaims, CoreGenderClaim, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm, CoreJsonWebKeyType>, AuthError> {
+// Returns email if trade succeeds
+pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
     let auth_url = AuthUrl::new("http://authorize".to_string()).map_err(|e| AuthError {
         message: "Error getting auth URL".to_owned()
     })?;
@@ -115,7 +118,18 @@ pub fn trade_token(code: &String) -> Result<IdToken<EmptyAdditionalClaims, CoreG
             let id_token = token_result.id_token();
             match id_token {
                 Some(id_token) => {
-                    Ok(id_token.clone())
+                    // Extract the ID token claims after verifying its authenticity and nonce.
+                    let claims = id_token.claims(&client.id_token_verifier(), &nonce);
+
+                    match claims {
+                        Ok(claims) => {
+                            match claims.email() {
+                                Some(email) => Ok(email.to_string()),
+                                None => Err(AuthError { message: "Email unavailable".to_owned() })
+                            }
+                        },
+                        Err(err) => Err(AuthError { message: "Claims extraction failed".to_owned() })
+                    }
                 },
                 None =>  Err(AuthError { message: "Did not receive an ID Token".to_owned() })
             }

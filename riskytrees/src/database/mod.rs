@@ -2,6 +2,7 @@ use mongodb::{
     bson::{doc, Document},
     sync::Client,
 };
+use openidconnect::Nonce;
 use rocket::Data;
 use rocket_contrib::json;
 
@@ -769,22 +770,21 @@ pub fn update_project_selected_config(project_id: &String, config: &models::ApiP
     }
 }
 
-pub fn store_csrf_token(token: &openidconnect::CsrfToken, client: &mongodb::sync::Client) -> Result<bool, DatabaseError> {
+pub fn store_csrf_token(token: &openidconnect::CsrfToken, nonce: &Nonce, client: &mongodb::sync::Client) -> Result<bool, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let csrf_collection = database.collection::<Document>("csrf_tokens");
 
     csrf_collection.insert_one(doc! {
-        "csrf": token.secret()
+        "csrf": token.secret(),
+        "nonce": nonce.secret()
     }, None)?;
-
-
 
     Ok(true)
 }
 
 // Deletes token at time of validation. i.e. good for one use
-// Returns true if validated, throws an error otherwise.
-pub fn validate_csrf_token(state_parameter: &String, client: &mongodb::sync::Client) -> Result<bool, DatabaseError> {
+// Returns Nonce if validated, throws an error otherwise.
+pub fn validate_csrf_token(state_parameter: &String, client: &mongodb::sync::Client) -> Result<Nonce, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let csrf_collection = database.collection::<Document>("csrf_tokens");
 
@@ -794,7 +794,10 @@ pub fn validate_csrf_token(state_parameter: &String, client: &mongodb::sync::Cli
 
     match result {
         Some(result) => {
-            Ok(true)
+            let nonce = result.get_str("nonce").map_err(|e| DatabaseError {
+                message: "No nonce".to_owned()
+            })?;
+            Ok(Nonce::new(nonce.to_owned()))
         },
         None => {
             Err(DatabaseError {
