@@ -20,7 +20,7 @@ mod database;
 mod errors;
 mod helpers;
 mod models;
-mod oidc;
+mod auth;
 
 #[cfg(test)]
 mod tests;
@@ -71,8 +71,39 @@ fn auth_login(code: String) -> Json<models::ApiAuthLoginResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            
+            if code == "" {
+                // Start flow
+                let start_data = auth::start_flow();
+                match start_data {
+                    Ok(start_data) => {
+                        // Store csrf_token for lookup later
+                        
+                        // Done
+
+                        Json(models::ApiAuthLoginResponse {
+                            ok: true,
+                            message: "Got request URI".to_owned(),
+                            result: Some(models::AuthLoginResponseResult {
+                                sessionToken: "".to_owned(),
+                                loginRequest: start_data.url.to_string()
+                            }),
+                        })
+                    },
+                    Err(err) => {
+                        Json(models::ApiAuthLoginResponse {
+                            ok: false,
+                            message: "Could not generate OAuth request URL".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+
+            } else {
+                // Validate flow
+                todo!()
+            }
         }
+        
         Err(e) => Json(models::ApiAuthLoginResponse {
             ok: false,
             message: "Could not connect to DB".to_owned(),

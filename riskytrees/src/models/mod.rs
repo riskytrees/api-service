@@ -67,7 +67,8 @@ pub struct Project {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AuthLoginResponseResult {
-    pub sessionToken: String
+    pub sessionToken: String,
+    pub loginRequest: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
