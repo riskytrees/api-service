@@ -2,3 +2,7 @@
 
 Primary web service for managing complex, configurable, attack trees. 
 
+## Required environment variables
+1. RISKY_TREES_GOOGLE_REDIRECT_URL
+1. RISKY_TREES_GOOGLE_CLIENT_ID
+1. RISKY_TREES_GOOGLE_CLIENT_SECRET

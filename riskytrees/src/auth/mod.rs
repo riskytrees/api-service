@@ -1,3 +1,5 @@
+use std::env;
+
 use openidconnect::core::{CoreGenderClaim, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm, CoreJsonWebKeyType};
 use openidconnect::{
     AuthorizationCode,
@@ -22,12 +24,12 @@ pub struct AuthRequestData {
 }
 
 pub fn start_flow() -> Result<AuthRequestData, AuthError> {
-    let auth_url = AuthUrl::new("http://authorize".to_string());
-    let redirect_url = RedirectUrl::new("http://redirect".to_string());
+    let auth_url = AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string());
+    let redirect_url = RedirectUrl::new(env::var("RISKY_TREES_GOOGLE_REDIRECT_URL").expect("to exist").to_string());
 
 
     let provider_metadata = openidconnect::core::CoreProviderMetadata::discover(
-        &openidconnect::IssuerUrl::new("https://accounts.example.com".to_string())?,
+        &openidconnect::IssuerUrl::new("https://accounts.google.com/.well-known/openid-configuration".to_string())?,
         http_client
     ).map_err(|e| AuthError {
         message: "Error getting provider metadata".to_owned()
@@ -40,8 +42,8 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
                     let client =
                     openidconnect::core::CoreClient::from_provider_metadata(
                         provider_metadata,
-                        ClientId::new("client_id".to_string()),
-                        Some(ClientSecret::new("client_secret".to_string()))
+                        ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
+                        Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string()))
                     )
                     // Set the URL the user will be redirected to after the authorization process.
                     .set_redirect_uri(redirect_url);
@@ -83,17 +85,18 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
 
 // Returns email if trade succeeds
 pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
-    let auth_url = AuthUrl::new("http://authorize".to_string()).map_err(|e| AuthError {
+    let auth_url = AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).map_err(|e| AuthError {
         message: "Error getting auth URL".to_owned()
+    })?;
+    let redirect_url = RedirectUrl::new(env::var("RISKY_TREES_GOOGLE_REDIRECT_URL").expect("to exist").to_string()).map_err(|e| AuthError {
+        message: "Error getting redirect URL".to_owned()
     })?;
     let token_url = AuthUrl::new("http://token".to_string()).map_err(|e| AuthError {
         message: "Error getting auth URL".to_owned()
     })?;
-    let redirect_url = RedirectUrl::new("http://redirect".to_string()).map_err(|e| AuthError {
-        message: "Error getting redirect URL".to_owned()
-    })?;
+
     let provider_metadata = openidconnect::core::CoreProviderMetadata::discover(
-        &openidconnect::IssuerUrl::new("https://accounts.example.com".to_string())?,
+        &openidconnect::IssuerUrl::new("https://accounts.google.com/.well-known/openid-configuration".to_string())?,
         http_client
     ).map_err(|e| AuthError {
         message: "Error getting provider metadata".to_owned()
@@ -102,15 +105,15 @@ pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
     let client =
     openidconnect::core::CoreClient::from_provider_metadata(
         provider_metadata,
-        ClientId::new("client_id".to_string()),
-        Some(ClientSecret::new("client_secret".to_string()))
+        ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
+        Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string()))
     )
     // Set the URL the user will be redirected to after the authorization process.
     .set_redirect_uri(redirect_url);
 
     let token_result =
     client
-        .exchange_code(AuthorizationCode::new("some authorization code".to_string()))
+        .exchange_code(AuthorizationCode::new(code.to_string()))
         .request(http_client);
 
     match token_result {
