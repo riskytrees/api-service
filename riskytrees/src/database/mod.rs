@@ -21,7 +21,7 @@ pub fn get_instance() -> Result<mongodb::sync::Client, mongodb::error::Error> {
 }
 
 // Checks if user already exists in the databse. If it does, it is returned.
-pub fn get_user(client: mongodb::sync::Client, email: String) -> Option<models::User> {
+pub fn get_user(client: &mongodb::sync::Client, email: String) -> Option<models::User> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("users");
 
@@ -45,7 +45,7 @@ pub fn get_user(client: mongodb::sync::Client, email: String) -> Option<models::
     }
 }
 
-pub fn new_user(client: mongodb::sync::Client, email: String) -> bool {
+pub fn new_user(client: &mongodb::sync::Client, email: String) -> bool {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("users");
 

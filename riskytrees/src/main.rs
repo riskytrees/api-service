@@ -59,7 +59,7 @@ fn index() -> &'static str {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            database::new_user(client, "Test".to_string());
+            database::new_user(&client, "Test".to_string());
             "Hello, world!"
         }
         Err(e) => "Failed to create user",
@@ -103,7 +103,42 @@ fn auth_login(provider: String, code: String, state: String, scope: String) -> J
                 match database::validate_csrf_token(&state, &client) {
                     Ok(nonce) => {
                         let email = auth::trade_token(&code, nonce);
-                        todo!()
+                        match email {
+                            Ok(email) => {
+                                // Create user if user does not exist
+                                let user_exists = database::get_user(&client, email.clone());
+                                match user_exists {
+                                    Some(user) => {},
+                                    None => {
+                                        database::new_user(&client, email.clone());
+                                        ()
+                                    }
+                                }
+
+                                // Generate JWT
+                                let session_token = auth::generate_user_jwt(&email);
+                                match session_token {
+                                    Ok(session_token) => Json(models::ApiAuthLoginResponse {
+                                        ok: true,
+                                        message: "Logged in".to_owned(),
+                                        result: Some(models::AuthLoginResponseResult {
+                                            sessionToken: session_token,
+                                            loginRequest: "".to_owned()
+                                        }),
+                                    }),
+                                    Err(err) => Json(models::ApiAuthLoginResponse {
+                                        ok: false,
+                                        message: "Token generation failed".to_owned(),
+                                        result: None,
+                                    })
+                                }
+                            },
+                            Err(err) => Json(models::ApiAuthLoginResponse {
+                                ok: false,
+                                message: "Login Validation failed".to_owned(),
+                                result: None,
+                            })
+                        }
                     },
                     Err(err) => Json(models::ApiAuthLoginResponse {
                         ok: false,
