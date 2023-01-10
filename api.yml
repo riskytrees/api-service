@@ -12,20 +12,13 @@ servers:
 - url: https://riskytrees.com/api/v1
 paths:
   /auth/login:
-    post:
+    get:
       tags:
       - auth
-      summary: Logins a new user and returns a session token
-      description: If the code parameter is not provided, but provider is, this returns a URI request that the client should send to trigger the OIDC flow. If the code provider is provided, this validates the user and returns a signed JWT to be used with riskytrees requests.
-      operationId: loginUser
+      summary: Second step in OIDC login flow. Returns a session token
+      description: If the code provider is provided, this validates the user and returns a signed JWT to be used with riskytrees requests.
+      operationId: loginUserStep2
       parameters:
-        - in: query
-          name: provider
-          description: A provider you want to use to login with.
-          schema:
-            type: string
-            enum: [google]
-          required: false
         - in: query
           name: code
           description: OAuth 2.0 code
@@ -44,6 +37,28 @@ paths:
           schema:
             type: string
           required: false
+      responses:
+        200:
+          description: User logged in succesfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+    post:
+      tags:
+      - auth
+      summary: Starts OIDC flow for some provider
+      description:  Starts OIDC flow for some provider
+      operationId: loginUserStep1
+      parameters:
+        - in: query
+          name: provider
+          description: A provider you want to use to login with.
+          schema:
+            type: string
+            enum: [google]
+          required: false
+
       responses:
         200:
           description: User logged in succesfully.

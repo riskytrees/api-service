@@ -8,6 +8,7 @@ use openidconnect::core::{CoreGenderClaim, CoreJweContentEncryptionAlgorithm, Co
 use openidconnect::{
     AuthorizationCode,
     AuthUrl,
+    IssuerUrl,  
     ClientId,
     ClientSecret,
     CsrfToken,
@@ -15,7 +16,8 @@ use openidconnect::{
     RedirectUrl,
     Scope,
     TokenResponse,
-    TokenUrl, ExtraTokenFields, IdToken, EmptyAdditionalClaims, Nonce
+    TokenUrl, ExtraTokenFields, IdToken, EmptyAdditionalClaims, Nonce,
+    JsonWebKeySet
 };
 use openidconnect::reqwest::http_client;
 
@@ -34,20 +36,16 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
     let redirect_url = RedirectUrl::new(env::var("RISKY_TREES_GOOGLE_REDIRECT_URL").expect("to exist").to_string());
 
 
-    let provider_metadata = openidconnect::core::CoreProviderMetadata::discover(
-        &openidconnect::IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_PROVIDER_URL").expect("to exist").to_string())?,
-        http_client
-    ).map_err(|e| AuthError {
-        message: "Error getting provider metadata".to_owned()
-    })?;
-
     match redirect_url {
         Ok(redirect_url) => {
             let client =
-            openidconnect::core::CoreClient::from_provider_metadata(
-                provider_metadata,
+            openidconnect::core::CoreClient::new(
                 ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
-                Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string()))
+                Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string())),
+                IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_ISSUER_URL").expect("to exist").to_string()).expect("Should be able to create Issuer URL"),
+                AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).expect("Should be able to create auth URL"),
+                None, None, JsonWebKeySet::new(vec![])
+
             )
             // Set the URL the user will be redirected to after the authorization process.
             .set_redirect_uri(redirect_url);
@@ -90,18 +88,15 @@ pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
         message: "Error getting auth URL".to_owned()
     })?;
 
-    let provider_metadata = openidconnect::core::CoreProviderMetadata::discover(
-        &openidconnect::IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_PROVIDER_URL").expect("to exist").to_string())?,
-        http_client
-    ).map_err(|e| AuthError {
-        message: "Error getting provider metadata".to_owned()
-    })?;
-
     let client =
-    openidconnect::core::CoreClient::from_provider_metadata(
-        provider_metadata,
+    openidconnect::core::CoreClient::new(
         ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
-        Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string()))
+        Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string())),
+        IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_ISSUER_URL").expect("to exist").to_string()).expect("Should be able to create Issuer URL"),
+        AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).expect("Should be able to create auth URL"),
+        Some(TokenUrl::new(env::var("RISKY_TREES_GOOGLE_TOKEN_URL").expect("to exist").to_string()).expect("Should be able to create token URL")), 
+        None, JsonWebKeySet::new(vec![])
+
     )
     // Set the URL the user will be redirected to after the authorization process.
     .set_redirect_uri(redirect_url);
