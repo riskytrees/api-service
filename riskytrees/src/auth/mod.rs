@@ -1,5 +1,9 @@
 use std::env;
-
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+use jwt;
+use jwt::SignWithKey;
+use jwt::VerifyWithKey;
 use openidconnect::core::{CoreGenderClaim, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm, CoreJsonWebKeyType};
 use openidconnect::{
     AuthorizationCode,
@@ -144,3 +148,28 @@ pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
 
 }
 
+pub fn generate_user_jwt(email: &String) -> Result<String, AuthError> {
+    let key: Hmac<Sha256> = Hmac::new_from_slice(env::var("RISKY_TREES_JWT_SECRET").expect("to exist").as_bytes()).expect("Should be able to create key");
+    let mut claims = std::collections::BTreeMap::new();
+    claims.insert("email", email.clone());
+    let token_str = claims.sign_with_key(&key).expect("Sign should work");
+
+    Ok(token_str)
+}
+
+pub fn verify_user_jwt(token: &String) -> Result<String, AuthError> {
+    let key: Hmac<Sha256> = Hmac::new_from_slice(env::var("RISKY_TREES_JWT_SECRET").expect("to exist").as_bytes()).expect("Should be able to create key");
+    let claims: Result<std::collections::BTreeMap<String, String>, jwt::error::Error>  = token.verify_with_key(&key);
+
+    match claims {
+        Ok(claims) => {
+            Ok(claims["email"].clone())
+        },
+        Err(err) => {
+            Err(AuthError {
+                message: "JWT verification failed!".to_owned()
+            })
+        }
+    }
+
+}
