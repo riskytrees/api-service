@@ -12,18 +12,53 @@ servers:
 - url: https://riskytrees.com/api/v1
 paths:
   /auth/login:
+    get:
+      tags:
+      - auth
+      summary: Second step in OIDC login flow. Returns a session token
+      description: If the code provider is provided, this validates the user and returns a signed JWT to be used with riskytrees requests.
+      operationId: loginUserStep2
+      parameters:
+        - in: query
+          name: code
+          description: OAuth 2.0 code
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: state
+          description: OAuth state data
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: scope
+          description: OAuth scope data
+          schema:
+            type: string
+          required: false
+      responses:
+        200:
+          description: User logged in succesfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
     post:
       tags:
       - auth
-      summary: Logins a new user and returns a session token
-      operationId: loginUser
-      requestBody:
-        description: User details that you want to login with. One day this will be a SAML callback.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterUser'
-        required: true
+      summary: Starts OIDC flow for some provider
+      description:  Starts OIDC flow for some provider
+      operationId: loginUserStep1
+      parameters:
+        - in: query
+          name: provider
+          description: A provider you want to use to login with.
+          schema:
+            type: string
+            enum: [google]
+          required: false
+
       responses:
         200:
           description: User logged in succesfully.
@@ -406,6 +441,7 @@ components:
           type: string
           format: email
 
+
     CreateProject:
       type: object
       properties:
@@ -422,6 +458,18 @@ components:
           properties:
             sessionToken:
               type: string
+            loginRequest:
+              type: string
+              example:
+                https://accounts.google.com/o/oauth2/v2/auth?
+                response_type=code&
+                client_id=424911365001.apps.googleusercontent.com&
+                scope=openid%20email&
+                redirect_uri=https%3A//oauth2.example.com/code&
+                state=security_token%3D138r5719ru3e1%26url%3Dhttps%3A%2F%2Foauth2-login-demo.example.com%2FmyHome&
+                login_hint=jsmith@example.com&
+                nonce=0394852-3190485-2490358&
+                hd=example.com
 
     TreeDagItem:
       type: object

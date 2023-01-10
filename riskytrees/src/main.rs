@@ -20,6 +20,7 @@ mod database;
 mod errors;
 mod helpers;
 mod models;
+mod auth;
 
 #[cfg(test)]
 mod tests;
@@ -58,36 +59,120 @@ fn index() -> &'static str {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            database::new_user(client, "Test".to_string());
+            database::new_user(&client, "Test".to_string());
             "Hello, world!"
         }
         Err(e) => "Failed to create user",
     }
 }
 
-#[post("/auth/login", data = "<body>")]
-fn auth_login(body: Json<models::ApiRegisterUser>) -> Json<models::ApiAuthLoginResponse> {
+#[get("/auth/login?<code>&<state>&<scope>")]
+fn auth_login_get(code: Option<String>, state: Option<String>, scope: Option<String>) -> Json<models::ApiAuthLoginResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            if database::get_user(client.to_owned(), body.email.to_owned()).is_none() {
-                database::new_user(client, body.email.to_owned());
 
+            // Validate flow
+
+            if state.is_none() || code.is_none()  {
                 Json(models::ApiAuthLoginResponse {
-                    ok: true,
-                    message: "User created and logged in succesfully".to_owned(),
-                    result: Some(models::AuthLoginResponseResult {
-                        sessionToken: "testtoken".to_owned(),
-                    }),
-                })
-            } else {
-                Json(models::ApiAuthLoginResponse {
-                    ok: true,
-                    message: "User logged in succesfully".to_owned(),
+                    ok: false,
+                    message: "Expected a state and code parameter".to_owned(),
                     result: None,
                 })
+            } else {
+                match database::validate_csrf_token(&state.expect("Asserted"), &client) {
+                    Ok(nonce) => {
+                        let email = auth::trade_token(&code.as_ref().expect("Asserted"), nonce);
+                        match email {
+                            Ok(email) => {
+                                // Create user if user does not exist
+                                let user_exists = database::get_user(&client, email.clone());
+                                match user_exists {
+                                    Some(user) => {},
+                                    None => {
+                                        database::new_user(&client, email.clone());
+                                        ()
+                                    }
+                                }
+
+                                // Generate JWT
+                                let session_token = auth::generate_user_jwt(&email);
+                                match session_token {
+                                    Ok(session_token) => Json(models::ApiAuthLoginResponse {
+                                        ok: true,
+                                        message: "Logged in".to_owned(),
+                                        result: Some(models::AuthLoginResponseResult {
+                                            sessionToken: session_token,
+                                            loginRequest: "".to_owned()
+                                        }),
+                                    }),
+                                    Err(err) => Json(models::ApiAuthLoginResponse {
+                                        ok: false,
+                                        message: "Token generation failed".to_owned(),
+                                        result: None,
+                                    })
+                                }
+                            },
+                            Err(err) => {
+                                eprintln!("{}", err);
+                                Json(models::ApiAuthLoginResponse {
+                                    ok: false,
+                                    message: "Login Validation failed".to_owned(),
+                                    result: None,
+                                })
+                            }
+                        }
+                    },
+                    Err(err) => Json(models::ApiAuthLoginResponse {
+                        ok: false,
+                        message: "CSRF Validation failed".to_owned(),
+                        result: None,
+                    })
+                }
             }
         }
+        
+        Err(e) => Json(models::ApiAuthLoginResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        }),
+    }
+}
+
+#[post("/auth/login?<provider>")]
+fn auth_login_post(provider: Option<String>) -> Json<models::ApiAuthLoginResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            // Start flow
+            let start_data = auth::start_flow();
+            match start_data {
+                Ok(start_data) => {
+                    // Store csrf_token for lookup later
+                    database::store_csrf_token(&start_data.csrf_token, &start_data.nonce, &client);
+                    // Done
+                    Json(models::ApiAuthLoginResponse {
+                        ok: true,
+                        message: "Got request URI".to_owned(),
+                        result: Some(models::AuthLoginResponseResult {
+                            sessionToken: "".to_owned(),
+                            loginRequest: start_data.url.to_string()
+                        }),
+                    })
+                },
+                Err(err) => {
+                    eprintln!("{}", err);
+                    Json(models::ApiAuthLoginResponse {
+                        ok: false,
+                        message: "Could not generate OAuth request URL".to_owned(),
+                        result: None,
+                    })
+                }
+            }
+        }
+        
         Err(e) => Json(models::ApiAuthLoginResponse {
             ok: false,
             message: "Could not connect to DB".to_owned(),
@@ -685,7 +770,8 @@ fn main() {
             "/",
             routes![
                 index,
-                auth_login,
+                auth_login_get,
+                auth_login_post,
                 auth_logout,
                 projects_get,
                 projects_post,
