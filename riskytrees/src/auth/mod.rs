@@ -28,59 +28,50 @@ pub struct AuthRequestData {
 }
 
 pub fn start_flow() -> Result<AuthRequestData, AuthError> {
-    let auth_url = AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string());
+    let auth_url = AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).map_err(|e| AuthError {
+        message: "Error getting auth URL".to_owned()
+    })?;
     let redirect_url = RedirectUrl::new(env::var("RISKY_TREES_GOOGLE_REDIRECT_URL").expect("to exist").to_string());
 
 
     let provider_metadata = openidconnect::core::CoreProviderMetadata::discover(
-        &openidconnect::IssuerUrl::new("https://accounts.google.com/.well-known/openid-configuration".to_string())?,
+        &openidconnect::IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_PROVIDER_URL").expect("to exist").to_string())?,
         http_client
     ).map_err(|e| AuthError {
         message: "Error getting provider metadata".to_owned()
     })?;
 
-    match auth_url {
-        Ok(auth_url) => {
-            match redirect_url {
-                Ok(redirect_url) => {
-                    let client =
-                    openidconnect::core::CoreClient::from_provider_metadata(
-                        provider_metadata,
-                        ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
-                        Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string()))
-                    )
-                    // Set the URL the user will be redirected to after the authorization process.
-                    .set_redirect_uri(redirect_url);
+    match redirect_url {
+        Ok(redirect_url) => {
+            let client =
+            openidconnect::core::CoreClient::from_provider_metadata(
+                provider_metadata,
+                ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
+                Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string()))
+            )
+            // Set the URL the user will be redirected to after the authorization process.
+            .set_redirect_uri(redirect_url);
 
 
-                    // Generate the full authorization URL.
-                    let (auth_url, csrf_token, nonce) = client
-                        .authorize_url(openidconnect::core::CoreAuthenticationFlow::AuthorizationCode,
-                            CsrfToken::new_random,
-                            openidconnect::Nonce::new_random,)
-                        // Set the desired scopes.
-                        .add_scope(Scope::new("read".to_string()))
-                        .add_scope(Scope::new("write".to_string()))
-                        .url();
+            // Generate the full authorization URL.
+            let (auth_url, csrf_token, nonce) = client
+                .authorize_url(openidconnect::core::CoreAuthenticationFlow::AuthorizationCode,
+                    CsrfToken::new_random,
+                    openidconnect::Nonce::new_random,)
+                // Set the desired scopes.
+                .add_scope(Scope::new("read".to_string()))
+                .add_scope(Scope::new("write".to_string()))
+                .url();
 
-                    Ok(AuthRequestData {
-                        url: auth_url,
-                        csrf_token: csrf_token,
-                        nonce: nonce
-                    })
-                },
-                Err(err) => {
-                    Err(errors::AuthError {
-                        message: "No redirect URL".to_owned()
-                    })
-                }
-            }
-
-
+            Ok(AuthRequestData {
+                url: auth_url,
+                csrf_token: csrf_token,
+                nonce: nonce
+            })
         },
         Err(err) => {
             Err(errors::AuthError {
-                message: "No auth URL".to_owned()
+                message: "No redirect URL".to_owned()
             })
         }
     }
@@ -89,18 +80,18 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
 
 // Returns email if trade succeeds
 pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
-    let auth_url = AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).map_err(|e| AuthError {
+    let auth_url = AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).map_err(|e| AuthError {
         message: "Error getting auth URL".to_owned()
     })?;
     let redirect_url = RedirectUrl::new(env::var("RISKY_TREES_GOOGLE_REDIRECT_URL").expect("to exist").to_string()).map_err(|e| AuthError {
         message: "Error getting redirect URL".to_owned()
     })?;
-    let token_url = AuthUrl::new("http://token".to_string()).map_err(|e| AuthError {
+    let token_url = AuthUrl::new(env::var("RISKY_TREES_GOOGLE_TOKEN_URL").expect("to exist").to_string()).map_err(|e| AuthError {
         message: "Error getting auth URL".to_owned()
     })?;
 
     let provider_metadata = openidconnect::core::CoreProviderMetadata::discover(
-        &openidconnect::IssuerUrl::new("https://accounts.google.com/.well-known/openid-configuration".to_string())?,
+        &openidconnect::IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_PROVIDER_URL").expect("to exist").to_string())?,
         http_client
     ).map_err(|e| AuthError {
         message: "Error getting provider metadata".to_owned()
