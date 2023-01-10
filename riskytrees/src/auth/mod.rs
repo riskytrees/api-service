@@ -88,6 +88,10 @@ pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
         message: "Error getting auth URL".to_owned()
     })?;
 
+    let jwks_url = openidconnect::JsonWebKeySetUrl::new(env::var("RISKY_TREES_GOOGLE_JWKS_URL").expect("to exist").to_string()).expect("Should work");
+    let http_client = openidconnect::reqwest::http_client;
+    let jwks = JsonWebKeySet::fetch(&jwks_url, http_client).expect("Should resolve JWKS");
+
     let client =
     openidconnect::core::CoreClient::new(
         ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
@@ -95,7 +99,7 @@ pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
         IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_ISSUER_URL").expect("to exist").to_string()).expect("Should be able to create Issuer URL"),
         AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).expect("Should be able to create auth URL"),
         Some(TokenUrl::new(env::var("RISKY_TREES_GOOGLE_TOKEN_URL").expect("to exist").to_string()).expect("Should be able to create token URL")), 
-        None, JsonWebKeySet::new(vec![])
+        None, jwks
 
     )
     // Set the URL the user will be redirected to after the authorization process.
@@ -121,7 +125,10 @@ pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
                                 None => Err(AuthError { message: "Email unavailable".to_owned() })
                             }
                         },
-                        Err(err) => Err(AuthError { message: "Claims extraction failed".to_owned() })
+                        Err(err) => {
+                            eprintln!("{}", err);
+                            Err(AuthError { message: "Claims extraction failed".to_owned() })
+                        }
                     }
                 },
                 None =>  Err(AuthError { message: "Did not receive an ID Token".to_owned() })

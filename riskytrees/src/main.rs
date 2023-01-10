@@ -114,11 +114,14 @@ fn auth_login_get(code: Option<String>, state: Option<String>, scope: Option<Str
                                     })
                                 }
                             },
-                            Err(err) => Json(models::ApiAuthLoginResponse {
-                                ok: false,
-                                message: "Login Validation failed".to_owned(),
-                                result: None,
-                            })
+                            Err(err) => {
+                                eprintln!("{}", err);
+                                Json(models::ApiAuthLoginResponse {
+                                    ok: false,
+                                    message: "Login Validation failed".to_owned(),
+                                    result: None,
+                                })
+                            }
                         }
                     },
                     Err(err) => Json(models::ApiAuthLoginResponse {
