@@ -59,7 +59,6 @@ fn index() -> &'static str {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
-            database::new_user(&client, "Test".to_string());
             "Hello, world!"
         }
         Err(e) => "Failed to create user",
@@ -187,7 +186,7 @@ fn auth_logout() -> &'static str {
 }
 
 #[get("/projects")]
-fn projects_get() -> Json<models::ApiProjectsListResponse> {
+fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -216,7 +215,7 @@ fn projects_get() -> Json<models::ApiProjectsListResponse> {
 }
 
 #[post("/projects", data = "<body>")]
-fn projects_post(body: Json<models::ApiCreateProject>) -> Json<models::ApiCreateProjectResponse> {
+fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) -> Json<models::ApiCreateProjectResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -256,6 +255,7 @@ fn projects_post(body: Json<models::ApiCreateProject>) -> Json<models::ApiCreate
 fn projects_trees_post(
     id: String,
     body: Json<models::ApiCreateTree>,
+    key: auth::ApiKey,
 ) -> Json<models::ApiCreateTreeResponse> {
     let db_client = database::get_instance();
     match db_client {
@@ -303,7 +303,7 @@ fn projects_trees_post(
 }
 
 #[get("/projects/<id>/trees")]
-fn projects_trees_get(id: String) -> Json<models::ApiListTreeResponse> {
+fn projects_trees_get(id: String, key: auth::ApiKey) -> Json<models::ApiListTreeResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -343,7 +343,7 @@ fn projects_trees_get(id: String) -> Json<models::ApiListTreeResponse> {
 }
 
 #[get("/projects/<id>/trees/<tree_id>")]
-fn projects_trees_tree_get(id: String, tree_id: String) -> Json<models::ApiTreeResponse> {
+fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -386,7 +386,7 @@ fn projects_trees_tree_get(id: String, tree_id: String) -> Json<models::ApiTreeR
 }
 
 #[put("/projects/<id>/trees/<tree_id>", data = "<body>")]
-fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFullTreeData>) -> Json<models::ApiTreeResponse> {
+fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFullTreeData>, key: auth::ApiKey) -> Json<models::ApiTreeResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -435,7 +435,7 @@ fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFu
 
 
 #[get("/projects/<id>/model")]
-fn projects_model_get(id: String) -> Json<models::ApiSelectedModelResponse> {
+fn projects_model_get(id: String, key: auth::ApiKey) -> Json<models::ApiSelectedModelResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -468,7 +468,7 @@ fn projects_model_get(id: String) -> Json<models::ApiSelectedModelResponse> {
 }
 
 #[put("/projects/<id>/model", data = "<body>")]
-fn projects_model_put(id: String, body: Json<models::SelectedModelResult>) -> Json<models::ApiSelectedModelResponse> {
+fn projects_model_put(id: String, body: Json<models::SelectedModelResult>, key: auth::ApiKey) -> Json<models::ApiSelectedModelResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -512,7 +512,7 @@ fn projects_model_put(id: String, body: Json<models::SelectedModelResult>) -> Js
 }
 
 #[get("/models")]
-fn models_get() -> Json<models::ApiListModelResponse> {
+fn models_get(key: auth::ApiKey) -> Json<models::ApiListModelResponse> {
     let db_client = database::get_instance();
 
     let model_list = vec![
@@ -549,7 +549,7 @@ fn models_get() -> Json<models::ApiListModelResponse> {
 }
 
 #[get("/nodes/<id>")]
-fn node_get(id: String) -> Json<models::ApiGetNodeResponse> {
+fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeResponse> {
     let db_client = database::get_instance();
 
     match db_client {
@@ -572,7 +572,7 @@ fn node_get(id: String) -> Json<models::ApiGetNodeResponse> {
 }
 
 #[get("/projects/<projectId>/trees/<treeId>/dag/down")]
-fn projects_trees_tree_dag_down_get(projectId: String, treeId: String) -> Json<models::ApiTreeDagResponse> {
+fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key: auth::ApiKey) -> Json<models::ApiTreeDagResponse> {
     let db_client = database::get_instance();
 
     match db_client {
@@ -599,7 +599,7 @@ fn projects_trees_tree_dag_down_get(projectId: String, treeId: String) -> Json<m
 }
 
 #[get("/projects/<projectId>/configs")]
-fn projects_configs_get(projectId: String) -> Json<models::ApiProjectConfigListResponse> {
+fn projects_configs_get(projectId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigListResponse> {
     let db_client = database::get_instance();
 
     match db_client {
@@ -623,7 +623,7 @@ fn projects_configs_get(projectId: String) -> Json<models::ApiProjectConfigListR
 }
 
 #[post("/projects/<projectId>/configs", data = "<body>")]
-fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigPayload>) -> Json<models::ApiProjectConfigResponse> {
+fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigPayload>, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
     let db_client = database::get_instance();
 
     match db_client {
@@ -658,7 +658,7 @@ fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigP
 }
 
 #[post("/projects/<projectId>/configs/<configId>", data = "<body>")]
-fn projects_configs_put(projectId: String, configId: String, body: Json<models::ApiProjectConfigPayload>) -> Json<models::ApiProjectConfigResponse> {
+fn projects_configs_put(projectId: String, configId: String, body: Json<models::ApiProjectConfigPayload>, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
     let db_client = database::get_instance();
 
     match db_client {
@@ -695,7 +695,7 @@ fn projects_configs_put(projectId: String, configId: String, body: Json<models::
 }
 
 #[get("/projects/<projectId>/config")]
-fn projects_config_get(projectId: String) -> Json<models::ApiProjectConfigResponse> {
+fn projects_config_get(projectId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
     let db_client = database::get_instance();
 
     match db_client {
@@ -726,7 +726,7 @@ fn projects_config_get(projectId: String) -> Json<models::ApiProjectConfigRespon
 }
 
 #[put("/projects/<projectId>/config", data = "<body>")]
-fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdPayload>) -> Json<models::ApiProjectConfigResponse> {
+fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdPayload>, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
     let db_client = database::get_instance();
 
     match db_client {

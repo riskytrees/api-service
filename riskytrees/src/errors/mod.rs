@@ -45,3 +45,9 @@ impl std::convert::From<openidconnect::url::ParseError> for AuthError {
         }
     }
 }
+
+impl std::fmt::Debug for AuthError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AuthError").field("message", &self.message).finish()
+    }
+}

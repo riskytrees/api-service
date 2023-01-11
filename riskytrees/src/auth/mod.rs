@@ -29,6 +29,9 @@ pub struct AuthRequestData {
    pub nonce: Nonce
 }
 
+pub struct ApiKey(String);
+
+
 pub fn start_flow() -> Result<AuthRequestData, AuthError> {
     let auth_url = AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).map_err(|e| AuthError {
         message: "Error getting auth URL".to_owned()
@@ -165,4 +168,40 @@ pub fn verify_user_jwt(token: &String) -> Result<String, AuthError> {
         }
     }
 
+}
+
+
+impl<'a, 'r> rocket::request::FromRequest<'a, 'r> for ApiKey {
+    type Error = AuthError;
+
+    fn from_request(request: &'a rocket::Request<'r>) -> rocket::request::Outcome<Self, Self::Error> {
+        let keys: Vec<_> = request.headers().get("Authorization").collect();
+        match keys.len() {
+            0 => rocket::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+                message: "No Auth header".to_owned()
+            })),
+            1 => {
+                // Validate token
+                let mut token = keys[0].to_string();
+
+                if token.contains("Bearer ") {
+                    token = token.replace("Bearer ", "");
+                } 
+
+                match verify_user_jwt(&token.to_string()) {
+                    Ok(email) => {
+                        rocket::Outcome::Success(ApiKey(token.to_string()))
+                    },
+                    Err(err) => {
+                        rocket::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+                            message: "JWT Verification failed".to_owned()
+                        }))
+                    }
+                }
+            },
+            _ => rocket::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+                message: "Too many auth headers!".to_owned()
+            })),
+        }
+    }
 }
