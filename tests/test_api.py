@@ -1,5 +1,13 @@
 import uuid
 import requests
+import os
+
+# The following is a Test JWT created by using the following, non-prod JWT secret:
+#   testjwttestjwttestjwttestjwttestjwt
+TEST_JWT = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6Impvc2lhaEByaXNreXRyZWVzLmNvbSJ9.2DM3dQPime134NxfVLsx-RT6Y0qpNVAdgZoxWGyhNXg"
+TEST_HEADERS = {
+    'Authorization': TEST_JWT
+}
 
 def test_auth_login():
     r = requests.post('http://localhost:8000/auth/login', json = {'email':'test@example.com'})
@@ -14,7 +22,7 @@ def test_auth_login():
 
 
 def test_projects_get_empty():
-    r = requests.get('http://localhost:8000/projects')
+    r = requests.get('http://localhost:8000/projects', headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -24,7 +32,7 @@ def test_projects_get_empty():
 
 
 def test_project_post():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -34,7 +42,7 @@ def test_project_post():
 
 
 def test_projects_get():
-    r = requests.get('http://localhost:8000/projects')
+    r = requests.get('http://localhost:8000/projects', headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -43,7 +51,7 @@ def test_projects_get():
     assert(len(res['result']['projects']) > 0)
 
 def test_project_tree_post():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -53,7 +61,7 @@ def test_project_tree_post():
 
     project_id = res['result']['id']
 
-    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'bad things'})
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'bad things'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -64,7 +72,7 @@ def test_project_tree_post():
 
 
 def test_project_trees_get():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -74,7 +82,7 @@ def test_project_trees_get():
 
     project_id = res['result']['id']
 
-    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'bad things'})
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'bad things'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -83,7 +91,7 @@ def test_project_trees_get():
     assert(res['result']['title'] == 'bad things')
 
     # GETing the tree list should return a single tree.
-    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees')
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees', headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -92,7 +100,7 @@ def test_project_trees_get():
 
 
 def test_project_tree_get():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -102,13 +110,13 @@ def test_project_tree_get():
 
     project_id = res['result']['id']
 
-    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'bad things'})
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'bad things'}, headers = TEST_HEADERS)
 
     res = r.json()
     tree_id = res['result']['id']
 
     # GETing the tree list should return a single tree.
-    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id))
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -117,7 +125,7 @@ def test_project_tree_get():
 
 
 def test_project_tree_put():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -127,7 +135,7 @@ def test_project_tree_put():
 
     project_id = res['result']['id']
 
-    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Test Tree Put'})
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Test Tree Put'}, headers = TEST_HEADERS)
 
     res = r.json()
     tree_id = res['result']['id']
@@ -137,7 +145,7 @@ def test_project_tree_put():
         'title': 'Test Confirm Tree Put',
         'nodes': [],
         'rootNodeId': ''
-        })
+        }, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -146,7 +154,7 @@ def test_project_tree_put():
 
 
 def test_project_tree_put_with_nodes():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -156,7 +164,7 @@ def test_project_tree_put_with_nodes():
 
     project_id = res['result']['id']
 
-    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'})
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'}, headers = TEST_HEADERS)
 
     res = r.json()
     tree_id = res['result']['id']
@@ -197,7 +205,7 @@ def test_project_tree_put_with_nodes():
 
         }],
         'rootNodeId': '0'
-        })
+        }, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -214,7 +222,7 @@ def test_project_tree_put_with_nodes():
             assert(node['conditionAttribute'] == 'config[\'test\'] == 150')
 
 def test_get_model_list():
-    r = requests.get('http://localhost:8000/models')
+    r = requests.get('http://localhost:8000/models', headers = TEST_HEADERS)
 
     res = r.json()
     models = res['result']['models']
@@ -222,7 +230,7 @@ def test_get_model_list():
     assert(len(models) > 0)
 
 def test_get_and_update_project_model():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -232,19 +240,19 @@ def test_get_and_update_project_model():
 
     project_id = res['result']['id']
 
-    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model')
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model', headers = TEST_HEADERS)
 
     assert(r.json()['result']['modelId'] == '')
 
-    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/model', json = {'modelId': 'test'})
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/model', json = {'modelId': 'test'}, headers = TEST_HEADERS)
     assert(r.json()['ok'] == True)
 
-    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model')
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model', headers = TEST_HEADERS)
 
     assert(r.json()['result']['modelId'] == 'test')
 
 def test_get_node_response():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -254,7 +262,7 @@ def test_get_node_response():
 
     project_id = res['result']['id']
 
-    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'})
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'}, headers = TEST_HEADERS)
 
     res = r.json()
     tree_id = res['result']['id']
@@ -295,19 +303,19 @@ def test_get_node_response():
 
         }],
         'rootNodeId': '0'
-        })
+        }, headers = TEST_HEADERS)
 
     create_res = r.json()
     assert(create_res['ok'] == True)
 
-    r = requests.get('http://localhost:8000/nodes/unique-node-0')
+    r = requests.get('http://localhost:8000/nodes/unique-node-0', headers = TEST_HEADERS)
     node_res = r.json()
     print(r.json())
     assert(node_res['ok'] == True)
 
 
 def test_tree_with_subtree():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -317,7 +325,7 @@ def test_tree_with_subtree():
 
     project_id = res['result']['id']
 
-    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'})
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'}, headers = TEST_HEADERS)
 
     res = r.json()
     tree_id = res['result']['id']
@@ -360,12 +368,12 @@ def test_tree_with_subtree():
 
         }],
         'rootNodeId': unique_id
-        })
+        }, headers = TEST_HEADERS)
 
     create_res = r.json()
     assert(create_res['ok'] == True)
 
-    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'With subtree'})
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'With subtree'}, headers = TEST_HEADERS)
     res = r.json()
     tree_id = res['result']['id']
 
@@ -383,17 +391,17 @@ def test_tree_with_subtree():
 
         }],
         'rootNodeId': 'root-id'
-        })
+        }, headers = TEST_HEADERS)
 
     create_res = r.json()
     assert(create_res['ok'] == True)
 
-    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "/dag/down")
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "/dag/down", headers = TEST_HEADERS)
     dag_res = r.json()
     assert(create_res['ok'] == True)
 
 def test_get_configs():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -403,7 +411,7 @@ def test_get_configs():
 
     project_id = res['result']['id']
 
-    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs")
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs", headers = TEST_HEADERS)
 
     res = r.json()
     assert(res['ok'] == True)
@@ -411,7 +419,7 @@ def test_get_configs():
     assert(len(res['result']['ids']) == 0)
 
 def test_create_config():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -425,11 +433,11 @@ def test_create_config():
       "attributes": {
         "Hello": "Test"
       }  
-    })
+    }, headers = TEST_HEADERS)
     res = r.json()
     assert(res['ok'] == True)
 
-    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs")
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs", headers = TEST_HEADERS)
 
     res = r.json()
     assert(res['ok'] == True)
@@ -437,7 +445,7 @@ def test_create_config():
     assert(len(res['result']['ids']) == 1)
 
 def test_create_config():
-    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'})
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 
     res = r.json()
 
@@ -448,7 +456,7 @@ def test_create_config():
     project_id = res['result']['id']
 
     # Selected config should error (beacuse none is selected)
-    r = requests.get('http://localhost:8000/projects/' + project_id + "/config")
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/config", headers = TEST_HEADERS)
     res = r.json()
     assert(res['ok'] == False)
 
@@ -457,7 +465,7 @@ def test_create_config():
       "attributes": {
         "Hello": "Test"
       }  
-    })
+    }, headers = TEST_HEADERS)
     res = r.json()
     assert(res['ok'] == True)
 
@@ -465,12 +473,12 @@ def test_create_config():
 
     r = requests.put('http://localhost:8000/projects/' + project_id + "/config", json = {
       "desiredConfig": config_id
-    })
+    }, headers = TEST_HEADERS)
     res = r.json()
     print(res)
     assert(res['ok'] == True)
 
     # Selected config should not error (beacuse config_id is selected)
-    r = requests.get('http://localhost:8000/projects/' + project_id + "/config")
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/config", headers = TEST_HEADERS)
     res = r.json()
     assert(res['ok'] == True)
