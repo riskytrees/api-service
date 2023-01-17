@@ -60,8 +60,7 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
                     CsrfToken::new_random,
                     openidconnect::Nonce::new_random,)
                 // Set the desired scopes.
-                .add_scope(Scope::new("read".to_string()))
-                .add_scope(Scope::new("write".to_string()))
+                .add_scope(Scope::new("https://www.googleapis.com/auth/userinfo.email".to_string()))
                 .url();
 
             Ok(AuthRequestData {
