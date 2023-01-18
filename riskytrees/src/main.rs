@@ -132,11 +132,14 @@ fn auth_login_get(code: Option<String>, state: Option<String>, scope: Option<Str
             }
         }
         
-        Err(e) => Json(models::ApiAuthLoginResponse {
-            ok: false,
-            message: "Could not connect to DB".to_owned(),
-            result: None,
-        }),
+        Err(e) => {
+            eprintln!("{}", e);
+            Json(models::ApiAuthLoginResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        },
     }
 }
 
@@ -181,11 +184,14 @@ fn auth_login_post(provider: Option<String>) -> Json<models::ApiAuthLoginRespons
             }
         }
         
-        Err(e) => Json(models::ApiAuthLoginResponse {
-            ok: false,
-            message: "Could not connect to DB".to_owned(),
-            result: None,
-        }),
+        Err(e) => {
+            eprintln!("{}", e);
+            Json(models::ApiAuthLoginResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        },
     }
 }
 
