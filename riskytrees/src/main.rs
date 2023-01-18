@@ -150,16 +150,25 @@ fn auth_login_post(provider: Option<String>) -> Json<models::ApiAuthLoginRespons
             match start_data {
                 Ok(start_data) => {
                     // Store csrf_token for lookup later
-                    database::store_csrf_token(&start_data.csrf_token, &start_data.nonce, &client);
-                    // Done
-                    Json(models::ApiAuthLoginResponse {
-                        ok: true,
-                        message: "Got request URI".to_owned(),
-                        result: Some(models::AuthLoginResponseResult {
-                            sessionToken: "".to_owned(),
-                            loginRequest: start_data.url.to_string()
+                    match database::store_csrf_token(&start_data.csrf_token, &start_data.nonce, &client) {
+                        Ok(_) => Json(models::ApiAuthLoginResponse {
+                            ok: true,
+                            message: "Got request URI".to_owned(),
+                            result: Some(models::AuthLoginResponseResult {
+                                sessionToken: "".to_owned(),
+                                loginRequest: start_data.url.to_string()
+                            }),
                         }),
-                    })
+                        Err(err) => {
+                            eprintln!("{}", err);
+                            Json(models::ApiAuthLoginResponse {
+                                ok: false,
+                                message: "CSRF generation failed.".to_owned(),
+                                result: None,
+                            })
+                        }
+                    }
+
                 },
                 Err(err) => {
                     eprintln!("{}", err);
