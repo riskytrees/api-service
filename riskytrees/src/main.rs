@@ -548,8 +548,8 @@ fn models_get(key: auth::ApiKey) -> Json<models::ApiListModelResponse> {
     match db_client {
         Ok(client) => {
             Json(models::ApiListModelResponse {
-                ok: false,
-                message: "Could not connect to DB".to_owned(),
+                ok: true,
+                message: "Got models".to_owned(),
                 result: Some(models::ListModelResult { 
                     models: model_list
                 }),
