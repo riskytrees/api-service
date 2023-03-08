@@ -387,6 +387,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProjectConfigResponse'
   /projects/{projectId}/configs/{id}:
+    get:
+      tags:
+      - project
+      summary: Get an existing config of a project
+      operationId: getProjectConfig
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Changed config successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecificProjectConfigResponse'
     put:
       tags:
       - project

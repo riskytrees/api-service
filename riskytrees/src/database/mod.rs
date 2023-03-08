@@ -770,6 +770,37 @@ pub fn update_project_selected_config(project_id: &String, config: &models::ApiP
     }
 }
 
+pub fn get_config(project_id: &String, config_id: &String, client: &mongodb::sync::Client) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let config_collection = database.collection::<Document>("configs");
+    let project_collection = database.collection::<Document>("projects");
+
+
+    let matched_record = config_collection.find_one(
+        doc! {
+            "_id": bson::oid::ObjectId::with_string(&config_id.to_owned()).expect("infallible")
+        },
+        None,
+    );
+
+    match matched_record {
+        Ok(matched_record) => {
+            match matched_record {
+                Some(matched_record) => {
+                    let attributes = matched_record.get_document("attributes").expect("Should always exist");
+
+                    Ok(ApiProjectConfigResponseResult {
+                        id: matched_record.get_object_id("_id").expect("Should always exist").to_string(),
+                        attributes: json!(attributes)
+                    })
+                },
+                None => Err(DatabaseError { message: "No matched record".to_string()})
+            }
+        },
+        Err(err) => Err(DatabaseError { message: format!("{}", err)})
+    }
+}
+
 pub fn store_csrf_token(token: &openidconnect::CsrfToken, nonce: &Nonce, client: &mongodb::sync::Client) -> Result<bool, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let csrf_collection = database.collection::<Document>("csrf_tokens");

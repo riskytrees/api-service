@@ -515,3 +515,9 @@ def test_update_config():
     }, headers = TEST_HEADERS)
     res = r.json()
     assert(res['ok'] == True)
+
+    # Check that it was updated
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs/" + config_id, headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['attributes']['New'] == 'Value')
