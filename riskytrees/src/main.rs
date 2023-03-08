@@ -614,7 +614,7 @@ fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key: auth
 }
 
 #[get("/projects/<projectId>/configs")]
-fn projects_configs_get(projectId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigListResponse> {
+fn projects_configs_list(projectId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigListResponse> {
     let db_client = database::get_instance();
 
     match db_client {
@@ -696,6 +696,39 @@ fn projects_configs_put(projectId: String, configId: String, body: Json<models::
                     Json(models::ApiProjectConfigResponse {
                         ok: false,
                         message: "Update config failed".to_owned(),
+                        result: None,
+                    })
+                }
+            }
+        },
+        Err(err) => Json(models::ApiProjectConfigResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        })
+    }
+}
+
+#[get("/projects/<projectId>/configs/<configId>")]
+fn projects_configs_get(projectId: String, configId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
+    let db_client = database::get_instance();
+
+    match db_client {
+        Ok(client) => {
+            let config = database::get_config(&projectId, &configId, &client);
+
+            match config {
+                Ok(resp) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: true,
+                        message: "Got config".to_owned(),
+                        result: Some(resp),
+                    })
+                },
+                Err(err) => {
+                    Json(models::ApiProjectConfigResponse {
+                        ok: false,
+                        message: "Get config failed".to_owned(),
                         result: None,
                     })
                 }
@@ -797,9 +830,10 @@ fn main() {
                 projects_trees_tree_dag_down_get,
                 projects_model_get,
                 projects_model_put,
-                projects_configs_get,
+                projects_configs_list,
                 projects_configs_post,
                 projects_configs_put,
+                projects_configs_get,
                 projects_config_get,
                 projects_config_put,
                 models_get,
