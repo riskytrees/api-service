@@ -672,7 +672,7 @@ fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigP
     }
 }
 
-#[post("/projects/<projectId>/configs/<configId>", data = "<body>")]
+#[put("/projects/<projectId>/configs/<configId>", data = "<body>")]
 fn projects_configs_put(projectId: String, configId: String, body: Json<models::ApiProjectConfigPayload>, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
     let db_client = database::get_instance();
 
@@ -799,6 +799,7 @@ fn main() {
                 projects_model_put,
                 projects_configs_get,
                 projects_configs_post,
+                projects_configs_put,
                 projects_config_get,
                 projects_config_put,
                 models_get,
