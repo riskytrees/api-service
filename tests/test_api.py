@@ -482,3 +482,36 @@ def test_create_config():
     r = requests.get('http://localhost:8000/projects/' + project_id + "/config", headers = TEST_HEADERS)
     res = r.json()
     assert(res['ok'] == True)
+
+
+
+def test_update_config():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    # Create config
+    r = requests.post('http://localhost:8000/projects/' + project_id + "/configs", json = {
+      "attributes": {
+        "Hello": "Test"
+      }  
+    }, headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+
+    config_id = res['result']['id']
+
+    # Update config
+    r = requests.put('http://localhost:8000/projects/' + project_id + "/configs/" + config_id, json = {
+      "attributes": {
+        "New": "Value"
+      }  
+    }, headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
