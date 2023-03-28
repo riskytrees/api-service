@@ -650,7 +650,8 @@ components:
           type: array
           items:
             type: integer
-
+        conditionResolved:
+          type: boolean
 
     CreateNode:
       type: object
