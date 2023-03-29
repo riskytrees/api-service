@@ -196,7 +196,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TreeResponse'
+                $ref: '#/components/schemas/TreeComputedResponse'
     put:
       tags:
       - project
@@ -225,7 +225,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TreeResponse'
+                $ref: '#/components/schemas/TreeComputedResponse'
 
   /projects/{projectId}/trees/{treeId}/dag/down:
     get:
@@ -650,8 +650,14 @@ components:
           type: array
           items:
             type: integer
+
+    FullComputedNodeData:
+      allOf:
+        - $ref: '#/components/schemas/FullNodeData'
+      properties:
         conditionResolved:
           type: boolean
+
 
     CreateNode:
       type: object
@@ -707,6 +713,19 @@ components:
           type: string
 
 
+    FullComputedTreeData:
+      allOf:
+        - $ref: '#/components/schemas/CreateTree'
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FullComputedNodeData'
+        rootNodeId:
+          type: string
+
+
     TreeResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'
@@ -715,6 +734,14 @@ components:
         result:
           $ref: '#/components/schemas/FullTreeData'
 
+
+    TreeComputedResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/FullComputedTreeData'
 
     CreateTree:
       type: object
