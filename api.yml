@@ -653,7 +653,9 @@ components:
 
     FullComputedNodeData:
       allOf:
+        - $ref: '#/components/schemas/CreateNode'
         - $ref: '#/components/schemas/FullNodeData'
+      type: object
       properties:
         conditionResolved:
           type: boolean
