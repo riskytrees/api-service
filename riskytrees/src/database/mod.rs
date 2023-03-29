@@ -9,7 +9,7 @@ use rocket_contrib::json;
 use std::{collections::HashMap, hash::Hash, vec};
 
 use bson::bson;
-use crate::{constants, errors::DatabaseError, models::{ApiTreeDagItem, ApiProjectConfigResponseResult}};
+use crate::{constants, errors::DatabaseError, models::{ApiTreeDagItem, ApiProjectConfigResponseResult}, expression_evaluator};
 use crate::errors;
 use crate::helpers;
 use crate::models;
@@ -379,7 +379,7 @@ fn convert_bson_document_to_ModelAttribute_map(bson_doc: &Document) -> HashMap<S
 }
 
 // Returns all the data contained in a single tree
-fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
+fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String, project_id: &String) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let trees_collection = database.collection::<Document>("trees");
 
@@ -418,13 +418,27 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
                             Err(err) => None
                         };
 
-                        println!("{:?}", model_attributes);
+                        let mut condition_resolved = true; // Default to true
+                        if condition_attribute.is_some() {
+                            let config = get_selected_config(project_id, client);
 
-                        nodes_vec.push(models::ApiFullNodeData {
+                            match config {
+                                Ok(config) => {
+                                    condition_resolved = expression_evaluator::evaluate(condition_attribute.expect("Already checked"), &config);
+                                },
+                                Err(err) => {
+                                    eprintln!("No config!");
+                                }
+                            }
+                        }
+
+
+                        nodes_vec.push(models::ApiFullComputedNodeData {
                             id: id.to_owned(),
                             title: title.to_owned(),
                             description: description.to_owned(),
                             conditionAttribute: condition_attribute.unwrap_or("").to_owned(),
+                            conditionResolved: condition_resolved,
                             children: children.unwrap_or(Vec::new()),
                             modelAttributes: model_attributes.unwrap_or(HashMap::new())
                         })
@@ -435,7 +449,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tree_id: String) -> Result
                 }
 
             }
-            Ok(models::ApiFullTreeData {
+            Ok(models::ApiFullComputedTreeData {
                 title: title.to_owned(),
                 rootNodeId: root_node_id.to_owned(),
                 nodes: nodes_vec
@@ -472,17 +486,19 @@ pub fn get_trees_by_project_id(
 pub fn get_tree_by_id(
     client: &mongodb::sync::Client,
     tree_id: String,
-) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
+    project_id: String
+) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
 
-    get_full_tree_data(client, tree_id)
+    get_full_tree_data(client, tree_id, &project_id)
 
 }
 
 pub fn update_tree_by_id(
     client: &mongodb::sync::Client,
     tree_id: String,
+    project_id: String,
     tree_data: models::ApiFullTreeData
-) -> Result<models::ApiFullTreeData, errors::DatabaseError> {
+) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let trees_collection = database.collection::<Document>("trees");
 
@@ -493,7 +509,7 @@ pub fn update_tree_by_id(
     }, doc, None);
 
 
-    get_full_tree_data(client, tree_id)
+    get_full_tree_data(client, tree_id, &project_id)
 }
 
 pub fn get_projects_from_ids(ids: Vec<String>, client: &mongodb::sync::Client) -> Vec<models::ApiProjectsListProjectItem> {
@@ -550,10 +566,10 @@ pub fn get_tree_from_node_id(node_id: String, client: &mongodb::sync::Client) ->
     }
 }
 
-pub fn get_tree_relationships_down(startTreeId: &String, client: &mongodb::sync::Client) -> Vec<ApiTreeDagItem> {
+pub fn get_tree_relationships_down(startTreeId: &String, projectId: &String, client: &mongodb::sync::Client) -> Vec<ApiTreeDagItem> {
     let mut result = vec![];
 
-    let childrenNodes = get_nodes_from_tree(startTreeId, client);
+    let childrenNodes = get_nodes_from_tree(startTreeId, projectId, client);
 
     // Figure out which nodes have children that aren't included in this list of nodes
     let mut childrenOfConcern = std::collections::HashSet::new();
@@ -591,14 +607,14 @@ pub fn get_tree_relationships_down(startTreeId: &String, client: &mongodb::sync:
     }
 
     for childTree in &childTrees {
-        result.push(ApiTreeDagItem { id: childTree.to_string(), children: get_tree_relationships_down(childTree, client) });
+        result.push(ApiTreeDagItem { id: childTree.to_string(), children: get_tree_relationships_down(childTree, projectId, client) });
     }
 
     result
 }
 
-pub fn get_nodes_from_tree(treeId: &String, client: &mongodb::sync::Client) -> Vec<models::ApiFullNodeData> {
-    let data = get_full_tree_data(client, treeId.to_string());
+pub fn get_nodes_from_tree(treeId: &String, projectId: &String, client: &mongodb::sync::Client) -> Vec<models::ApiFullComputedNodeData> {
+    let data = get_full_tree_data(client, treeId.to_string(), projectId);
 
     match data {
         Ok(res) => {

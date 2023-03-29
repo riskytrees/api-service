@@ -602,6 +602,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "evalexpr"
+version = "8.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aacfb566035f8cd02f6ec9247c242f3f9904a0b288ea383abcf4e95df6436a34"
+
+[[package]]
 name = "event-listener"
 version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1908,6 +1914,7 @@ name = "riskytrees"
 version = "0.1.0"
 dependencies = [
  "bson",
+ "evalexpr",
  "hmac 0.12.1",
  "jwt",
  "mongodb",

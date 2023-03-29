@@ -521,3 +521,100 @@ def test_update_config():
     res = r.json()
     assert(res['ok'] == True)
     assert(res['result']['attributes']['New'] == 'Value')
+
+def test_condition_resolution():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    # Create config
+    r = requests.post('http://localhost:8000/projects/' + project_id + "/configs", json = {
+      "attributes": {
+        "test": "150"
+      }  
+    }, headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+
+    config_id = res['result']['id']
+
+    r = requests.put('http://localhost:8000/projects/' + project_id + "/config", json = {
+      "desiredConfig": config_id
+    }, headers = TEST_HEADERS)
+    res = r.json()
+    print(res)
+    assert(res['ok'] == True)
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    tree_id = res['result']['id']
+
+    # PUTing the tree list should return the modified version
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'My Tree',
+        'nodes': [{
+            'id': "0",
+            'title': "I'm the root",
+            'description': "Hello",
+            'modelAttributes': {
+                'randomProp': {
+                    'value_int': 150
+                },
+                'otherProp': {
+                    'value_string': 'test'
+                }
+            },
+            'conditionAttribute': '150 == 150',
+            'children': ["1", "2", "3"],
+
+        }, {
+            'id': "1",
+            'title': "I'm a child",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': 'config[\'test\'] == 150',
+            'children': [],
+
+        }, {
+            'id': "2",
+            'title': "I'm the forgotten child",
+            'description': "Hello",
+            'modelAttributes': {},
+            'conditionAttribute': '',
+            'children': [],
+
+        }, {
+            'id': "3",
+            'title': "Third",
+            'description': "Hello",
+            'modelAttributes': {
+                'randomProp': {
+                    'value_int': 150
+                },
+                'otherProp': {
+                    'value_string': 'test'
+                }
+            },
+            'conditionAttribute': '125 == 150',
+            'children': ["1", "2"],
+
+        }],
+        'rootNodeId': '0'
+        }, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'My Tree')
+    assert(len(res['result']['nodes']) == 4)
+    assert(res['result']['nodes'][0]['conditionResolved'] == True)
+    assert(res['result']['nodes'][1]['conditionResolved'] == True)
+    assert(res['result']['nodes'][2]['conditionResolved'] == True)
+    assert(res['result']['nodes'][3]['conditionResolved'] == False)

@@ -21,6 +21,7 @@ mod errors;
 mod helpers;
 mod models;
 mod auth;
+mod expression_evaluator;
 
 #[cfg(test)]
 mod tests;
@@ -358,7 +359,7 @@ fn projects_trees_get(id: String, key: auth::ApiKey) -> Json<models::ApiListTree
 }
 
 #[get("/projects/<id>/trees/<tree_id>")]
-fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeResponse> {
+fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -366,17 +367,17 @@ fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Js
                 database::get_project_by_id(&client, id.to_owned());
             match project {
                 Some(project) => {
-                    let tree = database::get_tree_by_id(&client, tree_id.to_owned());
+                    let tree = database::get_tree_by_id(&client, tree_id.to_owned(), id.to_owned());
                     match tree {
                         Ok(tree) => {
-                            Json(models::ApiTreeResponse {
+                            Json(models::ApiTreeComputedResponse {
                                 ok: true,
                                 message: "Found tree".to_owned(),
                                 result: Some(tree),
                             })
                         },
                         Err(err) => {
-                            Json(models::ApiTreeResponse {
+                            Json(models::ApiTreeComputedResponse {
                                 ok: false,
                                 message: "Could not find tree using id".to_owned(),
                                 result: None,
@@ -385,14 +386,14 @@ fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Js
                     }
 
                 }
-                None => Json(models::ApiTreeResponse {
+                None => Json(models::ApiTreeComputedResponse {
                     ok: false,
                     message: "Could not find project".to_owned(),
                     result: None,
                 }),
             }
         }
-        Err(e) => Json(models::ApiTreeResponse {
+        Err(e) => Json(models::ApiTreeComputedResponse {
             ok: false,
             message: "Could not connect to DB".to_owned(),
             result: None,
@@ -401,7 +402,7 @@ fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Js
 }
 
 #[put("/projects/<id>/trees/<tree_id>", data = "<body>")]
-fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFullTreeData>, key: auth::ApiKey) -> Json<models::ApiTreeResponse> {
+fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFullTreeData>, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
     let db_client = database::get_instance();
     match db_client {
         Ok(client) => {
@@ -410,21 +411,21 @@ fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFu
             match project {
                 Some(project) => {
                     // Update tree and return
-                    let tree = database::update_tree_by_id(&client, tree_id.to_owned(), models::ApiFullTreeData {
+                    let tree = database::update_tree_by_id(&client, tree_id.to_owned(), id.to_owned(), models::ApiFullTreeData {
                         title: body.title.to_owned(),
                         rootNodeId: body.rootNodeId.to_owned(),
                         nodes: body.nodes.clone()
                     });
                     match tree {
                         Ok(tree) => {
-                            Json(models::ApiTreeResponse {
+                            Json(models::ApiTreeComputedResponse {
                                 ok: true,
                                 message: "Found tree".to_owned(),
                                 result: Some(tree),
                             })
                         },
                         Err(err) => {
-                            Json(models::ApiTreeResponse {
+                            Json(models::ApiTreeComputedResponse {
                                 ok: false,
                                 message: "Could not find tree using id".to_owned(),
                                 result: None,
@@ -433,14 +434,14 @@ fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFu
                     }
 
                 }
-                None => Json(models::ApiTreeResponse {
+                None => Json(models::ApiTreeComputedResponse {
                     ok: false,
                     message: "Could not find project".to_owned(),
                     result: None,
                 }),
             }
         }
-        Err(e) => Json(models::ApiTreeResponse {
+        Err(e) => Json(models::ApiTreeComputedResponse {
             ok: false,
             message: "Could not connect to DB".to_owned(),
             result: None,
@@ -595,7 +596,7 @@ fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key: auth
             let result = models::ApiTreeDagResponseResult {
                 root: models::ApiTreeDagItem {
                     id: treeId.clone(),
-                    children: database::get_tree_relationships_down(&treeId, &client)
+                    children: database::get_tree_relationships_down(&treeId, &projectId, &client)
                 }
             };
 

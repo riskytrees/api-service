@@ -161,7 +161,7 @@ pub struct ApiFullNodeData {
     pub description: String,
     pub modelAttributes: HashMap<String, ModelAttribute>,
     pub conditionAttribute: String,
-    pub children: Vec<String>
+    pub children: Vec<String>,
 }
 
 impl Clone for ApiFullNodeData {
@@ -197,6 +197,51 @@ impl ApiFullNodeData {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ApiFullComputedNodeData {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub modelAttributes: HashMap<String, ModelAttribute>,
+    pub conditionAttribute: String,
+    pub children: Vec<String>,
+    pub conditionResolved: bool
+}
+
+impl Clone for ApiFullComputedNodeData {
+    fn clone(&self) -> ApiFullComputedNodeData {
+        ApiFullComputedNodeData {
+            id: self.id.to_owned(),
+            title: self.title.to_owned(),
+            description: self.description.to_owned(),
+            modelAttributes: self.modelAttributes.clone(),
+            conditionAttribute: self.conditionAttribute.to_owned(),
+            conditionResolved: self.conditionResolved.to_owned(),
+            children: self.children.clone()
+        }
+    }
+}
+
+impl ApiFullComputedNodeData {
+    fn into_bson_doc(self) -> Document {
+        let mut model_attributes = doc! {};
+
+        for (key, val) in self.modelAttributes.into_iter() {
+            model_attributes.insert(key, val.to_bson_doc());
+        }
+
+        doc! {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "modelAttributes": model_attributes,
+            "conditionAttribute": self.conditionAttribute,
+            "conditionResolved": self.conditionResolved,
+            "children": self.children
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct ApiFullTreeData {
     pub title: String,
     pub rootNodeId: String,
@@ -218,6 +263,30 @@ impl ApiFullTreeData {
         }
     }
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct ApiFullComputedTreeData {
+    pub title: String,
+    pub rootNodeId: String,
+    pub nodes: Vec<ApiFullComputedNodeData>
+}
+
+impl ApiFullComputedTreeData {
+    pub fn to_bson_doc(self) -> Document {
+        let mut nodes_as_docs = Vec::new();
+
+        for node in self.nodes {
+            nodes_as_docs.push(node.into_bson_doc());
+        }
+
+        doc! {
+            "title": self.title,
+            "rootNodeId": self.rootNodeId,
+            "nodes": nodes_as_docs
+        }
+    }
+}
+
 
 #[derive(Serialize, Deserialize)]
 pub struct ApiProjectsListProjectItem {
@@ -244,6 +313,13 @@ pub struct ApiTreeResponse {
     pub ok: bool,
     pub message: String,
     pub result: Option<ApiFullTreeData>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ApiTreeComputedResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiFullComputedTreeData>
 }
 
 #[derive(Serialize, Deserialize)]
