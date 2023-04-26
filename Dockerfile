@@ -1,4 +1,4 @@
-FROM rust:1-buster
+FROM rust:1-slim-buster
 COPY riskytrees /app/riskytrees
 COPY cas/rds-combined-ca-bundle.pem /app/riskytrees/rds-combined-ca-bundle.pem
 
