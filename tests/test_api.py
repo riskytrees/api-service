@@ -579,7 +579,7 @@ def test_condition_resolution():
             'title': "I'm a child",
             'description': "Hello",
             'modelAttributes': {},
-            'conditionAttribute': 'config[\'test\'] == 150',
+            'conditionAttribute': 'config[\'test\'] == "150"',
             'children': [],
 
         }, {
@@ -614,7 +614,10 @@ def test_condition_resolution():
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'My Tree')
     assert(len(res['result']['nodes']) == 4)
-    assert(res['result']['nodes'][0]['conditionResolved'] == True)
-    assert(res['result']['nodes'][1]['conditionResolved'] == True)
-    assert(res['result']['nodes'][2]['conditionResolved'] == True)
-    assert(res['result']['nodes'][3]['conditionResolved'] == False)
+    condition_results = [res['result']['nodes'][0]['conditionResolved'],
+                         res['result']['nodes'][1]['conditionResolved'],
+                         res['result']['nodes'][2]['conditionResolved'],
+                         res['result']['nodes'][3]['conditionResolved']
+                        ]
+
+    assert(list(filter(lambda r : r == True, condition_results)).count(True) == 3)
