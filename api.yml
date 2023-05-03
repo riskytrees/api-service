@@ -109,6 +109,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateProjectResponse'
+    put:
+      tags:
+      - project
+      summary: Updates an existing project
+      operationId: updateProject
+      requestBody:
+        description: Initial details about the project
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProject'
+        required: true
+      responses:
+        200:
+          description: Project created succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateProjectResponse'
+
   /projects/{id}/trees:
     get:
       tags:
