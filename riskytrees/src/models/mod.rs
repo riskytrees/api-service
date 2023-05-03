@@ -65,6 +65,43 @@ pub struct Project {
     pub selected_config: Option<String>
 }
 
+impl Clone for Project {
+    fn clone(&self) -> Project {
+        Project {
+            title: self.title.to_owned(),
+            id: self.id.to_owned(),
+            related_tree_ids: self.related_tree_ids.to_owned(),
+            selected_model: self.selected_model.to_owned(),
+            related_config_ids: self.related_config_ids.to_owned(),
+            selected_config: self.selected_config.to_owned()
+        }
+    }
+}
+
+impl Project {
+    pub fn to_bson_doc(self) -> Document {
+        let mut selectedModel = Bson::Null;
+        let mut selectedConfig = Bson::Null;
+
+        if (self.selected_model.is_some()) {
+            selectedModel = Bson::String(self.selected_model.expect("Asserted"));
+        }
+
+        if (self.selected_config.is_some()) {
+            selectedConfig = Bson::String(self.selected_config.expect("Asserted"));
+        }
+
+        doc! {
+            "title": self.title,
+            "id": self.id,
+            "related_tree_ids": self.related_tree_ids,
+            "selectedModel": selectedModel,
+            "related_config_ids": self.related_config_ids,
+            "selectedConfig": selectedConfig
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AuthLoginResponseResult {
     pub sessionToken: String,
