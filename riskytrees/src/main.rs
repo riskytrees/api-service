@@ -267,6 +267,56 @@ fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) -> Jso
     }
 }
 
+#[put("/projects/<id>", data = "<body>")]
+fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: auth::ApiKey) -> Json<models::ApiCreateProjectResponse> {
+    let db_client = database::get_instance();
+    match db_client {
+        Ok(client) => {
+            let mut project = database::get_project_by_id(&client, id);
+
+            match project {
+                Some(mut project) => {
+                    project.title = body.title.clone();
+
+                    let updated_project = database::update_project(client, &project);
+                    match updated_project {
+                        Ok(proj) => {
+                            Json(models::ApiCreateProjectResponse {
+                                ok: true,
+                                message: "Project updated".to_owned(),
+                                result: Some(models::CreateProjectResponseResult {
+                                    title: body.title.to_owned(),
+                                    id: proj.id,
+                                })
+                            })
+                        },
+                        Err(err) => {
+                            Json(models::ApiCreateProjectResponse {
+                                ok: false,
+                                message: format!(
+                                    "Failed to update project: {}",
+                                    err
+                                ),
+                                result: None,
+                            })
+                        }
+                    }
+                },
+                None => Json(models::ApiCreateProjectResponse {
+                    ok: false,
+                    message: "Project not found".to_owned(),
+                    result: None,
+                })
+            }
+        }
+        Err(e) => Json(models::ApiCreateProjectResponse {
+            ok: false,
+            message: "Could not connect to DB".to_owned(),
+            result: None,
+        }),
+    }
+}
+
 #[post("/projects/<id>/trees", data = "<body>")]
 fn projects_trees_post(
     id: String,
@@ -824,6 +874,7 @@ fn main() {
                 auth_logout,
                 projects_get,
                 projects_post,
+                projects_put,
                 projects_trees_post,
                 projects_trees_get,
                 projects_trees_tree_get,

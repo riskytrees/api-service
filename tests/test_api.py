@@ -40,6 +40,19 @@ def test_project_post():
     assert("created" in res['message'])
     assert(res['result']['title'] == 'test project')
 
+def test_project_put():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    projectId = res['result']['id']
+
+    r = requests.put('http://localhost:8000/projects/' + projectId, json = {'title':'other project'}, headers = TEST_HEADERS)
+    res = r.json()
+    
+    assert(res['ok'] == True)
+    assert("updated" in res['message'])
+    assert(res['result']['title'] == 'other project')
 
 def test_projects_get():
     r = requests.get('http://localhost:8000/projects', headers = TEST_HEADERS)

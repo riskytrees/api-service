@@ -228,6 +228,26 @@ pub fn new_project(
     }
 }
 
+pub fn update_project(client: mongodb::sync::Client, project_data: &models::Project) -> Result<models::Project, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let projects_collection = database.collection::<Document>("projects");
+
+    let doc = project_data.clone().to_bson_doc();
+
+    projects_collection.find_one_and_replace(doc! {
+        "_id": bson::oid::ObjectId::with_string(&project_data.id.to_owned()).expect("infallible")
+    }, doc, None);
+
+
+    match get_project_by_id(&client, project_data.clone().id) {
+        Some(proj) => Ok(proj),
+        None => Err(errors::DatabaseError {
+            message: "No project matching ID found.".to_string(),
+        })
+    }
+}
+
+
 pub fn update_project_model(client: mongodb::sync::Client, project_id: String, modelId: String) -> Result<bool, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let project_collection = database.collection::<Document>("projects");

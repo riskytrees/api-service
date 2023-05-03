@@ -109,10 +109,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateProjectResponse'
+  /projects/{id}:
     put:
       tags:
       - project
       summary: Updates an existing project
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
       operationId: updateProject
       requestBody:
         description: Initial details about the project
