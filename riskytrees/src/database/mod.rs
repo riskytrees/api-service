@@ -156,7 +156,6 @@ pub fn get_project_by_id(client: &mongodb::sync::Client, id: String) -> Option<m
                         Vec::new()
                     }
                 };
-
                 let returnres = Some(models::Project {
                     title: title.to_string(),
                     id: id.to_string(),
@@ -234,13 +233,18 @@ pub fn update_project(client: mongodb::sync::Client, project_data: &models::Proj
 
     let doc = project_data.clone().to_bson_doc();
 
-    projects_collection.find_one_and_replace(doc! {
+    match projects_collection.find_one_and_replace(doc! {
         "_id": bson::oid::ObjectId::with_string(&project_data.id.to_owned()).expect("infallible")
-    }, doc, None);
+    }, doc, None) {
+        Ok(_) => {},
+        Err(err) => eprintln!("Err")
+    }
 
 
     match get_project_by_id(&client, project_data.clone().id) {
-        Some(proj) => Ok(proj),
+        Some(proj) => {
+            Ok(proj)
+        },
         None => Err(errors::DatabaseError {
             message: "No project matching ID found.".to_string(),
         })

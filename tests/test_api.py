@@ -45,14 +45,30 @@ def test_project_put():
 
     res = r.json()
 
-    projectId = res['result']['id']
+    project_id = res['result']['id']
 
-    r = requests.put('http://localhost:8000/projects/' + projectId, json = {'title':'other project'}, headers = TEST_HEADERS)
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Test Tree Put'}, headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+
+    r = requests.get('http://localhost:8000/projects/' + project_id + '/trees', headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(len(res['result']['trees']) == 1)
+
+    r = requests.put('http://localhost:8000/projects/' + project_id, json = {'title':'other project'}, headers = TEST_HEADERS)
     res = r.json()
     
     assert(res['ok'] == True)
     assert("updated" in res['message'])
     assert(res['result']['title'] == 'other project')
+
+    r = requests.get('http://localhost:8000/projects/' + project_id + '/trees', headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(len(res['result']['trees']) == 1)
+
+    
 
 def test_projects_get():
     r = requests.get('http://localhost:8000/projects', headers = TEST_HEADERS)
