@@ -91,10 +91,16 @@ impl Project {
             selectedConfig = Bson::String(self.selected_config.expect("Asserted"));
         }
 
+        let mut object_related_tree_ids = Vec::new();
+
+        for id in self.related_tree_ids {
+            object_related_tree_ids.push(bson::oid::ObjectId::with_string(&id).expect("infallible"))
+        }
+
         doc! {
             "title": self.title,
             "id": self.id,
-            "related_tree_ids": self.related_tree_ids,
+            "related_tree_ids": object_related_tree_ids,
             "selectedModel": selectedModel,
             "related_config_ids": self.related_config_ids,
             "selectedConfig": selectedConfig
