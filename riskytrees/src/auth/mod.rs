@@ -21,6 +21,7 @@ use openidconnect::{
 };
 use openidconnect::reqwest::http_client;
 
+use crate::database::Tenant;
 use crate::errors::{AuthError, self};
 
 pub struct AuthRequestData {
@@ -29,7 +30,9 @@ pub struct AuthRequestData {
    pub nonce: Nonce
 }
 
-pub struct ApiKey(String);
+pub struct ApiKey {
+    pub tenant: Option<Tenant>
+}
 
 
 pub fn start_flow() -> Result<AuthRequestData, AuthError> {
@@ -169,7 +172,6 @@ pub fn verify_user_jwt(token: &String) -> Result<String, AuthError> {
 
 }
 
-
 impl<'a, 'r> rocket::request::FromRequest<'a, 'r> for ApiKey {
     type Error = AuthError;
 
@@ -189,7 +191,9 @@ impl<'a, 'r> rocket::request::FromRequest<'a, 'r> for ApiKey {
 
                 match verify_user_jwt(&token.to_string()) {
                     Ok(email) => {
-                        rocket::Outcome::Success(ApiKey(token.to_string()))
+                        rocket::Outcome::Success(ApiKey {
+                            tenant: Some(Tenant {name: email.to_string()})
+                        })
                     },
                     Err(err) => {
                         rocket::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
