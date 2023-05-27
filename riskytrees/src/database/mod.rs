@@ -300,10 +300,12 @@ pub fn update_project(client: mongodb::sync::Client, tenant: Tenant, project_dat
 
     let doc = project_data.clone().to_bson_doc();
 
-    match projects_collection.find_one_and_replace(doc! {
+    match projects_collection.find_one_and_update(doc! {
         "_id": bson::oid::ObjectId::with_string(&project_data.id.to_owned()).expect("infallible"),
         "_tenant": tenant.name.to_owned()
-    }, doc, None) {
+    }, doc! {
+        "$set": doc
+    }, None) {
         Ok(_) => {},
         Err(err) => eprintln!("Err")
     }
@@ -606,10 +608,12 @@ pub fn update_tree_by_id(
 
     let doc = tree_data.to_bson_doc();
 
-    trees_collection.find_one_and_replace(doc! {
+    trees_collection.find_one_and_update(doc! {
         "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible"),
         "_tenant": tenant.name.to_owned()
-    }, doc, None);
+    }, doc!{
+        "$set": doc
+    }, None);
 
 
     get_full_tree_data(client, tenant, tree_id, &project_id)

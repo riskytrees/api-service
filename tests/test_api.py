@@ -4,7 +4,7 @@ import os
 
 # The following is a Test JWT created by using the following, non-prod JWT secret:
 #   testjwttestjwttestjwttestjwttestjwt
-TEST_JWT = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6Impvc2lhaEByaXNreXRyZWVzLmNvbSJ9.2DM3dQPime134NxfVLsx-RT6Y0qpNVAdgZoxWGyhNXg"
+TEST_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20ifQ.nnzKa34M7aloJO94_OQyJIEBCnr2tKshriSb0lNNd9A"
 TEST_HEADERS = {
     'Authorization': TEST_JWT
 }
@@ -58,7 +58,7 @@ def test_project_put():
 
     r = requests.put('http://localhost:8000/projects/' + project_id, json = {'title':'other project'}, headers = TEST_HEADERS)
     res = r.json()
-    
+    print(res)
     assert(res['ok'] == True)
     assert("updated" in res['message'])
     assert(res['result']['title'] == 'other project')
@@ -177,7 +177,7 @@ def test_project_tree_put():
         }, headers = TEST_HEADERS)
 
     res = r.json()
-
+    print(res)
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'Test Confirm Tree Put')
 
