@@ -24,6 +24,31 @@ pub fn get_instance() -> Result<mongodb::sync::Client, mongodb::error::Error> {
     Ok(client)
 }
 
+pub fn get_tenant_for_user_email(client: &mongodb::sync::Client, email: String) -> Option<Tenant> {
+    let database = client.database(constants::DATABASE_NAME); 
+    let tenant_collection = database.collection::<Document>("tenants");
+
+    match tenant_collection.find_one(doc! {
+        "nodes": {
+            "$elemMatch": {
+                "allowedUsers": email.to_owned()
+            }
+        }
+    }, None) {
+        Ok(res) => {
+            match res {
+                Some(res) => {
+                    return Some(Tenant {
+                        name: res.get_str("name").expect("To always exist").to_string()
+                    })
+                },
+                None => None
+            }
+        },
+        Err(err) => None
+    }
+}
+
 // Checks if user already exists in the databse. If it does, it is returned.
 pub fn get_user(client: &mongodb::sync::Client, tenant: Tenant, email: String) -> Option<models::User> {
     let database = client.database(constants::DATABASE_NAME);
