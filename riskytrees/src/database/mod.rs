@@ -14,8 +14,9 @@ use crate::errors;
 use crate::helpers;
 use crate::models;
 
+#[derive(Clone)]
 pub struct Tenant {
-    name: String
+    pub name: String
 }
 
 pub fn get_instance() -> Result<mongodb::sync::Client, mongodb::error::Error> {
@@ -518,7 +519,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tenant: Tenant, tree_id: S
 
                         let mut condition_resolved = true; // Default to true
                         if condition_attribute.is_some() {
-                            let config = get_selected_config(client, tenant, project_id);
+                            let config = get_selected_config(client, tenant.clone(), project_id);
 
                             match config {
                                 Ok(config) => {
@@ -567,12 +568,12 @@ pub fn get_trees_by_project_id(
     project_id: String,
 ) -> Result<Vec<models::ListTreeResponseItem>, errors::DatabaseError> {
 
-    let matched_project = get_project_by_id(client, tenant, project_id.to_owned());
+    let matched_project = get_project_by_id(client, tenant.clone(), project_id.to_owned());
 
     match matched_project {
         Some(project) => {
             let tree_ids = project.related_tree_ids;
-            let trees = get_tree_items_from_tree_ids(client, tenant, tree_ids);
+            let trees = get_tree_items_from_tree_ids(client, tenant.clone(), tree_ids);
 
             Ok(trees)
         }
@@ -618,7 +619,7 @@ pub fn get_projects_from_ids(client: &mongodb::sync::Client, tenant: Tenant, ids
     let mut result = Vec::new();
 
     for id in ids {
-        let project_data = get_project_by_id(client, tenant, id);
+        let project_data = get_project_by_id(client, tenant.clone(), id);
         match project_data {
             Some(project_data) => {
                 result.push(models::ApiProjectsListProjectItem {
@@ -672,7 +673,7 @@ pub fn get_tree_from_node_id(client: &mongodb::sync::Client, tenant: Tenant, nod
 pub fn get_tree_relationships_down(client: &mongodb::sync::Client, tenant: Tenant, startTreeId: &String, projectId: &String) -> Vec<ApiTreeDagItem> {
     let mut result = vec![];
 
-    let childrenNodes = get_nodes_from_tree(client, tenant, startTreeId, projectId);
+    let childrenNodes = get_nodes_from_tree(client, tenant.clone(), startTreeId, projectId);
 
     // Figure out which nodes have children that aren't included in this list of nodes
     let mut childrenOfConcern = std::collections::HashSet::new();
@@ -694,7 +695,7 @@ pub fn get_tree_relationships_down(client: &mongodb::sync::Client, tenant: Tenan
     let mut childTrees = vec![];
 
     for node in childrenOfConcern {
-        let lookup = get_tree_from_node_id(client, tenant, node.to_string());
+        let lookup = get_tree_from_node_id(client, tenant.clone(), node.to_string());
         match lookup {
             Ok(res) => {
                 match res.result {
@@ -710,7 +711,7 @@ pub fn get_tree_relationships_down(client: &mongodb::sync::Client, tenant: Tenan
     }
 
     for childTree in &childTrees {
-        result.push(ApiTreeDagItem { id: childTree.to_string(), children: get_tree_relationships_down(client, tenant, childTree, projectId) });
+        result.push(ApiTreeDagItem { id: childTree.to_string(), children: get_tree_relationships_down(client, tenant.clone(), childTree, projectId) });
     }
 
     result
@@ -823,7 +824,7 @@ pub fn get_selected_config(client: &mongodb::sync::Client, tenant: Tenant, proje
     let config_collection = database.collection::<Document>("configs");
     let project_collection = database.collection::<Document>("projects");
 
-    let project = get_project_by_id(client, tenant, project_id.to_string());
+    let project = get_project_by_id(client, tenant.clone(), project_id.to_string());
 
     match project {
         Some(project) => {
@@ -834,7 +835,7 @@ pub fn get_selected_config(client: &mongodb::sync::Client, tenant: Tenant, proje
                     let matched_record = config_collection.find_one(
                         doc! {
                             "_id": bson::oid::ObjectId::with_string(&config_id.to_owned()).expect("infallible"),
-                            "_tenant": tenant.name.to_owned()
+                            "_tenant": tenant.clone().name.to_owned()
                         },
                         None,
                     );

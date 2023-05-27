@@ -86,7 +86,7 @@ fn auth_login_get(code: Option<String>, state: Option<String>, scope: Option<Str
                         match email {
                             Ok(email) => {
                                 // Create user if user does not exist
-                                let tenant = database::get_tenant_for_user_email(&client, email);
+                                let tenant = database::get_tenant_for_user_email(&client, email.clone());
 
                                 match tenant {
                                     Some(tenant) => {
@@ -222,7 +222,7 @@ fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse> {
         let db_client = database::get_instance();
         match db_client {
             Ok(client) => {
-                let ids = database::get_available_project_ids(&client, key.tenant.expect("checked"));
+                let ids = database::get_available_project_ids(&client, key.tenant.clone().expect("checked"));
                 match ids {
                     Ok(ids) => Json(models::ApiProjectsListResponse {
                         ok: true,
@@ -259,14 +259,14 @@ fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) -> Jso
         let db_client = database::get_instance();
         match db_client {
             Ok(client) => {
-                let project = database::get_project_by_title(client.to_owned(), body.title.to_owned());
+                let project = database::get_project_by_title(client.to_owned(), key.tenant.clone().expect("checked"), body.title.to_owned());
                 match project {
                     Some(project) => Json(models::ApiCreateProjectResponse {
                         ok: true,
                         message: "Tree already exists".to_owned(),
                         result: None,
                     }),
-                    None => match database::new_project(client, body.title.to_owned()) {
+                    None => match database::new_project(client, key.tenant.expect("checked"), body.title.to_owned()) {
                         Ok(new_project_id) => Json(models::ApiCreateProjectResponse {
                             ok: true,
                             message: "Project created succesfully".to_owned(),
@@ -305,13 +305,13 @@ fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: auth::Api
         let db_client = database::get_instance();
         match db_client {
             Ok(client) => {
-                let mut project = database::get_project_by_id(&client, id);
+                let mut project = database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id);
     
                 match project {
                     Some(mut project) => {
                         project.title = body.title.clone();
     
-                        let updated_project = database::update_project(client, &project);
+                        let updated_project = database::update_project(client, key.tenant.expect("checked"), &project);
                         match updated_project {
                             Ok(proj) => {
                                 Json(models::ApiCreateProjectResponse {
@@ -368,12 +368,13 @@ fn projects_trees_post(
         let db_client = database::get_instance();
         match db_client {
             Ok(client) => {
-                let project = database::get_project_by_id(&client, id.to_owned());
+                let project = database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned());
                 match project {
                     Some(project) => {
                         // Create tree
                         match database::create_project_tree(
                             client.to_owned(),
+                            key.tenant.expect("checked"),
                             body.title.to_owned(),
                             id,
                         ) {
@@ -425,11 +426,11 @@ fn projects_trees_get(id: String, key: auth::ApiKey) -> Json<models::ApiListTree
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, id.to_owned());
+                    database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned());
                 match project {
                     Some(project) => {
                         // Get trees
-                        let trees = database::get_trees_by_project_id(&client, project.id);
+                        let trees = database::get_trees_by_project_id(&client, key.tenant.expect("checked"), project.id);
     
                         match trees {
                             Ok(trees) => Json(models::ApiListTreeResponse {
@@ -474,10 +475,10 @@ fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Js
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, id.to_owned());
+                    database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned());
                 match project {
                     Some(project) => {
-                        let tree = database::get_tree_by_id(&client, tree_id.to_owned(), id.to_owned());
+                        let tree = database::get_tree_by_id(&client, key.tenant.expect("checked"), tree_id.to_owned(), id.to_owned());
                         match tree {
                             Ok(tree) => {
                                 Json(models::ApiTreeComputedResponse {
@@ -525,11 +526,11 @@ fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFu
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, id.to_owned());
+                    database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned());
                 match project {
                     Some(project) => {
                         // Update tree and return
-                        let tree = database::update_tree_by_id(&client, tree_id.to_owned(), id.to_owned(), models::ApiFullTreeData {
+                        let tree = database::update_tree_by_id(&client, key.tenant.expect("checked"), tree_id.to_owned(), id.to_owned(), models::ApiFullTreeData {
                             title: body.title.to_owned(),
                             rootNodeId: body.rootNodeId.to_owned(),
                             nodes: body.nodes.clone()
@@ -582,7 +583,7 @@ fn projects_model_get(id: String, key: auth::ApiKey) -> Json<models::ApiSelected
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, id.to_owned());
+                    database::get_project_by_id(&client, key.tenant.expect("checked"), id.to_owned());
                 match project {
                     Some(project) => {
                         Json(models::ApiSelectedModelResponse {
@@ -624,10 +625,10 @@ fn projects_model_put(id: String, body: Json<models::SelectedModelResult>, key: 
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, id.to_owned());
+                    database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned());
                 match project {
                     Some(project) => {
-                        match database::update_project_model(client, id.to_owned(), body.modelId.to_owned()) {
+                        match database::update_project_model(client, key.tenant.expect("checked"), id.to_owned(), body.modelId.to_owned()) {
                             Ok(_) => {
                                 Json(models::ApiSelectedModelResponse {
                                     ok: true,
@@ -723,7 +724,7 @@ fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeResponse> {
 
         match db_client {
             Ok(client) => {
-                match get_tree_from_node_id(id, &client) {
+                match get_tree_from_node_id(&client, key.tenant.expect("checked"), id) {
                     Ok(res) => Json(res),
                     Err(err) => Json(models::ApiGetNodeResponse {
                         ok: false,
@@ -759,7 +760,7 @@ fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key: auth
                 let result = models::ApiTreeDagResponseResult {
                     root: models::ApiTreeDagItem {
                         id: treeId.clone(),
-                        children: database::get_tree_relationships_down(&treeId, &projectId, &client)
+                        children: database::get_tree_relationships_down(&client, key.tenant.expect("checked"), &treeId, &projectId)
                     }
                 };
     
@@ -783,7 +784,7 @@ fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key: auth
 #[get("/projects/<projectId>/configs")]
 fn projects_configs_list(projectId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigListResponse> {
     if key.tenant.is_none() {
-        Json(models::ApiTreeDaApiProjectConfigListResponsegResponse {
+        Json(models::ApiProjectConfigListResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
             result: None,
@@ -793,7 +794,7 @@ fn projects_configs_list(projectId: String, key: auth::ApiKey) -> Json<models::A
 
         match db_client {
             Ok(client) => {
-                let matching_configs = database::get_configs_for_project(&projectId, &client);
+                let matching_configs = database::get_configs_for_project(&client, key.tenant.expect("checked"), &projectId);
     
                 Json(models::ApiProjectConfigListResponse {
                     ok: true,
@@ -828,7 +829,7 @@ fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigP
             Ok(client) => {
                 let thing = body.into_inner();
     
-                let new_config_id: Result<String, errors::DatabaseError> = database::new_config(&projectId, &thing, &client);
+                let new_config_id: Result<String, errors::DatabaseError> = database::new_config(&client, key.tenant.expect("checked"), &projectId, &thing);
                 match new_config_id {
                     Ok(new_config_id) => {
                         Json(models::ApiProjectConfigResponse {
@@ -871,7 +872,7 @@ fn projects_configs_put(projectId: String, configId: String, body: Json<models::
         match db_client {
             Ok(client) => {
                 let thing = body.into_inner();
-                let new_config = database::update_config(&projectId, &configId, &thing, &client);
+                let new_config = database::update_config(&client, key.tenant.expect("checked"), &projectId, &configId, &thing);
     
                 match new_config {
                     Ok(updated_id) => {
@@ -916,7 +917,7 @@ fn projects_configs_get(projectId: String, configId: String, key: auth::ApiKey) 
 
         match db_client {
             Ok(client) => {
-                let config = database::get_config(&projectId, &configId, &client);
+                let config = database::get_config(&client, key.tenant.expect("checked"), &projectId, &configId);
     
                 match config {
                     Ok(resp) => {
@@ -958,7 +959,7 @@ fn projects_config_get(projectId: String, key: auth::ApiKey) -> Json<models::Api
 
         match db_client {
             Ok(client) => {
-                let config = database::get_selected_config(&projectId, &client);
+                let config = database::get_selected_config(&client, key.tenant.expect("checked"), &projectId);
     
                 match config {
                     Ok(config) => {
@@ -998,7 +999,7 @@ fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdP
         match db_client {
             Ok(client) => {
                 let thing: models::ApiProjectConfigIdPayload = body.into_inner();
-                let res = database::update_project_selected_config(&projectId, &thing, &client);
+                let res = database::update_project_selected_config( &client, key.tenant.expect("checked"), &projectId, &thing);
     
                 match res {
                     Ok(res) => {
