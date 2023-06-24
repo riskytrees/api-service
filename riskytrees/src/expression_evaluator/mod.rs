@@ -53,6 +53,11 @@ pub fn get_key_vals(obj: &serde_json::map::Map<String, serde_json::value::Value>
 }
 
 pub fn evaluate(condition: &str, config: &ApiProjectConfigResponseResult) -> bool {
+    // Empty conditions always resolve
+    if condition.to_owned().len() == 0 {
+        return true;
+    }
+
     let normalized_condition = de_json_condition(condition);
     println!("Evaluate {}", normalized_condition);
     let mut context = HashMapContext::new();
@@ -82,7 +87,7 @@ pub fn evaluate(condition: &str, config: &ApiProjectConfigResponseResult) -> boo
         },
         Err(err) => {
             eprintln!("Eval error");
-            return true;
+            return false;
         }
     }
 }
