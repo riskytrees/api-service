@@ -529,6 +529,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tenant: Tenant, tree_id: S
                                 },
                                 Err(err) => {
                                     eprintln!("No config!");
+                                    condition_resolved = false;
                                 }
                             }
                         }
