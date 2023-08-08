@@ -19,7 +19,7 @@ sha2 = "0.10.6"
 evalexpr = "8.1.0"
 
 [dependencies.mongodb]
-version = "2.0.0-alpha.1"
+version = "2.0.0-beta"
 default-features = false
 features = ["sync"]
 
