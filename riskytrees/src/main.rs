@@ -1024,7 +1024,8 @@ fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdP
 
 }
 
-fn main() {
+#[launch]
+fn rocket() -> _ {
     rocket::build()
         .mount(
             "/",
@@ -1054,6 +1055,4 @@ fn main() {
             ],
         )
         .attach(CORS)
-
-        .launch();
 }
