@@ -7,11 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = "0.4.10"
+rocket = { version = "0.5.0-rc.3", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.95"
 bson = "1.2.2"
-rocket_cors = "0.5.1"
 openidconnect = "2.4.0"
 jwt = "0.16.0"
 hmac = "0.12.1"
@@ -22,8 +21,3 @@ evalexpr = "8.1.0"
 version = "2.0.0-alpha.1"
 default-features = false
 features = ["sync"]
-
-[dependencies.rocket_contrib]
-version = "0.4.10"
-default-features = false
-features = ["json"]
