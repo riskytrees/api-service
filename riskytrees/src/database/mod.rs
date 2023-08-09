@@ -4,7 +4,6 @@ use mongodb::{
 };
 use openidconnect::Nonce;
 use rocket::Data;
-use rocket_contrib::json;
 
 use std::{collections::HashMap, hash::Hash, vec};
 
@@ -853,7 +852,7 @@ pub fn get_selected_config(client: &mongodb::sync::Client, tenant: Tenant, proje
 
                                     Ok(ApiProjectConfigResponseResult {
                                         id: matched_record.get_object_id("_id").expect("Should always exist").to_string(),
-                                        attributes: json!(attributes)
+                                        attributes: serde_json::json!(attributes)
                                     })
                                 },
                                 None => Err(DatabaseError { message: "No matched record".to_string()})
@@ -923,7 +922,7 @@ pub fn get_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &S
 
                     Ok(ApiProjectConfigResponseResult {
                         id: matched_record.get_object_id("_id").expect("Should always exist").to_string(),
-                        attributes: json!(attributes)
+                        attributes: serde_json::json!(attributes)
                     })
                 },
                 None => Err(DatabaseError { message: "No matched record".to_string()})

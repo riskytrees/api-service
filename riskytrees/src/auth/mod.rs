@@ -172,13 +172,14 @@ pub fn verify_user_jwt(token: &String) -> Result<String, AuthError> {
 
 }
 
-impl<'a, 'r> rocket::request::FromRequest<'a, 'r> for ApiKey {
+#[rocket::async_trait]
+impl<'r> rocket::request::FromRequest<'r> for ApiKey {
     type Error = AuthError;
 
-    fn from_request(request: &'a rocket::Request<'r>) -> rocket::request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r rocket::request::Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
         let keys: Vec<_> = request.headers().get("Authorization").collect();
         match keys.len() {
-            0 => rocket::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+            0 => rocket::request::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
                 message: "No Auth header".to_owned()
             })),
             1 => {
@@ -191,18 +192,18 @@ impl<'a, 'r> rocket::request::FromRequest<'a, 'r> for ApiKey {
 
                 match verify_user_jwt(&token.to_string()) {
                     Ok(email) => {
-                        rocket::Outcome::Success(ApiKey {
+                        rocket::request::Outcome::Success(ApiKey {
                             tenant: Some(Tenant {name: email.to_string()})
                         })
                     },
                     Err(err) => {
-                        rocket::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+                        rocket::request::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
                             message: "JWT Verification failed".to_owned()
                         }))
                     }
                 }
             },
-            _ => rocket::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+            _ => rocket::request::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
                 message: "Too many auth headers!".to_owned()
             })),
         }

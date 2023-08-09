@@ -1,19 +1,13 @@
-#![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use]
 extern crate rocket;
-extern crate rocket_cors;
 
 use std::collections::HashSet;
 use database::get_tree_from_node_id;
 use models::ApiProjectConfigListResponseResult;
 use mongodb::bson::doc;
-use rocket_contrib::json::{Json, self};
-use rocket::{http::Method, Config, config::Environment};
+use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
 
-use rocket_cors::{
-    AllowedHeaders, AllowedOrigins, Cors, CorsOptions
-};
 
 mod constants;
 mod database;
@@ -26,32 +20,33 @@ mod expression_evaluator;
 #[cfg(test)]
 mod tests;
 
-fn make_cors() -> Cors {
-    let mut origins = HashSet::new();
+pub struct CORS;
 
-    origins.insert("*".to_string());
-
-    /*let allowed_origins = AllowedOrigins::Some(rocket_cors::Origins{
-        allow_null: true,
-        exact: Some(origins),
-        regex: None
-    });*/
-
-    let allowed_origins = AllowedOrigins::All;
-
-    CorsOptions {
-        allowed_origins,
-        allowed_methods: vec![Method::Get, Method::Post, Method::Delete, Method::Put, Method::Options].into_iter().map(From::from).collect(),
-        allowed_headers: AllowedHeaders::some(&[
-            "Authorization",
-            "Accept",
-            "Access-Control-Allow-Origin",
-        ]),
-        allow_credentials: true,
-        ..Default::default()
+#[rocket::async_trait]
+impl rocket::fairing::Fairing for CORS {
+    fn info(&self) -> rocket::fairing::Info {
+        rocket::fairing::Info {
+            name: "Add CORS headers to responses",
+            kind: rocket::fairing::Kind::Response,
+        }
     }
-    .to_cors()
-    .expect("error while building CORS")
+
+    async fn on_response<'r>(&self, request: &'r rocket::Request<'_>, response: &mut rocket::Response<'r>) {
+        if request.method() == Method::Options {
+            response.set_status(rocket::http::Status::NoContent);
+            response.set_header(rocket::http::Header::new(
+                "Access-Control-Allow-Methods",
+                "POST, PATCH, GET, DELETE",
+            ));
+            response.set_header(rocket::http::Header::new("Access-Control-Allow-Headers", "*"));
+        }
+
+        response.set_header(rocket::http::Header::new(
+            "Access-Control-Allow-Origin",
+            "*",
+        ));
+        response.set_header(rocket::http::Header::new("Access-Control-Allow-Credentials", "true"));
+    }
 }
 
 
@@ -837,7 +832,7 @@ fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigP
                             message: "Created config".to_owned(),
                             result: Some(models::ApiProjectConfigResponseResult {
                                 id: new_config_id,
-                                attributes: rocket_contrib::json!(thing)
+                                attributes: serde_json::json!(thing)
                             })
                         })
                     },
@@ -881,7 +876,7 @@ fn projects_configs_put(projectId: String, configId: String, body: Json<models::
                             message: "Updated config".to_owned(),
                             result: Some(models::ApiProjectConfigResponseResult {
                                 id: updated_id,
-                                attributes: rocket_contrib::json!(thing)
+                                attributes: serde_json::json!(thing)
                             }),
                         })
                     },
@@ -1030,11 +1025,7 @@ fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdP
 }
 
 fn main() {
-    let config = Config::build(Environment::Staging)
-    .address("0.0.0.0")
-    .unwrap();
-
-    rocket::custom(config)
+    rocket::build()
         .mount(
             "/",
             routes![
@@ -1062,7 +1053,7 @@ fn main() {
                 node_get
             ],
         )
-        .attach(make_cors())
+        .attach(CORS)
 
         .launch();
 }
