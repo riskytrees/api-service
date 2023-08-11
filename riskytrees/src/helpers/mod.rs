@@ -1,9 +1,8 @@
 use mongodb::{
-    bson::{doc, Document},
+    bson::{doc, Document, Bson},
     sync::Client,
 };
 
-use bson::Bson;
 
 pub fn convert_bson_str_array_to_str_array(bson_array: Vec<Bson>) -> Vec<String> {
     let mut new_vec: Vec<String> = Vec::new();

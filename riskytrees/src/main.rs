@@ -1025,7 +1025,7 @@ fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdP
 }
 
 #[launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
     rocket::build()
         .mount(
             "/",

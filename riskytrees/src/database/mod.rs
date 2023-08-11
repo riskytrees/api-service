@@ -1,6 +1,6 @@
 use mongodb::{
     bson::{doc, Document},
-    sync::Client,
+    Client,
 };
 use openidconnect::Nonce;
 use rocket::Data;
@@ -18,13 +18,13 @@ pub struct Tenant {
     pub name: String
 }
 
-pub fn get_instance() -> Result<mongodb::sync::Client, mongodb::error::Error> {
-    let client = Client::with_uri_str(constants::get_database_host().as_str())?;
+pub async fn get_instance() -> Result<mongodb::Client, mongodb::error::Error> {
+    let client = Client::with_uri_str(constants::get_database_host().as_str()).await?;
 
     Ok(client)
 }
 
-pub fn get_tenant_for_user_email(client: &mongodb::sync::Client, email: String) -> Option<Tenant> {
+pub async fn get_tenant_for_user_email(client: &mongodb::Client, email: String) -> Option<Tenant> {
     let database = client.database(constants::DATABASE_NAME); 
     let tenant_collection = database.collection::<Document>("tenants");
 
@@ -34,7 +34,7 @@ pub fn get_tenant_for_user_email(client: &mongodb::sync::Client, email: String) 
                 "allowedUsers": email.to_owned()
             }
         }
-    }, None) {
+    }, None).await {
         Ok(res) => {
             match res {
                 Some(res) => {
@@ -50,7 +50,7 @@ pub fn get_tenant_for_user_email(client: &mongodb::sync::Client, email: String) 
 }
 
 // Checks if user already exists in the databse. If it does, it is returned.
-pub fn get_user(client: &mongodb::sync::Client, tenant: Tenant, email: String) -> Option<models::User> {
+pub fn get_user(client: &mongodb::Client, tenant: Tenant, email: String) -> Option<models::User> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("users");
 
@@ -75,7 +75,7 @@ pub fn get_user(client: &mongodb::sync::Client, tenant: Tenant, email: String) -
 }
 
 // Only endpoint that doesn't need an input tenant
-pub fn new_user(client: &mongodb::sync::Client, email: String) -> bool {
+pub fn new_user(client: &mongodb::Client, email: String) -> bool {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("users");
     let tenant_collection = database.collection::<Document>("tenants");
@@ -92,7 +92,7 @@ pub fn new_user(client: &mongodb::sync::Client, email: String) -> bool {
                             false
                         } else {
                             // Continue
-                            match tenant_collection.insert_one(doc! { "name": email, "allowedUsers": bson!([user_id]) }, None) {
+                            match tenant_collection.insert_one(doc! { "name": email, "allowedUsers": [user_id] }, None) {
                                 Ok(res) => {
                                     let _tenant_id = res.inserted_id;
 
@@ -121,7 +121,7 @@ pub fn new_user(client: &mongodb::sync::Client, email: String) -> bool {
 
 // Checks if a project already exists in the databse. If it does, it is returned.
 pub fn get_project_by_title(
-    client: mongodb::sync::Client,
+    client: mongodb::Client,
     tenant: Tenant,
     title: String,
 ) -> Option<models::Project> {
@@ -167,16 +167,17 @@ pub fn get_project_by_title(
     }
 }
 
-pub fn get_project_by_id(client: &mongodb::sync::Client, tenant: Tenant, id: String) -> Option<models::Project> {
+pub fn get_project_by_id(client: &mongodb::Client, tenant: Tenant, id: String) -> Option<models::Project> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
-
+    println!("Searching for {}", id);
     match collection.find_one(
-        doc! {"_id":  bson::oid::ObjectId::with_string(&id.to_owned()).expect("infallible"), "_tenant": tenant.name.to_owned()},
+        doc! {"_id": &id.to_owned(), "_tenant": tenant.name.to_owned()},
         None,
     ) {
         Ok(res) => match res {
             Some(doc) => {
+                println!("Operating on {}", id);
                 let title = match doc.get_str("title").ok() {
                     Some(val) => val,
                     None => {
@@ -245,7 +246,7 @@ pub fn get_project_by_id(client: &mongodb::sync::Client, tenant: Tenant, id: Str
 }
 
 // Gets a list of project ids that the current user can access
-pub fn get_available_project_ids(client: &mongodb::sync::Client, tenant: Tenant) -> Result<Vec<String>, errors::DatabaseError> {
+pub fn get_available_project_ids(client: &mongodb::Client, tenant: Tenant) -> Result<Vec<String>, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
 
@@ -256,7 +257,6 @@ pub fn get_available_project_ids(client: &mongodb::sync::Client, tenant: Tenant)
     match matched_records {
         Ok(mut records) => {
             while let Some(record) = records.next() {
-
                 let _ = match record {
                     Ok(record) => {
                         let id = record.get_object_id("_id").expect("_id is always an oid");
@@ -274,7 +274,7 @@ pub fn get_available_project_ids(client: &mongodb::sync::Client, tenant: Tenant)
 }
 
 pub fn new_project(
-    client: mongodb::sync::Client,
+    client: mongodb::Client,
     tenant: Tenant,
     title: String,
 ) -> Result<String, errors::DatabaseError> {
@@ -282,7 +282,7 @@ pub fn new_project(
     let collection = database.collection::<Document>("projects");
 
     let insert_result =
-        collection.insert_one(doc! { "title": title, "related_tree_ids": [], "selectedModel": bson!(null), "_tenant": tenant.name.to_owned() }, None)?;
+        collection.insert_one(doc! { "title": title, "related_tree_ids": [], "selectedModel": null, "_tenant": tenant.name.to_owned() }, None)?;
     let inserted_id = insert_result.inserted_id;
 
     match inserted_id.as_object_id().clone() {
@@ -293,14 +293,14 @@ pub fn new_project(
     }
 }
 
-pub fn update_project(client: mongodb::sync::Client, tenant: Tenant, project_data: &models::Project) -> Result<models::Project, errors::DatabaseError> {
+pub fn update_project(client: mongodb::Client, tenant: Tenant, project_data: &models::Project) -> Result<models::Project, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let projects_collection = database.collection::<Document>("projects");
 
     let doc = project_data.clone().to_bson_doc();
 
     match projects_collection.find_one_and_update(doc! {
-        "_id": bson::oid::ObjectId::with_string(&project_data.id.to_owned()).expect("infallible"),
+        "_id": &project_data.id.to_owned(),
         "_tenant": tenant.name.to_owned()
     }, doc! {
         "$set": doc
@@ -321,14 +321,14 @@ pub fn update_project(client: mongodb::sync::Client, tenant: Tenant, project_dat
 }
 
 
-pub fn update_project_model(client: mongodb::sync::Client, tenant: Tenant, project_id: String, modelId: String) -> Result<bool, errors::DatabaseError> {
+pub fn update_project_model(client: mongodb::Client, tenant: Tenant, project_id: String, modelId: String) -> Result<bool, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let project_collection = database.collection::<Document>("projects");
 
     
     let matched_record = project_collection.find_one(
         doc! {
-            "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible"),
+            "_id": &project_id.to_owned(),
             "_tenant": tenant.name.to_owned()
         },
         None,
@@ -343,7 +343,7 @@ pub fn update_project_model(client: mongodb::sync::Client, tenant: Tenant, proje
             };
 
             project_collection.find_one_and_replace(doc! {
-                "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible"),
+                "_id": &project_id.to_owned(),
                 "_tenant": tenant.name.to_owned()
             }, new_doc, None);
 
@@ -360,7 +360,7 @@ pub fn update_project_model(client: mongodb::sync::Client, tenant: Tenant, proje
 }
 
 pub fn create_project_tree(
-    client: mongodb::sync::Client,
+    client: mongodb::Client,
     tenant: Tenant,
     title: String,
     project_id: String,
@@ -380,7 +380,7 @@ pub fn create_project_tree(
         Some(oid) => {
             project_collection.find_one_and_update(
                 doc! {
-                    "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible"),
+                    "_id": &project_id.to_owned(),
                     "_tenant": tenant.name.to_owned()
                 },
                 doc! {
@@ -399,7 +399,7 @@ pub fn create_project_tree(
     }
 }
 
-fn get_tree_items_from_tree_ids(client: &mongodb::sync::Client, tenant: Tenant, tree_ids: Vec<String>) -> Vec<models::ListTreeResponseItem> {
+fn get_tree_items_from_tree_ids(client: &mongodb::Client, tenant: Tenant, tree_ids: Vec<String>) -> Vec<models::ListTreeResponseItem> {
     let database = client.database(constants::DATABASE_NAME);
     let trees_collection = database.collection::<Document>("trees");
     let mut result = Vec::new();
@@ -407,7 +407,7 @@ fn get_tree_items_from_tree_ids(client: &mongodb::sync::Client, tenant: Tenant, 
     for tree_id in tree_ids {
         let matched_records = trees_collection.find(
             doc! {
-                "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible"),
+                "_id": &tree_id.to_owned(),
                 "_tenant": tenant.name.to_owned()
             },
             None,
@@ -478,13 +478,13 @@ fn convert_bson_document_to_ModelAttribute_map(bson_doc: &Document) -> HashMap<S
 }
 
 // Returns all the data contained in a single tree
-fn get_full_tree_data(client: &mongodb::sync::Client, tenant: Tenant, tree_id: String, project_id: &String) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
+fn get_full_tree_data(client: &mongodb::Client, tenant: Tenant, tree_id: String, project_id: &String) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let trees_collection = database.collection::<Document>("trees");
 
     let matched_record = trees_collection.find_one(
         doc! {
-            "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible"),
+            "_id": &tree_id.to_owned(),
             "_tenant": tenant.name.to_owned()
         },
         None,
@@ -492,7 +492,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tenant: Tenant, tree_id: S
 
     match matched_record {
         Some(tree_record) => {
-            let empty_bson_array = bson::Array::new();
+            let empty_bson_array = mongodb::bson::Array::new();
             let title = tree_record.get_str("title").expect("title should always exist");
 
             let root_node_id = tree_record.get_str("rootNodeId").expect("rootNodeId should always exist");
@@ -565,7 +565,7 @@ fn get_full_tree_data(client: &mongodb::sync::Client, tenant: Tenant, tree_id: S
 }
 
 pub fn get_trees_by_project_id(
-    client: &mongodb::sync::Client,
+    client: &mongodb::Client,
     tenant: Tenant,
     project_id: String,
 ) -> Result<Vec<models::ListTreeResponseItem>, errors::DatabaseError> {
@@ -586,7 +586,7 @@ pub fn get_trees_by_project_id(
 }
 
 pub fn get_tree_by_id(
-    client: &mongodb::sync::Client,
+    client: &mongodb::Client,
     tenant: Tenant,
     tree_id: String,
     project_id: String
@@ -597,7 +597,7 @@ pub fn get_tree_by_id(
 }
 
 pub fn update_tree_by_id(
-    client: &mongodb::sync::Client,
+    client: &mongodb::Client,
     tenant: Tenant,
     tree_id: String,
     project_id: String,
@@ -609,7 +609,7 @@ pub fn update_tree_by_id(
     let doc = tree_data.to_bson_doc();
 
     trees_collection.find_one_and_update(doc! {
-        "_id": bson::oid::ObjectId::with_string(&tree_id.to_owned()).expect("infallible"),
+        "_id": &tree_id.to_owned(),
         "_tenant": tenant.name.to_owned()
     }, doc!{
         "$set": doc
@@ -619,8 +619,9 @@ pub fn update_tree_by_id(
     get_full_tree_data(client, tenant, tree_id, &project_id)
 }
 
-pub fn get_projects_from_ids(client: &mongodb::sync::Client, tenant: Tenant, ids: Vec<String>) -> Vec<models::ApiProjectsListProjectItem> {
+pub fn get_projects_from_ids(client: &mongodb::Client, tenant: Tenant, ids: Vec<String>) -> Vec<models::ApiProjectsListProjectItem> {
     let mut result = Vec::new();
+
 
     for id in ids {
         let project_data = get_project_by_id(client, tenant.clone(), id);
@@ -638,7 +639,7 @@ pub fn get_projects_from_ids(client: &mongodb::sync::Client, tenant: Tenant, ids
     result
 }
 
-pub fn get_tree_from_node_id(client: &mongodb::sync::Client, tenant: Tenant, node_id: String) -> Result<models::ApiGetNodeResponse, errors::DatabaseError> {
+pub fn get_tree_from_node_id(client: &mongodb::Client, tenant: Tenant, node_id: String) -> Result<models::ApiGetNodeResponse, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let trees_collection = database.collection::<Document>("trees");
 
@@ -674,7 +675,7 @@ pub fn get_tree_from_node_id(client: &mongodb::sync::Client, tenant: Tenant, nod
     }
 }
 
-pub fn get_tree_relationships_down(client: &mongodb::sync::Client, tenant: Tenant, startTreeId: &String, projectId: &String) -> Vec<ApiTreeDagItem> {
+pub fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenant, startTreeId: &String, projectId: &String) -> Vec<ApiTreeDagItem> {
     let mut result = vec![];
 
     let childrenNodes = get_nodes_from_tree(client, tenant.clone(), startTreeId, projectId);
@@ -721,7 +722,7 @@ pub fn get_tree_relationships_down(client: &mongodb::sync::Client, tenant: Tenan
     result
 }
 
-pub fn get_nodes_from_tree(client: &mongodb::sync::Client, tenant: Tenant, treeId: &String, projectId: &String) -> Vec<models::ApiFullComputedNodeData> {
+pub fn get_nodes_from_tree(client: &mongodb::Client, tenant: Tenant, treeId: &String, projectId: &String) -> Vec<models::ApiFullComputedNodeData> {
     let data = get_full_tree_data(client, tenant, treeId.to_string(), projectId);
 
     match data {
@@ -735,7 +736,7 @@ pub fn get_nodes_from_tree(client: &mongodb::sync::Client, tenant: Tenant, treeI
     }
 }
 
-pub fn get_configs_for_project(client: &mongodb::sync::Client, tenant: Tenant, project_id: &String,) -> Vec<String> {
+pub fn get_configs_for_project(client: &mongodb::Client, tenant: Tenant, project_id: &String,) -> Vec<String> {
     let project = get_project_by_id(client, tenant, project_id.to_string());
 
     match project {
@@ -746,12 +747,12 @@ pub fn get_configs_for_project(client: &mongodb::sync::Client, tenant: Tenant, p
     }
 }
 
-pub fn new_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &String, body: &models::ApiProjectConfigPayload) -> Result<String, errors::DatabaseError> {
+pub fn new_config(client: &mongodb::Client, tenant: Tenant, project_id: &String, body: &models::ApiProjectConfigPayload) -> Result<String, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let config_collection = database.collection::<Document>("configs");
     let project_collection = database.collection::<Document>("projects");
 
-    let bson_attributes = bson::to_bson(&body.attributes);
+    let bson_attributes = mongodb::bson::to_bson(&body.attributes);
 
     match bson_attributes {
         Ok(bson_attributes) => {
@@ -766,7 +767,7 @@ pub fn new_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &S
                 Some(oid) => {
                     project_collection.find_one_and_update(
                         doc! {
-                            "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible"),
+                            "_id": &project_id.to_owned(),
                             "_tenant": tenant.name.to_owned()
                         },
                         doc! {
@@ -794,12 +795,12 @@ pub fn new_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &S
 
 }
 
-pub fn update_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &String, config_id: &String, body: &models::ApiProjectConfigPayload) -> Result<String, errors::DatabaseError> {
+pub fn update_config(client: &mongodb::Client, tenant: Tenant, project_id: &String, config_id: &String, body: &models::ApiProjectConfigPayload) -> Result<String, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let config_collection = database.collection::<Document>("configs");
     let project_collection = database.collection::<Document>("projects");
 
-    let bson_attributes = bson::to_bson(&body.attributes);
+    let bson_attributes = mongodb::bson::to_bson(&body.attributes);
 
     match bson_attributes {
         Ok(bson_attributes) => {
@@ -811,7 +812,7 @@ pub fn update_config(client: &mongodb::sync::Client, tenant: Tenant, project_id:
             let doc = body;
         
             config_collection.find_one_and_replace(doc! {
-                "_id": bson::oid::ObjectId::with_string(&config_id.to_owned()).expect("infallible"),
+                "_id": &config_id.to_owned(),
                 "_tenant": tenant.name.to_owned()
             }, new_doc, None);
         
@@ -823,7 +824,7 @@ pub fn update_config(client: &mongodb::sync::Client, tenant: Tenant, project_id:
     }
 }
 
-pub fn get_selected_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &String) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError>  {
+pub fn get_selected_config(client: &mongodb::Client, tenant: Tenant, project_id: &String) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError>  {
     let database = client.database(constants::DATABASE_NAME);
     let config_collection = database.collection::<Document>("configs");
     let project_collection = database.collection::<Document>("projects");
@@ -838,7 +839,7 @@ pub fn get_selected_config(client: &mongodb::sync::Client, tenant: Tenant, proje
                 Some(config_id) => {
                     let matched_record = config_collection.find_one(
                         doc! {
-                            "_id": bson::oid::ObjectId::with_string(&config_id.to_owned()).expect("infallible"),
+                            "_id": &config_id.to_owned(),
                             "_tenant": tenant.clone().name.to_owned()
                         },
                         None,
@@ -872,7 +873,7 @@ pub fn get_selected_config(client: &mongodb::sync::Client, tenant: Tenant, proje
     }
 }
 
-pub fn update_project_selected_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &String, config: &models::ApiProjectConfigIdPayload) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError> {
+pub fn update_project_selected_config(client: &mongodb::Client, tenant: Tenant, project_id: &String, config: &models::ApiProjectConfigIdPayload) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let project_collection = database.collection::<Document>("projects");
 
@@ -883,7 +884,7 @@ pub fn update_project_selected_config(client: &mongodb::sync::Client, tenant: Te
     };
 
     let res = project_collection.find_one_and_update(doc! {
-        "_id": bson::oid::ObjectId::with_string(&project_id.to_owned()).expect("infallible"),
+        "_id": &project_id.to_owned(),
         "_tenant": tenant.name.to_owned()
     }, new_doc, None);
 
@@ -900,7 +901,7 @@ pub fn update_project_selected_config(client: &mongodb::sync::Client, tenant: Te
     }
 }
 
-pub fn get_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &String, config_id: &String) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError> {
+pub fn get_config(client: &mongodb::Client, tenant: Tenant, project_id: &String, config_id: &String) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let config_collection = database.collection::<Document>("configs");
     let project_collection = database.collection::<Document>("projects");
@@ -908,7 +909,7 @@ pub fn get_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &S
 
     let matched_record = config_collection.find_one(
         doc! {
-            "_id": bson::oid::ObjectId::with_string(&config_id.to_owned()).expect("infallible"),
+            "_id": &config_id.to_owned(),
             "_tenant": tenant.name.to_owned()
         },
         None,
@@ -932,7 +933,7 @@ pub fn get_config(client: &mongodb::sync::Client, tenant: Tenant, project_id: &S
     }
 }
 
-pub fn store_csrf_token(token: &openidconnect::CsrfToken, nonce: &Nonce, client: &mongodb::sync::Client) -> Result<bool, DatabaseError> {
+pub fn store_csrf_token(token: &openidconnect::CsrfToken, nonce: &Nonce, client: &mongodb::Client) -> Result<bool, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let csrf_collection = database.collection::<Document>("csrf_tokens");
 
@@ -946,7 +947,7 @@ pub fn store_csrf_token(token: &openidconnect::CsrfToken, nonce: &Nonce, client:
 
 // Deletes token at time of validation. i.e. good for one use
 // Returns Nonce if validated, throws an error otherwise.
-pub fn validate_csrf_token(state_parameter: &String, client: &mongodb::sync::Client) -> Result<Nonce, DatabaseError> {
+pub fn validate_csrf_token(state_parameter: &String, client: &mongodb::Client) -> Result<Nonce, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let csrf_collection = database.collection::<Document>("csrf_tokens");
 

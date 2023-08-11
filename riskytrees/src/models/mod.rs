@@ -19,21 +19,21 @@ impl ModelAttribute {
     fn to_bson_doc(self) -> Document {
         if self.value_string.is_some() {
             doc! {
-                "value_int": Bson::Null,
-                "value_float": Bson::Null,
-                "value_string": Bson::String(self.value_string.to_owned().unwrap_or("".to_owned()))
+                "value_int": mongodb::bson::Bson::Null,
+                "value_float": mongodb::bson::Bson::Null,
+                "value_string": mongodb::bson::Bson::String(self.value_string.to_owned().unwrap_or("".to_owned()))
             }
         } else if self.value_int.is_some() {
             doc! {
                 "value_int": self.value_int.unwrap_or(0),
-                "value_float": Bson::Null,
-                "value_string": Bson::Null
+                "value_float": mongodb::bson::Bson::Null,
+                "value_string": mongodb::bson::Bson::Null
             }
         } else {
             doc! {
-                "value_int": Bson::Null,
+                "value_int": mongodb::bson::Bson::Null,
                 "value_float": self.value_float.unwrap_or(0.0),
-                "value_string": Bson::Null
+                "value_string": mongodb::bson::Bson::Null
             }
         }
     }
@@ -79,21 +79,21 @@ impl Clone for Project {
 
 impl Project {
     pub fn to_bson_doc(self) -> Document {
-        let mut selectedModel = Bson::Null;
-        let mut selectedConfig = Bson::Null;
+        let mut selectedModel = mongodb::bson::Bson::Null;
+        let mut selectedConfig = mongodb::bson::Bson::Null;
 
         if (self.selected_model.is_some()) {
-            selectedModel = Bson::String(self.selected_model.expect("Asserted"));
+            selectedModel = mongodb::bson::Bson::String(self.selected_model.expect("Asserted"));
         }
 
         if (self.selected_config.is_some()) {
-            selectedConfig = Bson::String(self.selected_config.expect("Asserted"));
+            selectedConfig = mongodb::bson::Bson::String(self.selected_config.expect("Asserted"));
         }
 
         let mut object_related_tree_ids = Vec::new();
 
         for id in self.related_tree_ids {
-            object_related_tree_ids.push(bson::oid::ObjectId::with_string(&id).expect("infallible"))
+            object_related_tree_ids.push(id)
         }
 
         doc! {
