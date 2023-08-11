@@ -51,8 +51,8 @@ impl rocket::fairing::Fairing for CORS {
 
 
 #[get("/")]
-fn index() -> &'static str {
-    let db_client = database::get_instance();
+async fn index() -> &'static str {
+    let db_client = database::get_instance().await;
     match db_client {
         Ok(client) => {
             "Hello, world!"
@@ -62,8 +62,8 @@ fn index() -> &'static str {
 }
 
 #[get("/auth/login?<code>&<state>&<scope>")]
-fn auth_login_get(code: Option<String>, state: Option<String>, scope: Option<String>) -> Json<models::ApiAuthLoginResponse> {
-    let db_client = database::get_instance();
+async fn auth_login_get(code: Option<String>, state: Option<String>, scope: Option<String>) -> Json<models::ApiAuthLoginResponse> {
+    let db_client = database::get_instance().await;
     match db_client {
         Ok(client) => {
             // Validate flow
@@ -75,17 +75,17 @@ fn auth_login_get(code: Option<String>, state: Option<String>, scope: Option<Str
                     result: None,
                 })
             } else {
-                match database::validate_csrf_token(&state.expect("Asserted"), &client) {
+                match database::validate_csrf_token(&state.expect("Asserted"), &client).await {
                     Ok(nonce) => {
                         let email = auth::trade_token(&code.as_ref().expect("Asserted"), nonce);
                         match email {
                             Ok(email) => {
                                 // Create user if user does not exist
-                                let tenant = database::get_tenant_for_user_email(&client, email.clone());
+                                let tenant = database::get_tenant_for_user_email(&client, email.clone()).await;
 
                                 match tenant {
                                     Some(tenant) => {
-                                        let user_exists = database::get_user(&client, tenant, email.clone());
+                                        let user_exists = database::get_user(&client, tenant, email.clone()).await;
                                         match user_exists {
                                             Some(user) => {},
                                             None => {
@@ -149,8 +149,8 @@ fn auth_login_get(code: Option<String>, state: Option<String>, scope: Option<Str
 }
 
 #[post("/auth/login?<provider>")]
-fn auth_login_post(provider: Option<String>) -> Json<models::ApiAuthLoginResponse> {
-    let db_client = database::get_instance();
+async fn auth_login_post(provider: Option<String>) -> Json<models::ApiAuthLoginResponse> {
+    let db_client = database::get_instance().await;
     match db_client {
         Ok(client) => {
             // Start flow
@@ -158,7 +158,7 @@ fn auth_login_post(provider: Option<String>) -> Json<models::ApiAuthLoginRespons
             match start_data {
                 Ok(start_data) => {
                     // Store csrf_token for lookup later
-                    match database::store_csrf_token(&start_data.csrf_token, &start_data.nonce, &client) {
+                    match database::store_csrf_token(&start_data.csrf_token, &start_data.nonce, &client).await {
                         Ok(_) => Json(models::ApiAuthLoginResponse {
                             ok: true,
                             message: "Got request URI".to_owned(),
@@ -206,7 +206,7 @@ fn auth_logout() -> &'static str {
 }
 
 #[get("/projects")]
-fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse> {
+async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse> {
     if key.tenant.is_none() {
         Json(models::ApiProjectsListResponse {
             ok: false,
@@ -214,16 +214,16 @@ fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse> {
             result: None,
         })
     } else {
-        let db_client = database::get_instance();
+        let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let ids = database::get_available_project_ids(&client, key.tenant.clone().expect("checked"));
+                let ids = database::get_available_project_ids(&client, key.tenant.clone().expect("checked")).await;
                 match ids {
                     Ok(ids) => Json(models::ApiProjectsListResponse {
                         ok: true,
                         message: "Got projects".to_owned(),
                         result: Some(models::ApiProjectsListResponseResult {
-                            projects: database::get_projects_from_ids(&client, key.tenant.expect("checked"), ids)
+                            projects: database::get_projects_from_ids(&client, key.tenant.expect("checked"), ids).await
                         }),
                     }),
                     Err(err) => Json(models::ApiProjectsListResponse {
