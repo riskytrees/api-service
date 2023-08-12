@@ -867,7 +867,7 @@ async fn projects_configs_put(projectId: String, configId: String, body: Json<mo
         match db_client {
             Ok(client) => {
                 let thing = body.into_inner();
-                let new_config = database::update_config(&client, key.tenant.expect("checked"), &projectId, &configId, &thing);
+                let new_config = database::update_config(&client, key.tenant.expect("checked"), &projectId, &configId, &thing).await;
     
                 match new_config {
                     Ok(updated_id) => {

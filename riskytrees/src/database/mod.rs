@@ -173,8 +173,9 @@ pub async fn get_project_by_id(client: &mongodb::Client, tenant: Tenant, id: Str
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
     println!("Searching for {}", id);
+    let mongo_id = mongodb::bson::oid::ObjectId::parse_str(&id).expect("Checked");
     match collection.find_one(
-        doc! {"_id": &id.to_owned(), "_tenant": tenant.name.to_owned()},
+        doc! {"_id": mongo_id, "_tenant": tenant.name.to_owned()},
         None,
     ).await {
         Ok(res) => match res {
@@ -302,7 +303,7 @@ pub async fn update_project(client: mongodb::Client, tenant: Tenant, project_dat
     let doc = project_data.clone().to_bson_doc();
 
     match projects_collection.find_one_and_update(doc! {
-        "_id": &project_data.id.to_owned(),
+        "_id":  mongodb::bson::oid::ObjectId::parse_str(&project_data.id).expect("Checked"),
         "_tenant": tenant.name.to_owned()
     }, doc! {
         "$set": doc
@@ -330,7 +331,7 @@ pub async fn update_project_model(client: mongodb::Client, tenant: Tenant, proje
     
     let matched_record = project_collection.find_one(
         doc! {
-            "_id": &project_id.to_owned(),
+            "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
             "_tenant": tenant.name.to_owned()
         },
         None,
@@ -344,10 +345,10 @@ pub async fn update_project_model(client: mongodb::Client, tenant: Tenant, proje
                 "title": title, "related_tree_ids": tree_ids, "selectedModel": modelId, "_tenant": tenant.name.to_owned()
             };
 
-            project_collection.find_one_and_replace(doc! {
-                "_id": &project_id.to_owned(),
+            let _result = project_collection.find_one_and_replace(doc! {
+                "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
                 "_tenant": tenant.name.to_owned()
-            }, new_doc, None);
+            }, new_doc, None).await;
 
             Ok(true)
         },
@@ -382,7 +383,7 @@ pub async fn create_project_tree(
         Some(oid) => {
             project_collection.find_one_and_update(
                 doc! {
-                    "_id": &project_id.to_owned(),
+                    "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
                     "_tenant": tenant.name.to_owned()
                 },
                 doc! {
@@ -409,7 +410,7 @@ async fn get_tree_items_from_tree_ids(client: &mongodb::Client, tenant: Tenant, 
     for tree_id in tree_ids {
         let matched_records = trees_collection.find(
             doc! {
-                "_id": &tree_id.to_owned(),
+                "_id": mongodb::bson::oid::ObjectId::parse_str(&tree_id).expect("Checked"),
                 "_tenant": tenant.name.to_owned()
             },
             None,
@@ -486,7 +487,7 @@ async fn get_full_tree_data(client: &mongodb::Client, tenant: Tenant, tree_id: S
 
     let matched_record = trees_collection.find_one(
         doc! {
-            "_id": &tree_id.to_owned(),
+            "_id": mongodb::bson::oid::ObjectId::parse_str(&tree_id).expect("Checked"),
             "_tenant": tenant.name.to_owned()
         },
         None,
@@ -610,12 +611,12 @@ pub async fn update_tree_by_id(
 
     let doc = tree_data.to_bson_doc();
 
-    trees_collection.find_one_and_update(doc! {
-        "_id": &tree_id.to_owned(),
+    let _result = trees_collection.find_one_and_update(doc! {
+        "_id": mongodb::bson::oid::ObjectId::parse_str(&tree_id).expect("Checked"),
         "_tenant": tenant.name.to_owned()
     }, doc!{
         "$set": doc
-    }, None);
+    }, None).await;
 
 
     get_full_tree_data(client, tenant, tree_id, &project_id).await
@@ -770,7 +771,7 @@ pub async fn new_config(client: &mongodb::Client, tenant: Tenant, project_id: &S
                 Some(oid) => {
                     project_collection.find_one_and_update(
                         doc! {
-                            "_id": &project_id.to_owned(),
+                            "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
                             "_tenant": tenant.name.to_owned()
                         },
                         doc! {
@@ -798,7 +799,7 @@ pub async fn new_config(client: &mongodb::Client, tenant: Tenant, project_id: &S
 
 }
 
-pub fn update_config(client: &mongodb::Client, tenant: Tenant, project_id: &String, config_id: &String, body: &models::ApiProjectConfigPayload) -> Result<String, errors::DatabaseError> {
+pub async fn update_config(client: &mongodb::Client, tenant: Tenant, project_id: &String, config_id: &String, body: &models::ApiProjectConfigPayload) -> Result<String, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let config_collection = database.collection::<Document>("configs");
     let project_collection = database.collection::<Document>("projects");
@@ -814,10 +815,10 @@ pub fn update_config(client: &mongodb::Client, tenant: Tenant, project_id: &Stri
         
             let doc = body;
         
-            config_collection.find_one_and_replace(doc! {
-                "_id": &config_id.to_owned(),
+            let _result = config_collection.find_one_and_replace(doc! {
+                "_id": mongodb::bson::oid::ObjectId::parse_str(&config_id).expect("Checked"),
                 "_tenant": tenant.name.to_owned()
-            }, new_doc, None);
+            }, new_doc, None).await;
         
             Ok(config_id.to_owned())
         },
@@ -842,7 +843,7 @@ pub async fn get_selected_config(client: &mongodb::Client, tenant: Tenant, proje
                 Some(config_id) => {
                     let matched_record = config_collection.find_one(
                         doc! {
-                            "_id": &config_id.to_owned(),
+                            "_id": mongodb::bson::oid::ObjectId::parse_str(&config_id).expect("Checked"),
                             "_tenant": tenant.clone().name.to_owned()
                         },
                         None,
@@ -887,7 +888,7 @@ pub async fn update_project_selected_config(client: &mongodb::Client, tenant: Te
     };
 
     let res = project_collection.find_one_and_update(doc! {
-        "_id": &project_id.to_owned(),
+        "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
         "_tenant": tenant.name.to_owned()
     }, new_doc, None).await;
 
@@ -912,7 +913,7 @@ pub async fn get_config(client: &mongodb::Client, tenant: Tenant, project_id: &S
 
     let matched_record = config_collection.find_one(
         doc! {
-            "_id": &config_id.to_owned(),
+            "_id": mongodb::bson::oid::ObjectId::parse_str(&config_id).expect("Checked"),
             "_tenant": tenant.name.to_owned()
         },
         None,
