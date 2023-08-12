@@ -13,6 +13,8 @@ use crate::errors;
 use crate::helpers;
 use crate::models;
 use rocket::futures::stream::{StreamExt, TryStreamExt};
+use async_recursion::async_recursion;
+
 #[derive(Clone)]
 pub struct Tenant {
     pub name: String
@@ -520,7 +522,7 @@ async fn get_full_tree_data(client: &mongodb::Client, tenant: Tenant, tree_id: S
 
                         let mut condition_resolved = true; // Default to true
                         if condition_attribute.is_some() {
-                            let config = get_selected_config(client, tenant.clone(), project_id);
+                            let config = get_selected_config(client, tenant.clone(), project_id).await;
 
                             match config {
                                 Ok(config) => {
@@ -675,6 +677,7 @@ pub async fn get_tree_from_node_id(client: &mongodb::Client, tenant: Tenant, nod
     }
 }
 
+#[async_recursion]
 pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenant, startTreeId: &String, projectId: &String) -> Vec<ApiTreeDagItem> {
     let mut result = vec![];
 

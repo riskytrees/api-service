@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use bson::Bson;
 
 use mongodb::{
-    bson::{doc, Document},
-    sync::Client,
+    bson::{doc, Document}
 };
 
 

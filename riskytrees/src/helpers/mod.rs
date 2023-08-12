@@ -1,6 +1,5 @@
 use mongodb::{
-    bson::{doc, Document, Bson},
-    sync::Client,
+    bson::{doc, Document, Bson}
 };
 
 
