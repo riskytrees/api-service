@@ -19,7 +19,7 @@ use openidconnect::{
     TokenUrl, ExtraTokenFields, IdToken, EmptyAdditionalClaims, Nonce,
     JsonWebKeySet
 };
-use openidconnect::reqwest::http_client;
+use openidconnect::reqwest::async_http_client;
 
 use crate::database::Tenant;
 use crate::errors::{AuthError, self};
@@ -82,7 +82,7 @@ pub fn start_flow() -> Result<AuthRequestData, AuthError> {
 }
 
 // Returns email if trade succeeds
-pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
+pub async fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
     let auth_url = AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).map_err(|e| AuthError {
         message: "Error getting auth URL".to_owned()
     })?;
@@ -94,8 +94,8 @@ pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
     })?;
 
     let jwks_url = openidconnect::JsonWebKeySetUrl::new(env::var("RISKY_TREES_GOOGLE_JWKS_URL").expect("to exist").to_string()).expect("Should work");
-    let http_client = openidconnect::reqwest::http_client;
-    let jwks = JsonWebKeySet::fetch(&jwks_url, http_client).expect("Should resolve JWKS");
+    let http_client = openidconnect::reqwest::async_http_client;
+    let jwks = JsonWebKeySet::fetch_async(&jwks_url, http_client).await.expect("Should resolve JWKS");
 
     let client =
     openidconnect::core::CoreClient::new(
@@ -113,7 +113,7 @@ pub fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
     let token_result =
     client
         .exchange_code(AuthorizationCode::new(code.to_string()))
-        .request(http_client);
+        .request_async(http_client).await;
 
     match token_result {
         Ok(token_result) => {
