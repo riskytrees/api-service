@@ -77,7 +77,9 @@ async fn auth_login_get(code: Option<String>, state: Option<String>, scope: Opti
             } else {
                 match database::validate_csrf_token(&state.expect("Asserted"), &client).await {
                     Ok(nonce) => {
-                        let email = auth::trade_token(&code.as_ref().expect("Asserted"), nonce);
+                        println!("Start trade");
+                        let email = auth::trade_token(&code.as_ref().expect("Asserted"), nonce).await;
+                        println!("End trade");
                         match email {
                             Ok(email) => {
                                 // Create user if user does not exist
