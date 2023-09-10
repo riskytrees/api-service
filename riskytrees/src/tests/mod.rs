@@ -20,7 +20,8 @@ fn test_expression_evaluation() {
     let config = models::ApiProjectConfigResponseResult {
         id: "test".to_owned(),
         attributes: serde_json::json!({
-            "hello": "world"
+            "hello": "world",
+            "other": false
         })
     };
 
@@ -28,6 +29,7 @@ fn test_expression_evaluation() {
     assert_eq!(expression_evaluator::evaluate("\"test\" == \"test\"", &config), true);
     assert_eq!(expression_evaluator::evaluate("config[\"hello\"] == \"world\"", &config), true);
     assert_eq!(expression_evaluator::evaluate("config[\"hello\"] == \"test\"", &config), false);
+    assert_eq!(expression_evaluator::evaluate("config[\"other\"] == false", &config), true);
 
 }
 

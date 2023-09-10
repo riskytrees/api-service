@@ -44,7 +44,7 @@ pub fn get_key_vals(obj: &serde_json::map::Map<String, serde_json::value::Value>
                 result.insert(key.clone() + "_" + &sub_key, sub_val);
             }
 
-        } else if val.is_number() || val.is_string() {
+        } else if val.is_number() || val.is_string() || val.is_boolean() {
             result.insert(key.clone(), val.clone());
         }
     }
@@ -72,6 +72,8 @@ pub fn evaluate(condition: &str, config: &ApiProjectConfigResponseResult) -> boo
                     context.set_value("config_".to_owned() + &key, val.as_f64().expect("Asserted").into()).expect("To always work");
                 } else if val.is_string() {
                     context.set_value("config_".to_owned() + &key, val.as_str().expect("Asserted").into()).expect("To always work");
+                } else if val.is_boolean() {
+                    context.set_value("config_".to_owned() + &key, val.as_bool().expect("Asserted").into()).expect("To always work");
                 }
             }
 
