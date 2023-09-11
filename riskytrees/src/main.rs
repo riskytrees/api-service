@@ -16,6 +16,7 @@ mod helpers;
 mod models;
 mod auth;
 mod expression_evaluator;
+mod history;
 
 #[cfg(test)]
 mod tests;
@@ -526,11 +527,18 @@ async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models:
                     database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned()).await;
                 match project {
                     Some(project) => {
+                        let title = body.title.to_owned();
+                        let root_node_id = body.rootNodeId.to_owned();
+                        let nodes = body.nodes.clone();
+
+                        // Save current tree state for undo
+                        history::record_tree_update(&client, tree_id.clone(), body.into_inner()).await;
+
                         // Update tree and return
                         let tree = database::update_tree_by_id(&client, key.tenant.expect("checked"), tree_id.to_owned(), id.to_owned(), models::ApiFullTreeData {
-                            title: body.title.to_owned(),
-                            rootNodeId: body.rootNodeId.to_owned(),
-                            nodes: body.nodes.clone()
+                            title: title,
+                            rootNodeId: root_node_id,
+                            nodes: nodes
                         }).await;
                         match tree {
                             Ok(tree) => {

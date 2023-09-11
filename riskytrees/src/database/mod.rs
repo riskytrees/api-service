@@ -973,3 +973,44 @@ pub async fn validate_csrf_token(state_parameter: &String, client: &mongodb::Cli
         }
     }
 }
+
+pub async fn store_history_record(client: &mongodb::Client, id: String, data: models::ApiFullTreeData ) {
+    let database = client.database(constants::DATABASE_NAME);
+    let history_collection = database.collection::<Document>("history");
+
+    let existing_records = history_collection.find(doc! {
+        "record_id": id
+    }, None).await;
+
+    let mut highest_version_number = 0;
+
+    match existing_records {
+        Ok(mut records) => {
+            while let Some(record) = records.next().await {
+                match record {
+                    Ok(record) => {
+                        let version_number = record.get_i32("version_number").expect("Should exist");
+                        if version_number > highest_version_number {
+                            highest_version_number = version_number;
+                        }
+                    },
+                    Err(err) => {
+                        eprintln!("{}", err);
+                    }
+                }
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err)
+        }
+    }
+
+    let next_version_number = highest_version_number + 1;
+
+
+    history_collection.insert_one(doc! {
+        "version_number": next_version_number,
+        "data": data.to_bson_doc()
+    }, None).await;
+
+}
