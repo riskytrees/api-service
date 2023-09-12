@@ -254,6 +254,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/TreeComputedResponse'
 
+  /projects/{projectId}/trees/{treeId}/undo:
+    put:
+      tags:
+      - project
+      summary: Moves the tree back one in the history
+      operationId: treeUndo
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Undo successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreeComputedResponse'      
+
   /projects/{projectId}/trees/{treeId}/dag/down:
     get:
       tags:
