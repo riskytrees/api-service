@@ -575,6 +575,43 @@ async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models:
     }
 }
 
+#[put("/projects/<id>/trees/<tree_id>/undo")]
+async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
+    if key.tenant.is_none() {
+        Json(models::ApiTreeComputedResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                match history::move_back_tree_update(&client, key.tenant.expect("checked"), tree_id, id).await {
+                    Some(tree) => {
+                        Json(models::ApiTreeComputedResponse {
+                            ok: true,
+                            message: "Found tree".to_owned(),
+                            result: Some(tree),
+                        })
+                    },
+                    None => {
+                        Json(models::ApiTreeComputedResponse {
+                            ok: false,
+                            message: "Nothing to undo".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+            }
+            Err(e) => Json(models::ApiTreeComputedResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }    
+    }
+}
 
 #[get("/projects/<id>/model")]
 async fn projects_model_get(id: String, key: auth::ApiKey) -> Json<models::ApiSelectedModelResponse> {
@@ -1052,6 +1089,7 @@ async fn rocket() -> _ {
                 projects_trees_get,
                 projects_trees_tree_get,
                 projects_trees_tree_put,
+                projects_trees_tree_undo_put,
                 projects_trees_tree_dag_down_get,
                 projects_model_get,
                 projects_model_put,

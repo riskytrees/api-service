@@ -1016,3 +1016,56 @@ pub async fn store_history_record(client: &mongodb::Client, tenant: Tenant, id: 
     }, None).await;
 
 }
+
+pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant, id: String) -> Option<Document> {
+    let database = client.database(constants::DATABASE_NAME);
+    let history_collection = database.collection::<Document>("history");
+
+    let existing_records = history_collection.find(doc! {
+        "record_id": id.clone(),
+        "_tenant": tenant.name.to_owned()
+    }, None).await;
+
+    let mut highest_version_number = 0;
+    let mut highest_record = None;
+
+    match existing_records {
+        Ok(mut records) => {
+            while let Some(record) = records.next().await {
+                match record {
+                    Ok(record) => {
+                        let version_number = record.get_i32("version_number").expect("Should exist");
+                        if version_number > highest_version_number {
+                            highest_version_number = version_number;
+                            highest_record = Some(record);
+                        }
+                    },
+                    Err(err) => {
+                        eprintln!("{}", err);
+                    }
+                }
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err)
+        }
+    }
+
+    match highest_record {
+        Some(record) => {
+            match history_collection.delete_one(doc! {
+                "record_id": id,
+                "_tenant": tenant.name.to_owned()
+            }, None).await {
+                Ok(res) => {
+                    Some(record)
+                },
+                Err(err) => {
+                    eprintln!("{}", err);
+                    None
+                }
+            }
+        },
+        None => None
+    }
+}
