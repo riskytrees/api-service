@@ -30,6 +30,9 @@ pub async fn move_back_tree_update(client: &mongodb::Client, tenant: database::T
                 }
             }
         },
-        None => None
+        None => {
+            eprintln!("Could not find history item for record");
+            None
+        }
     }
 }

@@ -989,7 +989,7 @@ pub async fn store_history_record(client: &mongodb::Client, tenant: Tenant, id: 
     let history_collection = database.collection::<Document>("history");
 
     let existing_records = history_collection.find(doc! {
-        "record_id": id,
+        "record_id": id.clone(),
         "_tenant": tenant.name.to_owned()
     }, None).await;
 
@@ -1020,10 +1020,11 @@ pub async fn store_history_record(client: &mongodb::Client, tenant: Tenant, id: 
 
 
     history_collection.insert_one(doc! {
+        "record_id": id,
         "version_number": next_version_number,
         "data": data.to_bson_doc(),
         "_tenant": tenant.name.to_owned()
-    }, None).await;
+    }, None).await.expect("To insert");
 
 }
 
@@ -1037,7 +1038,6 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
     }, None).await;
 
     let mut highest_version_number = 0;
-    let mut highest_record = None;
 
     match existing_records {
         Ok(mut records) => {
@@ -1047,7 +1047,6 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
                         let version_number = record.get_i32("version_number").expect("Should exist");
                         if version_number > highest_version_number {
                             highest_version_number = version_number;
-                            highest_record = Some(record);
                         }
                     },
                     Err(err) => {
@@ -1061,21 +1060,58 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
         }
     }
 
-    match highest_record {
-        Some(record) => {
-            match history_collection.delete_one(doc! {
-                "record_id": id,
-                "_tenant": tenant.name.to_owned()
-            }, None).await {
-                Ok(res) => {
-                    Some(record)
-                },
-                Err(err) => {
-                    eprintln!("{}", err);
-                    None
+    if highest_version_number <= 1 {
+        None
+    } else {
+        let mut relevant_record = None;
+        let records_again = history_collection.find(doc! {
+            "record_id": id.clone(),
+            "_tenant": tenant.name.to_owned()
+        }, None).await;
+
+        match records_again {
+            Ok(mut records) => {
+                while let Some(record) = records.next().await {
+                    match record {
+                        Ok(record) => {
+                            let version_number = record.get_i32("version_number").expect("Should exist");
+                            if version_number == highest_version_number - 1{
+                                highest_version_number = version_number;
+                                relevant_record = Some(record);
+                            }
+                        },
+                        Err(err) => {
+                            eprintln!("{}", err);
+                        }
+                    }
                 }
+            },
+            Err(err) => {
+                eprintln!("{}", err)
             }
-        },
-        None => None
+        }
+
+        match relevant_record {
+            Some(record) => {
+                match history_collection.delete_one(doc! {
+                    "version_number": highest_version_number,
+                    "record_id": id,
+                    "_tenant": tenant.name.to_owned()
+                }, None).await {
+                    Ok(_) => {
+                        Some(record.get_document("data").expect("Should always exist").clone())
+                    },
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        None
+                    }
+                }
+            },
+            None => None
+        }
     }
+
+
+
+
 }
