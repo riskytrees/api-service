@@ -18,7 +18,7 @@ def test_auth_login():
     assert("Got request URI" in res['message'])
 
     # Should include a loginRequest
-    assert("mocklab.io" in res['result']['loginRequest'])
+    assert("wiremockapi.cloud" in res['result']['loginRequest'])
 
 
 def test_projects_get_empty():
@@ -65,6 +65,7 @@ def test_project_put():
 
     r = requests.get('http://localhost:8000/projects/' + project_id + '/trees', headers = TEST_HEADERS)
     res = r.json()
+    print(res)
     assert(res['ok'] == True)
     assert(len(res['result']['trees']) == 1)
 
@@ -751,3 +752,54 @@ def test_condition_no_config():
                         ]
 
     assert(list(filter(lambda r : r == True, condition_results)).count(True) == 0)
+
+
+def test_project_tree_undo_put():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Test Tree Put'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    tree_id = res['result']['id']
+
+    # PUTing the tree list should return the modified version
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'Test Confirm Tree Put',
+        'nodes': [],
+        'rootNodeId': ''
+        }, headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'Test Confirm Tree Put')
+
+    # PUTing the tree list again should return the modified version
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'Update done',
+        'nodes': [],
+        'rootNodeId': ''
+        }, headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'Update done')
+
+    # Undo
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "/undo", headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'Test Confirm Tree Put')
+
+    # Get tree
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'Test Confirm Tree Put')

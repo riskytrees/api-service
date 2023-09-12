@@ -16,6 +16,7 @@ mod helpers;
 mod models;
 mod auth;
 mod expression_evaluator;
+mod history;
 
 #[cfg(test)]
 mod tests;
@@ -526,11 +527,19 @@ async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models:
                     database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned()).await;
                 match project {
                     Some(project) => {
+                        let tenant = key.tenant.expect("checked");
+                        let title = body.title.to_owned();
+                        let root_node_id = body.rootNodeId.to_owned();
+                        let nodes = body.nodes.clone();
+
+                        // Save current tree state for undo
+                        history::record_tree_update(&client, tenant.to_owned(), tree_id.clone(), body.into_inner()).await;
+
                         // Update tree and return
-                        let tree = database::update_tree_by_id(&client, key.tenant.expect("checked"), tree_id.to_owned(), id.to_owned(), models::ApiFullTreeData {
-                            title: body.title.to_owned(),
-                            rootNodeId: body.rootNodeId.to_owned(),
-                            nodes: body.nodes.clone()
+                        let tree = database::update_tree_by_id(&client, tenant, tree_id.to_owned(), id.to_owned(), models::ApiFullTreeData {
+                            title: title,
+                            rootNodeId: root_node_id,
+                            nodes: nodes
                         }).await;
                         match tree {
                             Ok(tree) => {
@@ -566,6 +575,43 @@ async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models:
     }
 }
 
+#[put("/projects/<id>/trees/<tree_id>/undo")]
+async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
+    if key.tenant.is_none() {
+        Json(models::ApiTreeComputedResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                match history::move_back_tree_update(&client, key.tenant.expect("checked"), tree_id, id).await {
+                    Some(tree) => {
+                        Json(models::ApiTreeComputedResponse {
+                            ok: true,
+                            message: "Found tree".to_owned(),
+                            result: Some(tree),
+                        })
+                    },
+                    None => {
+                        Json(models::ApiTreeComputedResponse {
+                            ok: false,
+                            message: "Nothing to undo".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+            }
+            Err(e) => Json(models::ApiTreeComputedResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }    
+    }
+}
 
 #[get("/projects/<id>/model")]
 async fn projects_model_get(id: String, key: auth::ApiKey) -> Json<models::ApiSelectedModelResponse> {
@@ -1043,6 +1089,7 @@ async fn rocket() -> _ {
                 projects_trees_get,
                 projects_trees_tree_get,
                 projects_trees_tree_put,
+                projects_trees_tree_undo_put,
                 projects_trees_tree_dag_down_get,
                 projects_model_get,
                 projects_model_put,
