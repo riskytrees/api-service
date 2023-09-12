@@ -1,7 +1,7 @@
 use mongodb::{
-    bson::{doc, Document, Bson}
+    bson::{doc, Document, Bson, oid::ObjectId}
 };
-
+use std::str::FromStr;
 
 pub fn convert_bson_str_array_to_str_array(bson_array: Vec<Bson>) -> Vec<String> {
     let mut new_vec: Vec<String> = Vec::new();
@@ -32,3 +32,15 @@ pub fn convert_bson_objectid_array_to_str_array(bson_array: Vec<Bson>) -> Vec<St
 
     new_vec
 }
+
+pub fn convert_str_array_to_objectid_array(str_array: Vec<String>) -> Vec<ObjectId> {
+    let mut new_vec: Vec<ObjectId> = Vec::new();
+
+    for val in str_array {
+        let id = mongodb::bson::oid::ObjectId::from_str(&val).expect("Checked");
+        new_vec.push(id);
+    }
+
+    return new_vec;
+}
+    

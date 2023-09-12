@@ -300,7 +300,15 @@ pub async fn update_project(client: mongodb::Client, tenant: Tenant, project_dat
     let database = client.database(constants::DATABASE_NAME);
     let projects_collection = database.collection::<Document>("projects");
 
-    let doc = project_data.clone().to_bson_doc();
+
+    // Need to convert related config ids and related tree ids to oids before updating.
+    let mut proj_data_copy = project_data.clone();
+    let mut doc = proj_data_copy.clone().to_bson_doc();
+
+    doc.insert("related_tree_ids", helpers::convert_str_array_to_objectid_array(proj_data_copy.related_tree_ids));
+    doc.insert("related_config_ids", helpers::convert_str_array_to_objectid_array(proj_data_copy.related_config_ids));
+
+    println!("{}", doc);
 
     match projects_collection.find_one_and_update(doc! {
         "_id":  mongodb::bson::oid::ObjectId::parse_str(&project_data.id).expect("Checked"),
@@ -308,8 +316,10 @@ pub async fn update_project(client: mongodb::Client, tenant: Tenant, project_dat
     }, doc! {
         "$set": doc
     }, None).await {
-        Ok(_) => {},
-        Err(err) => eprintln!("Err")
+        Ok(val) => {
+            println!("{:?}", val);
+        },
+        Err(err) => eprintln!("Update project failed with: {}", err)
     }
 
 
