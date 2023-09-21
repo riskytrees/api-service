@@ -792,7 +792,30 @@ def test_project_tree_undo_put():
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'Update done')
 
+    # PUTing the tree list again should return the modified version
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'Update two',
+        'nodes': [],
+        'rootNodeId': ''
+        }, headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'Update two')
+
     # Undo
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "/undo", headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'Update done')
+
+    # Get tree
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'Update done')
+
+    # Undo again
     r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "/undo", headers = TEST_HEADERS)
     res = r.json()
     assert(res['ok'] == True)
