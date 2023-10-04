@@ -1038,6 +1038,9 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
     }, None).await;
 
     let mut highest_version_number = 0;
+    let mut relevant_record = None;
+    let mut second_relevant_record = None;
+
 
     match existing_records {
         Ok(mut records) => {
@@ -1047,6 +1050,8 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
                         let version_number = record.get_i32("version_number").expect("Should exist");
                         if version_number > highest_version_number {
                             highest_version_number = version_number;
+                            second_relevant_record = relevant_record;
+                            relevant_record = Some(record);
                         }
                     },
                     Err(err) => {
@@ -1063,33 +1068,6 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
     if highest_version_number <= 1 {
         None
     } else {
-        let mut relevant_record = None;
-        let records_again = history_collection.find(doc! {
-            "record_id": id.clone(),
-            "_tenant": tenant.name.to_owned()
-        }, None).await;
-
-        match records_again {
-            Ok(mut records) => {
-                while let Some(record) = records.next().await {
-                    match record {
-                        Ok(record) => {
-                            let version_number = record.get_i32("version_number").expect("Should exist");
-                            if version_number == highest_version_number - 1{
-                                highest_version_number = version_number;
-                                relevant_record = Some(record);
-                            }
-                        },
-                        Err(err) => {
-                            eprintln!("{}", err);
-                        }
-                    }
-                }
-            },
-            Err(err) => {
-                eprintln!("{}", err)
-            }
-        }
 
         match relevant_record {
             Some(record) => {
@@ -1099,7 +1077,16 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
                     "_tenant": tenant.name.to_owned()
                 }, None).await {
                     Ok(_) => {
-                        Some(record.get_document("data").expect("Should always exist").clone())
+                        match second_relevant_record {
+                            Some(record) => {
+                                Some(record.get_document("data").expect("Should always exist").clone())
+                            },
+                            None => {
+                                eprintln!("No second record was found.");
+                                None
+                            }
+                        }
+                        
                     },
                     Err(err) => {
                         eprintln!("{}", err);
