@@ -37,7 +37,7 @@ impl rocket::fairing::Fairing for CORS {
             response.set_status(rocket::http::Status::NoContent);
             response.set_header(rocket::http::Header::new(
                 "Access-Control-Allow-Methods",
-                "POST, PATCH, GET, DELETE",
+                "POST, PUT, PATCH, GET, DELETE",
             ));
             response.set_header(rocket::http::Header::new("Access-Control-Allow-Headers", "*"));
         }
