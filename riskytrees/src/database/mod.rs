@@ -730,7 +730,15 @@ pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenan
     }
 
     for childTree in &childTrees {
-        result.push(ApiTreeDagItem { id: childTree.to_string(), children: get_tree_relationships_down(client, tenant.clone(), childTree, projectId).await });
+        match get_tree_by_id(&client, tenant.clone(), childTree.to_string(), projectId.to_string()).await {
+            Ok(tree_data) => {
+                result.push(ApiTreeDagItem { id: childTree.to_string(), title: tree_data.title, children: get_tree_relationships_down(client, tenant.clone(), childTree, projectId).await });
+            },
+            Err(err) => {
+                // Ignore
+            }
+        }
+        
     }
 
     result

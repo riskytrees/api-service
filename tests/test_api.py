@@ -408,7 +408,7 @@ def test_tree_with_subtree():
     tree_id = res['result']['id']
 
     r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
-        'title': 'My Tree',
+        'title': 'Other Tree',
         'nodes': [{
             'id': "root-id",
             'title': "I'm the root",
@@ -428,7 +428,11 @@ def test_tree_with_subtree():
 
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "/dag/down", headers = TEST_HEADERS)
     dag_res = r.json()
-    assert(create_res['ok'] == True)
+    assert(dag_res['ok'] == True)
+    print(dag_res)
+    assert(dag_res['result']['root']['title'] == 'Other Tree')
+    assert(dag_res['result']['root']['children'][0]['title'] == 'My Tree')
+
 
 def test_get_configs():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
