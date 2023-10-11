@@ -551,6 +551,8 @@ components:
       properties:
         id:
           type: string
+        title:
+          type: string
         children:
           type: array
           items:

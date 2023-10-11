@@ -800,18 +800,32 @@ async fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key
 
         match db_client {
             Ok(client) => {
-                let result = models::ApiTreeDagResponseResult {
-                    root: models::ApiTreeDagItem {
-                        id: treeId.clone(),
-                        children: database::get_tree_relationships_down(&client, key.tenant.expect("checked"), &treeId, &projectId).await
+                match database::get_tree_by_id(&client, key.tenant.clone().expect("checked"), treeId.clone(), projectId.clone()).await {
+                    Ok(tree_data) => {
+                        let result = models::ApiTreeDagResponseResult {
+                            root: models::ApiTreeDagItem {
+                                id: treeId.clone(),
+                                title: tree_data.title,
+                                children: database::get_tree_relationships_down(&client, key.tenant.expect("checked"), &treeId, &projectId).await
+                            }
+                        };
+            
+                        Json(models::ApiTreeDagResponse {
+                            ok: true,
+                            message: "Got relationship".to_string(),
+                            result: Some(result)
+                        })
+                    },
+                    Err(err) => {
+                        Json(models::ApiTreeDagResponse {
+                            ok: false,
+                            message: "Could not find tree".to_owned(),
+                            result: None,
+                        })
                     }
-                };
-    
-                Json(models::ApiTreeDagResponse {
-                    ok: true,
-                    message: "Got relationship".to_string(),
-                    result: Some(result)
-                })
+                }
+
+
             },
             Err(err) => Json(models::ApiTreeDagResponse {
                 ok: false,

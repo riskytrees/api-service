@@ -432,6 +432,7 @@ pub struct ApiTreeDagResponseResult {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiTreeDagItem {
     pub id: String,
+    pub title: String,
     pub children: Vec<ApiTreeDagItem>
 }
 
