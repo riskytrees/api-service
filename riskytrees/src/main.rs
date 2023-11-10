@@ -1086,6 +1086,33 @@ async fn projects_config_put(projectId: String, body: Json<models::ApiProjectCon
 
 }
 
+#[post("/orgs", data = "<body>")]
+async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) -> Json<models::ApiOrgResponse> {
+    if key.tenant.is_none() {
+        Json(models::ApiOrgResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+
+        match db_client {
+            Ok(client) => {
+                let thing = body.into_inner();
+                let res = database::create_org( &client, key.tenant.expect("checked"), &thing).await;
+
+            },
+            Err(err) => Json(models::ApiOrgResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        }    
+    }
+
+}
+
 #[launch]
 async fn rocket() -> _ {
     rocket::build()

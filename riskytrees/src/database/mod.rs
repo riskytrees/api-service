@@ -3,6 +3,7 @@ use mongodb::{
     Client,
 };
 use openidconnect::Nonce;
+use rand::{Rng, distributions::Alphanumeric};
 use rocket::Data;
 
 use std::{collections::HashMap, hash::Hash, vec};
@@ -51,7 +52,7 @@ pub async fn get_tenant_for_user_email(client: &mongodb::Client, email: String) 
     }
 }
 
-// Checks if user already exists in the databse. If it does, it is returned.
+// Checks if user already exists in the database. If it does, it is returned.
 pub async fn get_user(client: &mongodb::Client, tenant: Tenant, email: String) -> Option<models::User> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("users");
@@ -63,6 +64,7 @@ pub async fn get_user(client: &mongodb::Client, tenant: Tenant, email: String) -
                     Ok(res) => match res {
                         Some(doc) => Some(models::User {
                             email: doc.get_str("email").ok()?.to_string(),
+                            id: doc.get_object_id("_id").expect("Should always exist").to_string()
                         }),
                         None => None,
                     },
@@ -1105,8 +1107,39 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
             None => None
         }
     }
+}
 
+// When creating an org we create a new tenant
+pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: models::ApiOrgMetadataBase ) -> Result<String, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+    let tenant_collection = database.collection::<Document>("tenants");
 
+    // Generate a new tenant id
+    let new_tenant: String = rand::thread_rng()
+    .sample_iter(&Alphanumeric)
+    .take(7)
+    .map(char::from)
+    .collect();
+
+    let insert_result =
+    org_collection.insert_one(doc! { "name": data.name, "_tenant": new_tenant.clone() }, None).await?;
+    let inserted_id = insert_result.inserted_id;
+
+    // Give requesting user access to this new tenant...
+    let user_id = get_user(client, tenant.clone(), tenant.name).await.ok_or(errors::DatabaseError {
+        message: "No user id found".to_string()
+    })?;
+
+    tenant_collection.insert_one(doc! { "name": new_tenant, "allowedUsers": [user_id.id] }, None).await?;
+
+    match inserted_id.as_object_id().clone() {
+        Some(oid) => Ok(oid.to_string()),
+        None => Err(errors::DatabaseError {
+            message: "No object ID found.".to_string(),
+        }),
+    }
 
 
 }
+

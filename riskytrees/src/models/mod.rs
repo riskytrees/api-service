@@ -50,7 +50,8 @@ impl Clone for ModelAttribute {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
-    pub email: String
+    pub email: String,
+    pub id: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -469,4 +470,22 @@ pub struct ApiProjectConfigResponseResult {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiProjectConfigIdPayload {
     pub desiredConfig: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiOrgMetadataBase {
+    pub name: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiOrgMetadata {
+    pub name: String,
+    pub id: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiOrgResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiOrgMetadata> 
 }
