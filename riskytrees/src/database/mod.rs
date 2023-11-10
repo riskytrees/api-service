@@ -27,27 +27,6 @@ pub async fn get_instance() -> Result<mongodb::Client, mongodb::error::Error> {
     Ok(client)
 }
 
-pub async fn get_tenant_for_user_email(client: &mongodb::Client, email: String) -> Option<Tenant> {
-    let database = client.database(constants::DATABASE_NAME); 
-    let tenant_collection = database.collection::<Document>("tenants");
-
-    match tenant_collection.find_one(doc! {
-        "allowedUsers": email.to_owned()
-    }, None).await {
-        Ok(res) => {
-            match res {
-                Some(res) => {
-                    return Some(Tenant {
-                        name: res.get_str("name").expect("To always exist").to_string()
-                    })
-                },
-                None => None
-            }
-        },
-        Err(err) => None
-    }
-}
-
 // Checks if user already exists in the database. If it does, it is returned.
 pub async fn get_user(client: &mongodb::Client, tenant: Tenant, email: String) -> Option<models::User> {
     let database = client.database(constants::DATABASE_NAME);
