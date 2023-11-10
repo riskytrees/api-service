@@ -1206,7 +1206,8 @@ async fn rocket() -> _ {
                 projects_config_put,
                 models_get,
                 node_get,
-                orgs_post
+                orgs_post,
+                orgs_get
             ],
         )
         .attach(CORS)

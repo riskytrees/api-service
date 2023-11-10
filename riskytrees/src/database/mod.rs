@@ -1153,16 +1153,20 @@ pub async fn get_orgs(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<
             "_tenant": tenant.name.to_owned()
         }, None).await;
 
-        if relevant_orgs.is_ok() {
-            while let Some(record) = relevant_orgs.expect("Checked").next().await {
-                if record.is_ok() {
-                    result.push(models::ApiOrgMetadata {
-                        name: record.expect("checked").get_str("name").expect("Assert").to_owned(),
-                        id: record.expect("checked").get_object_id("_id").expect("Assert").to_string()
-                    })
+        match relevant_orgs {
+            Ok(mut relevant_orgs) => {
+                while let Some(record) = relevant_orgs.next().await {
+                    if record.is_ok() {
+                        result.push(models::ApiOrgMetadata {
+                            name: record.clone().expect("checked").get_str("name").expect("Assert").to_owned(),
+                            id: record.clone().expect("checked").get_object_id("_id").expect("Assert").to_string()
+                        })
+                    }
                 }
-            }
+            },
+            Err(err) => {}
         }
+
     }
 
     Ok(result)
