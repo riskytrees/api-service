@@ -226,13 +226,14 @@ pub async fn get_project_by_id(client: &mongodb::Client, tenant: Tenant, id: Str
 }
 
 // Gets a list of project ids that the current user can access
-pub async fn get_available_project_ids(client: &mongodb::Client, tenant: Tenant) -> Result<Vec<String>, errors::DatabaseError> {
+pub async fn get_available_project_ids(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<Vec<String>, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
-
-    let matched_records = collection.find(doc!{"_tenant": tenant.name.to_owned()}, None).await;
-
     let mut resulting_ids = Vec::new();
+
+    let matched_records = collection.find(doc!{"_tenant": doc! {
+        "$in": helpers::tenant_names_from_vec(tenants)
+    }}, None).await;
 
     match matched_records {
         Ok(mut records) => {
@@ -624,21 +625,22 @@ pub async fn update_tree_by_id(
     get_full_tree_data(client, tenant, tree_id, &project_id).await
 }
 
-pub async fn get_projects_from_ids(client: &mongodb::Client, tenant: Tenant, ids: Vec<String>) -> Vec<models::ApiProjectsListProjectItem> {
+pub async fn get_projects_from_ids(client: &mongodb::Client, tenants: Vec<Tenant>, ids: Vec<String>) -> Vec<models::ApiProjectsListProjectItem> {
     let mut result = Vec::new();
 
-
-    for id in ids {
-        let project_data = get_project_by_id(client, tenant.clone(), id).await;
-        match project_data {
-            Some(project_data) => {
-                result.push(models::ApiProjectsListProjectItem {
-                    projectId: project_data.id,
-                    name: project_data.title,
-                    orgId: get_org_id_from_tenant(client, &tenant).await
-                })
-            },
-            None => { /* Skip */ }
+    for tenant in tenants {
+        for id in ids.clone() {
+            let project_data = get_project_by_id(client, tenant.clone(), id).await;
+            match project_data {
+                Some(project_data) => {
+                    result.push(models::ApiProjectsListProjectItem {
+                        projectId: project_data.id,
+                        name: project_data.title,
+                        orgId: get_org_id_from_tenant(client, &tenant).await
+                    })
+                },
+                None => { /* Skip */ }
+            }
         }
     }
 

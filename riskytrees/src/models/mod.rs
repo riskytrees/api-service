@@ -116,7 +116,8 @@ pub struct AuthLoginResponseResult {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreateProjectResponseResult {
     pub id: String,
-    pub title: String
+    pub title: String,
+    pub orgId: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]

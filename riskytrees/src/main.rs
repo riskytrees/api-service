@@ -3,7 +3,7 @@
 extern crate rocket;
 
 use std::collections::HashSet;
-use database::get_tree_from_node_id;
+use database::{get_tree_from_node_id, get_org_id_from_tenant};
 use models::ApiProjectConfigListResponseResult;
 use mongodb::bson::doc;
 use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
@@ -200,13 +200,13 @@ async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let ids = database::get_available_project_ids(&client, crate::database::Tenant { name: key.email.clone() }).await;
+                let ids = database::get_available_project_ids(&client, key.tenants.clone()).await;
                 match ids {
                     Ok(ids) => Json(models::ApiProjectsListResponse {
                         ok: true,
                         message: "Got projects".to_owned(),
                         result: Some(models::ApiProjectsListResponseResult {
-                            projects: database::get_projects_from_ids(&client, crate::database::Tenant { name: key.email }, ids).await
+                            projects: database::get_projects_from_ids(&client, key.tenants, ids).await
                         }),
                     }),
                     Err(err) => Json(models::ApiProjectsListResponse {
@@ -251,6 +251,7 @@ async fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) 
                             result: Some(models::CreateProjectResponseResult {
                                 title: body.title.to_owned(),
                                 id: new_project_id,
+                                orgId: body.orgId.to_owned()
                             }),
                         }),
                         Err(err) => Json(models::ApiCreateProjectResponse {
@@ -289,7 +290,7 @@ async fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: aut
                     Some(mut project) => {
                         project.title = body.title.clone();
     
-                        let updated_project = database::update_project(client, crate::database::Tenant { name: key.email }, &project).await;
+                        let updated_project = database::update_project(client.clone(), crate::database::Tenant { name: key.email.clone() }, &project).await;
                         match updated_project {
                             Ok(proj) => {
                                 Json(models::ApiCreateProjectResponse {
@@ -298,6 +299,7 @@ async fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: aut
                                     result: Some(models::CreateProjectResponseResult {
                                         title: body.title.to_owned(),
                                         id: proj.id,
+                                        orgId: get_org_id_from_tenant(&client, &database::Tenant { name: key.email }).await
                                     })
                                 })
                             },
