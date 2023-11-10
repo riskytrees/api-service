@@ -32,7 +32,8 @@ pub struct AuthRequestData {
 }
 
 pub struct ApiKey {
-    pub tenant: Option<Tenant>
+    pub email: String,
+    pub tenants: Vec<Tenant>
 }
 
 
@@ -207,8 +208,13 @@ impl<'r> rocket::request::FromRequest<'r> for ApiKey {
                             }
                         }
 
+                        let org_tenants = database::get_tenants_for_user(&db_client, &email).await;
+                        let mut all_tenants = org_tenants.clone();
+                        all_tenants.push(user_self_tenant);
+
                         rocket::request::Outcome::Success(ApiKey {
-                            tenant: Some(user_self_tenant)
+                            email: email.to_string(),
+                            tenants: all_tenants
                         })
                     },
                     Err(err) => {

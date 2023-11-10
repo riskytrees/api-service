@@ -190,7 +190,7 @@ fn auth_logout() -> &'static str {
 
 #[get("/projects")]
 async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiProjectsListResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -200,13 +200,13 @@ async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let ids = database::get_available_project_ids(&client, key.tenant.clone().expect("checked")).await;
+                let ids = database::get_available_project_ids(&client, crate::database::Tenant { name: key.email.clone() }).await;
                 match ids {
                     Ok(ids) => Json(models::ApiProjectsListResponse {
                         ok: true,
                         message: "Got projects".to_owned(),
                         result: Some(models::ApiProjectsListResponseResult {
-                            projects: database::get_projects_from_ids(&client, key.tenant.expect("checked"), ids).await
+                            projects: database::get_projects_from_ids(&client, crate::database::Tenant { name: key.email }, ids).await
                         }),
                     }),
                     Err(err) => Json(models::ApiProjectsListResponse {
@@ -227,7 +227,7 @@ async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse
 
 #[post("/projects", data = "<body>")]
 async fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) -> Json<models::ApiCreateProjectResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiCreateProjectResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -237,14 +237,14 @@ async fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) 
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project = database::get_project_by_title(client.to_owned(), key.tenant.clone().expect("checked"), body.title.to_owned()).await;
+                let project = database::get_project_by_title(client.to_owned(), crate::database::Tenant { name: key.email.clone() }, body.title.to_owned()).await;
                 match project {
                     Some(project) => Json(models::ApiCreateProjectResponse {
                         ok: true,
                         message: "Tree already exists".to_owned(),
                         result: None,
                     }),
-                    None => match database::new_project(client, key.tenant.expect("checked"), body.title.to_owned()).await {
+                    None => match database::new_project(client, crate::database::Tenant { name: key.email }, body.title.to_owned()).await {
                         Ok(new_project_id) => Json(models::ApiCreateProjectResponse {
                             ok: true,
                             message: "Project created succesfully".to_owned(),
@@ -273,7 +273,7 @@ async fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) 
 
 #[put("/projects/<id>", data = "<body>")]
 async fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: auth::ApiKey) -> Json<models::ApiCreateProjectResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiCreateProjectResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -283,13 +283,13 @@ async fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: aut
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let mut project = database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id).await;
+                let mut project = database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id).await;
     
                 match project {
                     Some(mut project) => {
                         project.title = body.title.clone();
     
-                        let updated_project = database::update_project(client, key.tenant.expect("checked"), &project).await;
+                        let updated_project = database::update_project(client, crate::database::Tenant { name: key.email }, &project).await;
                         match updated_project {
                             Ok(proj) => {
                                 Json(models::ApiCreateProjectResponse {
@@ -336,7 +336,7 @@ async fn projects_trees_post(
     body: Json<models::ApiCreateTree>,
     key: auth::ApiKey,
 ) -> Json<models::ApiCreateTreeResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiCreateTreeResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -346,13 +346,13 @@ async fn projects_trees_post(
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project = database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned()).await;
+                let project = database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
                 match project {
                     Some(project) => {
                         // Create tree
                         match database::create_project_tree(
                             client.to_owned(),
-                            key.tenant.expect("checked"),
+                            crate::database::Tenant { name: key.email },
                             body.title.to_owned(),
                             id,
                         ).await {
@@ -393,7 +393,7 @@ async fn projects_trees_post(
 
 #[get("/projects/<id>/trees")]
 async fn projects_trees_get(id: String, key: auth::ApiKey) -> Json<models::ApiListTreeResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiListTreeResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -404,11 +404,11 @@ async fn projects_trees_get(id: String, key: auth::ApiKey) -> Json<models::ApiLi
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned()).await;
+                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
                 match project {
                     Some(project) => {
                         // Get trees
-                        let trees = database::get_trees_by_project_id(&client, key.tenant.expect("checked"), project.id).await;
+                        let trees = database::get_trees_by_project_id(&client, crate::database::Tenant { name: key.email }, project.id).await;
     
                         match trees {
                             Ok(trees) => Json(models::ApiListTreeResponse {
@@ -442,7 +442,7 @@ async fn projects_trees_get(id: String, key: auth::ApiKey) -> Json<models::ApiLi
 
 #[get("/projects/<id>/trees/<tree_id>")]
 async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiTreeComputedResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -453,10 +453,10 @@ async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey)
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned()).await;
+                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
                 match project {
                     Some(project) => {
-                        let tree = database::get_tree_by_id(&client, key.tenant.expect("checked"), tree_id.to_owned(), id.to_owned()).await;
+                        let tree = database::get_tree_by_id(&client, crate::database::Tenant { name: key.email }, tree_id.to_owned(), id.to_owned()).await;
                         match tree {
                             Ok(tree) => {
                                 Json(models::ApiTreeComputedResponse {
@@ -493,7 +493,7 @@ async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey)
 
 #[put("/projects/<id>/trees/<tree_id>", data = "<body>")]
 async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFullTreeData>, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiTreeComputedResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -504,10 +504,10 @@ async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models:
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned()).await;
+                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
                 match project {
                     Some(project) => {
-                        let tenant = key.tenant.expect("checked");
+                        let tenant = crate::database::Tenant { name: key.email };
                         let title = body.title.to_owned();
                         let root_node_id = body.rootNodeId.to_owned();
                         let nodes = body.nodes.clone();
@@ -557,7 +557,7 @@ async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models:
 
 #[put("/projects/<id>/trees/<tree_id>/undo")]
 async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiTreeComputedResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -567,7 +567,7 @@ async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::Ap
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                match history::move_back_tree_update(&client, key.tenant.expect("checked"), tree_id, id).await {
+                match history::move_back_tree_update(&client, crate::database::Tenant { name: key.email }, tree_id, id).await {
                     Some(tree) => {
                         Json(models::ApiTreeComputedResponse {
                             ok: true,
@@ -595,7 +595,7 @@ async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::Ap
 
 #[get("/projects/<id>/model")]
 async fn projects_model_get(id: String, key: auth::ApiKey) -> Json<models::ApiSelectedModelResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiSelectedModelResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -606,7 +606,7 @@ async fn projects_model_get(id: String, key: auth::ApiKey) -> Json<models::ApiSe
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, key.tenant.expect("checked"), id.to_owned()).await;
+                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email }, id.to_owned()).await;
                 match project {
                     Some(project) => {
                         Json(models::ApiSelectedModelResponse {
@@ -637,7 +637,7 @@ async fn projects_model_get(id: String, key: auth::ApiKey) -> Json<models::ApiSe
 
 #[put("/projects/<id>/model", data = "<body>")]
 async fn projects_model_put(id: String, body: Json<models::SelectedModelResult>, key: auth::ApiKey) -> Json<models::ApiSelectedModelResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiSelectedModelResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -648,10 +648,10 @@ async fn projects_model_put(id: String, body: Json<models::SelectedModelResult>,
         match db_client {
             Ok(client) => {
                 let project: Option<models::Project> =
-                    database::get_project_by_id(&client, key.tenant.clone().expect("checked"), id.to_owned()).await;
+                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
                 match project {
                     Some(project) => {
-                        match database::update_project_model(client, key.tenant.expect("checked"), id.to_owned(), body.modelId.to_owned()).await {
+                        match database::update_project_model(client, crate::database::Tenant { name: key.email }, id.to_owned(), body.modelId.to_owned()).await {
                             Ok(_) => {
                                 Json(models::ApiSelectedModelResponse {
                                     ok: true,
@@ -689,7 +689,7 @@ async fn projects_model_put(id: String, body: Json<models::SelectedModelResult>,
 
 #[get("/models")]
 async fn models_get(key: auth::ApiKey) -> Json<models::ApiListModelResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiListModelResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -736,7 +736,7 @@ async fn models_get(key: auth::ApiKey) -> Json<models::ApiListModelResponse> {
 
 #[get("/nodes/<id>")]
 async fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiGetNodeResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -747,7 +747,7 @@ async fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeRespo
 
         match db_client {
             Ok(client) => {
-                match get_tree_from_node_id(&client, key.tenant.expect("checked"), id).await {
+                match get_tree_from_node_id(&client, crate::database::Tenant { name: key.email }, id).await {
                     Ok(res) => Json(res),
                     Err(err) => Json(models::ApiGetNodeResponse {
                         ok: false,
@@ -769,7 +769,7 @@ async fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeRespo
 
 #[get("/projects/<projectId>/trees/<treeId>/dag/down")]
 async fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key: auth::ApiKey) -> Json<models::ApiTreeDagResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiTreeDagResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -780,13 +780,13 @@ async fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key
 
         match db_client {
             Ok(client) => {
-                match database::get_tree_by_id(&client, key.tenant.clone().expect("checked"), treeId.clone(), projectId.clone()).await {
+                match database::get_tree_by_id(&client, crate::database::Tenant { name: key.email.clone() }, treeId.clone(), projectId.clone()).await {
                     Ok(tree_data) => {
                         let result = models::ApiTreeDagResponseResult {
                             root: models::ApiTreeDagItem {
                                 id: treeId.clone(),
                                 title: tree_data.title,
-                                children: database::get_tree_relationships_down(&client, key.tenant.expect("checked"), &treeId, &projectId).await
+                                children: database::get_tree_relationships_down(&client, crate::database::Tenant { name: key.email }, &treeId, &projectId).await
                             }
                         };
             
@@ -820,7 +820,7 @@ async fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key
 
 #[get("/projects/<projectId>/configs")]
 async fn projects_configs_list(projectId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigListResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiProjectConfigListResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -831,7 +831,7 @@ async fn projects_configs_list(projectId: String, key: auth::ApiKey) -> Json<mod
 
         match db_client {
             Ok(client) => {
-                let matching_configs = database::get_configs_for_project(&client, key.tenant.expect("checked"), &projectId).await;
+                let matching_configs = database::get_configs_for_project(&client, crate::database::Tenant { name: key.email }, &projectId).await;
     
                 Json(models::ApiProjectConfigListResponse {
                     ok: true,
@@ -853,7 +853,7 @@ async fn projects_configs_list(projectId: String, key: auth::ApiKey) -> Json<mod
 
 #[post("/projects/<projectId>/configs", data = "<body>")]
 async fn projects_configs_post(projectId: String, body: Json<models::ApiProjectConfigPayload>, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiProjectConfigResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -866,7 +866,7 @@ async fn projects_configs_post(projectId: String, body: Json<models::ApiProjectC
             Ok(client) => {
                 let thing = body.into_inner();
     
-                let new_config_id: Result<String, errors::DatabaseError> = database::new_config(&client, key.tenant.expect("checked"), &projectId, &thing).await;
+                let new_config_id: Result<String, errors::DatabaseError> = database::new_config(&client, crate::database::Tenant { name: key.email }, &projectId, &thing).await;
                 match new_config_id {
                     Ok(new_config_id) => {
                         Json(models::ApiProjectConfigResponse {
@@ -897,7 +897,7 @@ async fn projects_configs_post(projectId: String, body: Json<models::ApiProjectC
 
 #[put("/projects/<projectId>/configs/<configId>", data = "<body>")]
 async fn projects_configs_put(projectId: String, configId: String, body: Json<models::ApiProjectConfigPayload>, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiProjectConfigResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -909,7 +909,7 @@ async fn projects_configs_put(projectId: String, configId: String, body: Json<mo
         match db_client {
             Ok(client) => {
                 let thing = body.into_inner();
-                let new_config = database::update_config(&client, key.tenant.expect("checked"), &projectId, &configId, &thing).await;
+                let new_config = database::update_config(&client, crate::database::Tenant { name: key.email }, &projectId, &configId, &thing).await;
     
                 match new_config {
                     Ok(updated_id) => {
@@ -943,7 +943,7 @@ async fn projects_configs_put(projectId: String, configId: String, body: Json<mo
 
 #[get("/projects/<projectId>/configs/<configId>")]
 async fn projects_configs_get(projectId: String, configId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiProjectConfigResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -954,7 +954,7 @@ async fn projects_configs_get(projectId: String, configId: String, key: auth::Ap
 
         match db_client {
             Ok(client) => {
-                let config = database::get_config(&client, key.tenant.expect("checked"), &projectId, &configId).await;
+                let config = database::get_config(&client, crate::database::Tenant { name: key.email }, &projectId, &configId).await;
     
                 match config {
                     Ok(resp) => {
@@ -985,7 +985,7 @@ async fn projects_configs_get(projectId: String, configId: String, key: auth::Ap
 
 #[get("/projects/<projectId>/config")]
 async fn projects_config_get(projectId: String, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiProjectConfigResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -996,7 +996,7 @@ async fn projects_config_get(projectId: String, key: auth::ApiKey) -> Json<model
 
         match db_client {
             Ok(client) => {
-                let config = database::get_selected_config(&client, key.tenant.expect("checked"), &projectId).await;
+                let config = database::get_selected_config(&client, crate::database::Tenant { name: key.email }, &projectId).await;
     
                 match config {
                     Ok(config) => {
@@ -1024,7 +1024,7 @@ async fn projects_config_get(projectId: String, key: auth::ApiKey) -> Json<model
 
 #[put("/projects/<projectId>/config", data = "<body>")]
 async fn projects_config_put(projectId: String, body: Json<models::ApiProjectConfigIdPayload>, key: auth::ApiKey) -> Json<models::ApiProjectConfigResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiProjectConfigResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -1036,7 +1036,7 @@ async fn projects_config_put(projectId: String, body: Json<models::ApiProjectCon
         match db_client {
             Ok(client) => {
                 let thing: models::ApiProjectConfigIdPayload = body.into_inner();
-                let res = database::update_project_selected_config( &client, key.tenant.expect("checked"), &projectId, &thing).await;
+                let res = database::update_project_selected_config( &client, crate::database::Tenant { name: key.email }, &projectId, &thing).await;
     
                 match res {
                     Ok(res) => {
@@ -1068,7 +1068,7 @@ async fn projects_config_put(projectId: String, body: Json<models::ApiProjectCon
 
 #[post("/orgs", data = "<body>")]
 async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) -> Json<models::ApiOrgResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiOrgResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -1080,7 +1080,7 @@ async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) ->
         match db_client {
             Ok(client) => {
                 let thing = body.into_inner();
-                let res = database::create_org( &client, key.tenant.expect("checked"), &thing).await;
+                let res = database::create_org( &client, crate::database::Tenant { name: key.email }, &thing).await;
 
                 match res {
                     Ok(res) => {
@@ -1114,7 +1114,7 @@ async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) ->
 
 #[get("/orgs")]
 async fn orgs_get(key: auth::ApiKey) -> Json<models::ApiGetOrgsResponse> {
-    if key.tenant.is_none() {
+    if key.email == "" {
         Json(models::ApiGetOrgsResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -1125,7 +1125,7 @@ async fn orgs_get(key: auth::ApiKey) -> Json<models::ApiGetOrgsResponse> {
         match db_client {
             Ok(client) => {
                 // TODO: Tenants should come from ApiKey vector
-                let res = database::get_orgs( &client, vec![key.tenant.expect("checked")]).await;
+                let res = database::get_orgs( &client, key.tenants).await;
                 match res {
                     Ok(res) => {
                         Json(models::ApiGetOrgsResponse {

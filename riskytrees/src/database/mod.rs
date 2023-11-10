@@ -1171,3 +1171,28 @@ pub async fn get_orgs(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<
 
     Ok(result)
 }
+
+pub async fn get_tenants_for_user(client: &mongodb::Client, email: &String) -> Vec<Tenant> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tenant_collection = database.collection::<Document>("tenants");
+    let mut tenants = vec![];
+
+    match tenant_collection.find(doc! {
+        "nodes": {
+            "$elemMatch": {
+                "allowedUsers": email.to_owned()
+            }
+        }
+    }, None).await {
+        Ok(mut res) => {
+            while let Some(record) = res.next().await {
+                if record.is_ok() {
+                    tenants.push(Tenant { name: record.expect("checked").get_str("name").expect("Should always exist").to_string() })
+                }
+            }
+        },
+        Err(err) => {}
+    }
+
+    tenants
+}
