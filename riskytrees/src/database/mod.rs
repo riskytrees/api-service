@@ -1110,7 +1110,7 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
 }
 
 // When creating an org we create a new tenant
-pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: models::ApiOrgMetadataBase ) -> Result<String, DatabaseError> {
+pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models::ApiOrgMetadataBase ) -> Result<String, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let org_collection = database.collection::<Document>("organizations");
     let tenant_collection = database.collection::<Document>("tenants");
@@ -1123,7 +1123,7 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: models::
     .collect();
 
     let insert_result =
-    org_collection.insert_one(doc! { "name": data.name, "_tenant": new_tenant.clone() }, None).await?;
+    org_collection.insert_one(doc! { "name": data.name.clone(), "_tenant": new_tenant.clone() }, None).await?;
     let inserted_id = insert_result.inserted_id;
 
     // Give requesting user access to this new tenant...

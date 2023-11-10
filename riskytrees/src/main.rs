@@ -1102,6 +1102,26 @@ async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) ->
                 let thing = body.into_inner();
                 let res = database::create_org( &client, key.tenant.expect("checked"), &thing).await;
 
+                match res {
+                    Ok(res) => {
+                        Json(models::ApiOrgResponse {
+                            ok: true,
+                            message: "Created org succesfully".to_owned(),
+                            result: Some(models::ApiOrgMetadata {
+                                name: thing.name,
+                                id: res
+                            }),
+                        })
+                    },
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        Json(models::ApiOrgResponse {
+                            ok: false,
+                            message: "Error creating org".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
             },
             Err(err) => Json(models::ApiOrgResponse {
                 ok: false,
