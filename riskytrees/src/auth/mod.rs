@@ -211,6 +211,7 @@ impl<'r> rocket::request::FromRequest<'r> for ApiKey {
                         let org_tenants = database::get_tenants_for_user(&db_client, &email).await;
                         let mut all_tenants = org_tenants.clone();
                         all_tenants.push(user_self_tenant);
+                        println!("{:#?}", all_tenants);
 
                         rocket::request::Outcome::Success(ApiKey {
                             email: email.to_string(),

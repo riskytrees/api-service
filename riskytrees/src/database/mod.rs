@@ -16,7 +16,7 @@ use crate::models;
 use rocket::futures::stream::{StreamExt, TryStreamExt};
 use async_recursion::async_recursion;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Tenant {
     pub name: String
 }
@@ -32,11 +32,7 @@ pub async fn get_tenant_for_user_email(client: &mongodb::Client, email: String) 
     let tenant_collection = database.collection::<Document>("tenants");
 
     match tenant_collection.find_one(doc! {
-        "nodes": {
-            "$elemMatch": {
-                "allowedUsers": email.to_owned()
-            }
-        }
+        "allowedUsers": email.to_owned()
     }, None).await {
         Ok(res) => {
             match res {
@@ -96,7 +92,7 @@ pub async fn new_user(client: &mongodb::Client, email: String) -> bool {
                             false
                         } else {
                             // Continue
-                            match tenant_collection.insert_one(doc! { "name": email, "allowedUsers": [user_id] }, None).await {
+                            match tenant_collection.insert_one(doc! { "name": email.clone(), "allowedUsers": [email] }, None).await {
                                 Ok(res) => {
                                     let _tenant_id = res.inserted_id;
 
@@ -1127,11 +1123,8 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models:
     let inserted_id = insert_result.inserted_id;
 
     // Give requesting user access to this new tenant...
-    let user_id = get_user(client, tenant.clone(), tenant.name).await.ok_or(errors::DatabaseError {
-        message: "No user id found".to_string()
-    })?;
-
-    tenant_collection.insert_one(doc! { "name": new_tenant, "allowedUsers": [user_id.id] }, None).await?;
+    println!("Tenant (email): {}", tenant.name.clone());
+    tenant_collection.insert_one(doc! { "name": new_tenant, "allowedUsers": [tenant.name] }, None).await?;
 
     match inserted_id.as_object_id().clone() {
         Some(oid) => Ok(oid.to_string()),
@@ -1178,11 +1171,7 @@ pub async fn get_tenants_for_user(client: &mongodb::Client, email: &String) -> V
     let mut tenants = vec![];
 
     match tenant_collection.find(doc! {
-        "nodes": {
-            "$elemMatch": {
-                "allowedUsers": email.to_owned()
-            }
-        }
+        "allowedUsers": email.to_owned()
     }, None).await {
         Ok(mut res) => {
             while let Some(record) = res.next().await {
@@ -1191,7 +1180,9 @@ pub async fn get_tenants_for_user(client: &mongodb::Client, email: &String) -> V
                 }
             }
         },
-        Err(err) => {}
+        Err(err) => {
+            eprintln!("{}", err)
+        }
     }
 
     tenants
