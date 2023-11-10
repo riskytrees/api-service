@@ -1143,3 +1143,27 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models:
 
 }
 
+pub async fn get_orgs(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<Vec<models::ApiOrgMetadata>, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+    let mut result: Vec<models::ApiOrgMetadata> = vec![];
+
+    for tenant in tenants {
+        let relevant_orgs = org_collection.find(doc! {
+            "_tenant": tenant.name.to_owned()
+        }, None).await;
+
+        if relevant_orgs.is_ok() {
+            while let Some(record) = relevant_orgs.expect("Checked").next().await {
+                if record.is_ok() {
+                    result.push(models::ApiOrgMetadata {
+                        name: record.expect("checked").get_str("name").expect("Assert").to_owned(),
+                        id: record.expect("checked").get_object_id("_id").expect("Assert").to_string()
+                    })
+                }
+            }
+        }
+    }
+
+    Ok(result)
+}

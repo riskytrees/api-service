@@ -1106,7 +1106,7 @@ async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) ->
                     Ok(res) => {
                         Json(models::ApiOrgResponse {
                             ok: true,
-                            message: "Created org succesfully".to_owned(),
+                            message: "Created org successfully".to_owned(),
                             result: Some(models::ApiOrgMetadata {
                                 name: thing.name,
                                 id: res
@@ -1130,7 +1130,51 @@ async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) ->
             })
         }    
     }
+}
 
+#[get("/orgs")]
+async fn orgs_get(key: auth::ApiKey) -> Json<models::ApiGetOrgsResponse> {
+    if key.tenant.is_none() {
+        Json(models::ApiGetOrgsResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                // TODO: Tenants should come from ApiKey vector
+                let res = database::get_orgs( &client, vec![key.tenant.expect("checked")]).await;
+                match res {
+                    Ok(res) => {
+                        Json(models::ApiGetOrgsResponse {
+                            ok: true,
+                            message: "Created org successfully".to_owned(),
+                            result: Some(models::OrgMetadataList {
+                                orgs: res
+                            })
+                        })
+                    },
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        Json(models::ApiGetOrgsResponse {
+                            ok: false,
+                            message: "Getting orgs failed".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+            }
+            Err(e) => Json(models::ApiGetOrgsResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }
+    
+    }
+    
 }
 
 #[launch]
@@ -1161,7 +1205,8 @@ async fn rocket() -> _ {
                 projects_config_get,
                 projects_config_put,
                 models_get,
-                node_get
+                node_get,
+                orgs_post
             ],
         )
         .attach(CORS)

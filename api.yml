@@ -879,10 +879,13 @@ components:
         result:
           type: object
           properties:
-            orgs:
-              type: array
-              items:
-                $ref: '#/components/schemas/OrgMetadata'
+            result:
+              type: object
+              properties:
+                orgs:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OrgMetadata'
 
     OrgResponse:
       allOf:

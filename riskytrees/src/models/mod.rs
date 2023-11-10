@@ -489,3 +489,15 @@ pub struct ApiOrgResponse {
     pub message: String,
     pub result: Option<ApiOrgMetadata> 
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OrgMetadataList {
+    pub orgs: Vec<ApiOrgMetadata>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiGetOrgsResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<OrgMetadataList> 
+}
