@@ -180,7 +180,8 @@ pub struct ApiAuthLoginResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct ApiCreateProject {
-    pub title: String
+    pub title: String,
+    pub orgId: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]

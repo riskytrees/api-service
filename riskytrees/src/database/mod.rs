@@ -255,14 +255,29 @@ pub async fn get_available_project_ids(client: &mongodb::Client, tenant: Tenant)
 
 pub async fn new_project(
     client: mongodb::Client,
-    tenant: Tenant,
+    user_email: String,
+    tenants: Vec<Tenant>,
     title: String,
+    org_id: Option<String>
 ) -> Result<String, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
 
+    let desired_tenant = match org_id {
+        Some(org_id) => {
+            // Find tenant for org
+            match get_tenant_for_org(&client, &org_id).await {
+                Ok(tenant) => Ok(tenant),
+                Err(err) => Err(err)
+            }
+        },
+        None => {
+            Ok(Tenant { name: user_email })
+        }
+    }?;
+
     let insert_result =
-        collection.insert_one(doc! { "title": title, "related_tree_ids": [], "selectedModel": null, "_tenant": tenant.name.to_owned() }, None).await?;
+        collection.insert_one(doc! { "title": title, "related_tree_ids": [], "selectedModel": null, "_tenant": desired_tenant.name.to_owned() }, None).await?;
     let inserted_id = insert_result.inserted_id;
 
     match inserted_id.as_object_id().clone() {
@@ -1165,4 +1180,31 @@ pub async fn get_tenants_for_user(client: &mongodb::Client, email: &String) -> V
     }
 
     tenants
+}
+
+pub async fn get_tenant_for_org(client: &mongodb::Client, org_id: &String) -> Result<Tenant, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+
+    let org = org_collection.find_one(doc! {
+        "_id": mongodb::bson::oid::ObjectId::parse_str(&org_id).expect("Checked"),
+    }, None).await;
+
+    match org {
+        Ok(org) => {
+            match org {
+                Some(doc) => {
+                    Ok(Tenant {
+                        name: doc.get_str("name").expect("To exist").to_owned()
+                    })
+                },
+                None => Err(DatabaseError {
+                    message: "Lookup failed for org".to_owned()
+                })
+            }
+        },
+        Err(err) => Err(DatabaseError {
+            message: "Database connection error".to_owned()
+        })
+    }
 }

@@ -241,13 +241,13 @@ async fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) 
                 match project {
                     Some(project) => Json(models::ApiCreateProjectResponse {
                         ok: true,
-                        message: "Tree already exists".to_owned(),
+                        message: "Project already exists".to_owned(),
                         result: None,
                     }),
-                    None => match database::new_project(client, crate::database::Tenant { name: key.email }, body.title.to_owned()).await {
+                    None => match database::new_project(client, key.email, key.tenants, body.title.to_owned(), body.orgId.to_owned()).await {
                         Ok(new_project_id) => Json(models::ApiCreateProjectResponse {
                             ok: true,
-                            message: "Project created succesfully".to_owned(),
+                            message: "Project created successfully".to_owned(),
                             result: Some(models::CreateProjectResponseResult {
                                 title: body.title.to_owned(),
                                 id: new_project_id,
