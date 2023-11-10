@@ -83,26 +83,6 @@ async fn auth_login_get(code: Option<String>, state: Option<String>, scope: Opti
                         println!("End trade");
                         match email {
                             Ok(email) => {
-                                // Create user if user does not exist
-                                let tenant = database::get_tenant_for_user_email(&client, email.clone()).await;
-
-                                match tenant {
-                                    Some(tenant) => {
-                                        let user_exists = database::get_user(&client, tenant, email.clone()).await;
-                                        match user_exists {
-                                            Some(user) => {},
-                                            None => {
-                                                database::new_user(&client, email.clone());
-                                                ()
-                                            }
-                                        }
-                                    },
-                                    None => {
-                                        database::new_user(&client, email.clone());
-                                    }
-                                }
-
-
                                 // Generate JWT
                                 let session_token = auth::generate_user_jwt(&email);
                                 match session_token {

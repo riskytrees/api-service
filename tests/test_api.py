@@ -830,3 +830,12 @@ def test_project_tree_undo_put():
     res = r.json()
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'Test Confirm Tree Put')
+
+def test_create_orgs():
+    r = requests.post('http://localhost:8000/orgs', json = {'name':'Risky Trees'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("Created" in res['message'])
+    assert(res['result']['name'] == 'Risky Trees')
