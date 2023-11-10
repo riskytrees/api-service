@@ -506,6 +506,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetModelsResponse'
+  /orgs:
+    get:
+      tags:
+        - orgs
+      summary: Gets list of orgs you have access to
+      operationId: getOrgs
+      responses:
+        200:
+          description: Got list of orgs succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOrgsResponse'
+    post:
+      tags:
+      - orgs
+      summary: Add a new org
+      operationId: addOrg
+      requestBody:
+        description: Desired org config
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgMetadataBase'
+        required: true
+      responses:
+        200:
+          description: Org created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgResponse'
+
 
 components:
   schemas:
@@ -817,6 +850,43 @@ components:
               type: string
             title:
               type: string
+
+    OrgMetadataBase:
+      type: object
+      properties:
+        name:
+          type: string
+
+    OrgMetadata:
+      allOf:
+        - $ref: '#/components/schemas/OrgMetadataBase'
+      type: object
+      properties:
+        id:
+          type: string
+
+    GetOrgsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            orgs:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrgMetadata'
+
+    OrgResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/OrgMetadata'
+
+
 
     ApiResponse:
       type: object
