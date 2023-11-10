@@ -555,6 +555,8 @@ components:
       properties:
         title:
           type: string
+        orgId:
+          type: string
 
     AuthLoginResponse:
       allOf:
@@ -687,6 +689,8 @@ components:
               type: string
             title:
               type: string
+            orgId:
+              type: string
 
     ProjectsListResponse:
       allOf:
@@ -707,6 +711,8 @@ components:
                   name:
                     type: string
                     example: Project Name
+                  orgId:
+                    type: string
 
     GetModelsResponse:
       allOf:
