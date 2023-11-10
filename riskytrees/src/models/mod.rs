@@ -334,7 +334,8 @@ impl ApiFullComputedTreeData {
 #[derive(Serialize, Deserialize)]
 pub struct ApiProjectsListProjectItem {
     pub projectId: String,
-    pub name: String
+    pub name: String,
+    pub orgId: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]

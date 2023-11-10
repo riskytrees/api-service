@@ -634,7 +634,8 @@ pub async fn get_projects_from_ids(client: &mongodb::Client, tenant: Tenant, ids
             Some(project_data) => {
                 result.push(models::ApiProjectsListProjectItem {
                     projectId: project_data.id,
-                    name: project_data.title
+                    name: project_data.title,
+                    orgId: get_org_id_from_tenant(client, &tenant).await
                 })
             },
             None => { /* Skip */ }
@@ -1206,5 +1207,27 @@ pub async fn get_tenant_for_org(client: &mongodb::Client, org_id: &String) -> Re
         Err(err) => Err(DatabaseError {
             message: "Database connection error".to_owned()
         })
+    }
+}
+
+pub async fn get_org_id_from_tenant(client: &mongodb::Client, tenant: &Tenant) -> Option<String> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+
+    let org = org_collection.find_one(doc! {
+        "_tenant": tenant.name.clone(),
+    }, None).await;
+
+    match org {
+        Ok(org) => {
+            match org {
+                Some(org) => Some(org.get_object_id("_id").expect("always exists").to_string()),
+                None => None
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err);
+            None
+        }
     }
 }
