@@ -21,6 +21,7 @@ use openidconnect::{
 };
 use openidconnect::reqwest::async_http_client;
 
+use crate::database;
 use crate::database::Tenant;
 use crate::errors::{AuthError, self};
 
@@ -31,7 +32,8 @@ pub struct AuthRequestData {
 }
 
 pub struct ApiKey {
-    pub tenant: Option<Tenant>
+    pub email: String,
+    pub tenants: Vec<Tenant>
 }
 
 
@@ -192,8 +194,28 @@ impl<'r> rocket::request::FromRequest<'r> for ApiKey {
 
                 match verify_user_jwt(&token.to_string()) {
                     Ok(email) => {
+                        let user_self_tenant = Tenant {name: email.to_string()};
+
+                        // Create user in DB if they don't exist
+                        let db_client = database::get_instance().await.expect("Should always work");
+
+                        let user_exists = database::get_user(&db_client, user_self_tenant.clone(), email.clone()).await;
+                        match user_exists {
+                            Some(user) => {},
+                            None => {
+                                database::new_user(&db_client, email.clone()).await;
+                                ()
+                            }
+                        }
+
+                        let org_tenants = database::get_tenants_for_user(&db_client, &email).await;
+                        let mut all_tenants = org_tenants.clone();
+                        all_tenants.push(user_self_tenant);
+                        println!("{:#?}", all_tenants);
+
                         rocket::request::Outcome::Success(ApiKey {
-                            tenant: Some(Tenant {name: email.to_string()})
+                            email: email.to_string(),
+                            tenants: all_tenants
                         })
                     },
                     Err(err) => {

@@ -3,6 +3,8 @@ use mongodb::{
 };
 use std::str::FromStr;
 
+use crate::database::Tenant;
+
 pub fn convert_bson_str_array_to_str_array(bson_array: Vec<Bson>) -> Vec<String> {
     let mut new_vec: Vec<String> = Vec::new();
 
@@ -44,3 +46,15 @@ pub fn convert_str_array_to_objectid_array(str_array: Vec<String>) -> Vec<Object
     return new_vec;
 }
     
+
+pub fn tenant_names_from_vec(tenants: Vec<Tenant>) -> Vec<String> {
+    let mut result = vec![];
+
+    for tenant in tenants {
+        result.push(tenant.name);
+    }
+
+    print!("{:?}", result);
+
+    result
+}

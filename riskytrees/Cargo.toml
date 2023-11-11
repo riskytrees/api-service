@@ -17,6 +17,7 @@ hmac = "0.12.1"
 sha2 = "0.10.6"
 evalexpr = "8.1.0"
 async-recursion = "1.0.4"
+rand = "0.8.5"
 
 [dependencies.mongodb]
 version = "2.3.1"

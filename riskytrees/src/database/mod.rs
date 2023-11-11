@@ -3,6 +3,7 @@ use mongodb::{
     Client,
 };
 use openidconnect::Nonce;
+use rand::{Rng, distributions::Alphanumeric};
 use rocket::Data;
 
 use std::{collections::HashMap, hash::Hash, vec};
@@ -15,7 +16,7 @@ use crate::models;
 use rocket::futures::stream::{StreamExt, TryStreamExt};
 use async_recursion::async_recursion;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Tenant {
     pub name: String
 }
@@ -26,32 +27,7 @@ pub async fn get_instance() -> Result<mongodb::Client, mongodb::error::Error> {
     Ok(client)
 }
 
-pub async fn get_tenant_for_user_email(client: &mongodb::Client, email: String) -> Option<Tenant> {
-    let database = client.database(constants::DATABASE_NAME); 
-    let tenant_collection = database.collection::<Document>("tenants");
-
-    match tenant_collection.find_one(doc! {
-        "nodes": {
-            "$elemMatch": {
-                "allowedUsers": email.to_owned()
-            }
-        }
-    }, None).await {
-        Ok(res) => {
-            match res {
-                Some(res) => {
-                    return Some(Tenant {
-                        name: res.get_str("name").expect("To always exist").to_string()
-                    })
-                },
-                None => None
-            }
-        },
-        Err(err) => None
-    }
-}
-
-// Checks if user already exists in the databse. If it does, it is returned.
+// Checks if user already exists in the database. If it does, it is returned.
 pub async fn get_user(client: &mongodb::Client, tenant: Tenant, email: String) -> Option<models::User> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("users");
@@ -63,6 +39,7 @@ pub async fn get_user(client: &mongodb::Client, tenant: Tenant, email: String) -
                     Ok(res) => match res {
                         Some(doc) => Some(models::User {
                             email: doc.get_str("email").ok()?.to_string(),
+                            id: doc.get_object_id("_id").expect("Should always exist").to_string()
                         }),
                         None => None,
                     },
@@ -94,7 +71,7 @@ pub async fn new_user(client: &mongodb::Client, email: String) -> bool {
                             false
                         } else {
                             // Continue
-                            match tenant_collection.insert_one(doc! { "name": email, "allowedUsers": [user_id] }, None).await {
+                            match tenant_collection.insert_one(doc! { "name": email.clone(), "allowedUsers": [email] }, None).await {
                                 Ok(res) => {
                                     let _tenant_id = res.inserted_id;
 
@@ -249,13 +226,15 @@ pub async fn get_project_by_id(client: &mongodb::Client, tenant: Tenant, id: Str
 }
 
 // Gets a list of project ids that the current user can access
-pub async fn get_available_project_ids(client: &mongodb::Client, tenant: Tenant) -> Result<Vec<String>, errors::DatabaseError> {
+pub async fn get_available_project_ids(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<Vec<String>, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
-
-    let matched_records = collection.find(doc!{"_tenant": tenant.name.to_owned()}, None).await;
-
     let mut resulting_ids = Vec::new();
+
+    println!("Tenants: {:?}", tenants);
+    let matched_records = collection.find(doc!{"_tenant": doc! {
+        "$in": helpers::tenant_names_from_vec(tenants)
+    }}, None).await;
 
     match matched_records {
         Ok(mut records) => {
@@ -278,14 +257,29 @@ pub async fn get_available_project_ids(client: &mongodb::Client, tenant: Tenant)
 
 pub async fn new_project(
     client: mongodb::Client,
-    tenant: Tenant,
+    user_email: String,
+    tenants: Vec<Tenant>,
     title: String,
+    org_id: Option<String>
 ) -> Result<String, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let collection = database.collection::<Document>("projects");
 
+    let desired_tenant = match org_id {
+        Some(org_id) => {
+            // Find tenant for org
+            match get_tenant_for_org(&client, &org_id).await {
+                Ok(tenant) => Ok(tenant),
+                Err(err) => Err(err)
+            }
+        },
+        None => {
+            Ok(Tenant { name: user_email })
+        }
+    }?;
+
     let insert_result =
-        collection.insert_one(doc! { "title": title, "related_tree_ids": [], "selectedModel": null, "_tenant": tenant.name.to_owned() }, None).await?;
+        collection.insert_one(doc! { "title": title, "related_tree_ids": [], "selectedModel": null, "_tenant": desired_tenant.name.to_owned() }, None).await?;
     let inserted_id = insert_result.inserted_id;
 
     match inserted_id.as_object_id().clone() {
@@ -632,20 +626,22 @@ pub async fn update_tree_by_id(
     get_full_tree_data(client, tenant, tree_id, &project_id).await
 }
 
-pub async fn get_projects_from_ids(client: &mongodb::Client, tenant: Tenant, ids: Vec<String>) -> Vec<models::ApiProjectsListProjectItem> {
+pub async fn get_projects_from_ids(client: &mongodb::Client, tenants: Vec<Tenant>, ids: Vec<String>) -> Vec<models::ApiProjectsListProjectItem> {
     let mut result = Vec::new();
 
-
-    for id in ids {
-        let project_data = get_project_by_id(client, tenant.clone(), id).await;
-        match project_data {
-            Some(project_data) => {
-                result.push(models::ApiProjectsListProjectItem {
-                    projectId: project_data.id,
-                    name: project_data.title
-                })
-            },
-            None => { /* Skip */ }
+    for tenant in tenants {
+        for id in ids.clone() {
+            let project_data = get_project_by_id(client, tenant.clone(), id).await;
+            match project_data {
+                Some(project_data) => {
+                    result.push(models::ApiProjectsListProjectItem {
+                        projectId: project_data.id,
+                        name: project_data.title,
+                        orgId: get_org_id_from_tenant(client, &tenant).await
+                    })
+                },
+                None => { /* Skip */ }
+            }
         }
     }
 
@@ -1105,8 +1101,233 @@ pub async fn move_backwards_in_history(client: &mongodb::Client, tenant: Tenant,
             None => None
         }
     }
+}
+
+// When creating an org we create a new tenant
+pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models::ApiOrgMetadataBase ) -> Result<String, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+    let tenant_collection = database.collection::<Document>("tenants");
+
+    // Generate a new tenant id
+    let new_tenant: String = rand::thread_rng()
+    .sample_iter(&Alphanumeric)
+    .take(7)
+    .map(char::from)
+    .collect();
+
+    let insert_result =
+    org_collection.insert_one(doc! { "name": data.name.clone(), "_tenant": new_tenant.clone() }, None).await?;
+    let inserted_id = insert_result.inserted_id;
+
+    // Give requesting user access to this new tenant...
+    println!("Tenant (email): {}", tenant.name.clone());
+    tenant_collection.insert_one(doc! { "name": new_tenant, "allowedUsers": [tenant.name] }, None).await?;
+
+    match inserted_id.as_object_id().clone() {
+        Some(oid) => Ok(oid.to_string()),
+        None => Err(errors::DatabaseError {
+            message: "No object ID found.".to_string(),
+        }),
+    }
+
+
+}
+
+pub async fn get_orgs(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<Vec<models::ApiOrgMetadata>, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+    let mut result: Vec<models::ApiOrgMetadata> = vec![];
+
+    for tenant in tenants {
+        let relevant_orgs = org_collection.find(doc! {
+            "_tenant": tenant.name.to_owned()
+        }, None).await;
+
+        match relevant_orgs {
+            Ok(mut relevant_orgs) => {
+                while let Some(record) = relevant_orgs.next().await {
+                    if record.is_ok() {
+                        result.push(models::ApiOrgMetadata {
+                            name: record.clone().expect("checked").get_str("name").expect("Assert").to_owned(),
+                            id: record.clone().expect("checked").get_object_id("_id").expect("Assert").to_string()
+                        })
+                    }
+                }
+            },
+            Err(err) => {}
+        }
+
+    }
+
+    Ok(result)
+}
+
+pub async fn get_tenants_for_user(client: &mongodb::Client, email: &String) -> Vec<Tenant> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tenant_collection = database.collection::<Document>("tenants");
+    let mut tenants = vec![];
+
+    match tenant_collection.find(doc! {
+        "allowedUsers": email.to_owned()
+    }, None).await {
+        Ok(mut res) => {
+            while let Some(record) = res.next().await {
+                if record.is_ok() {
+                    tenants.push(Tenant { name: record.expect("checked").get_str("name").expect("Should always exist").to_string() })
+                }
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err)
+        }
+    }
+
+    tenants
+}
+
+pub async fn get_tenant_for_org(client: &mongodb::Client, org_id: &String) -> Result<Tenant, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+
+    let org = org_collection.find_one(doc! {
+        "_id": mongodb::bson::oid::ObjectId::parse_str(&org_id).expect("Checked"),
+    }, None).await;
+
+    match org {
+        Ok(org) => {
+            match org {
+                Some(doc) => {
+                    Ok(Tenant {
+                        name: doc.get_str("_tenant").expect("To exist").to_owned()
+                    })
+                },
+                None => Err(DatabaseError {
+                    message: "Lookup failed for org".to_owned()
+                })
+            }
+        },
+        Err(err) => Err(DatabaseError {
+            message: "Database connection error".to_owned()
+        })
+    }
+}
+
+pub async fn get_org_id_from_tenant(client: &mongodb::Client, tenant: &Tenant) -> Option<String> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+
+    let org = org_collection.find_one(doc! {
+        "_tenant": tenant.name.clone(),
+    }, None).await;
+
+    match org {
+        Ok(org) => {
+            match org {
+                Some(org) => Some(org.get_object_id("_id").expect("always exists").to_string()),
+                None => None
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err);
+            None
+        }
+    }
+}
+
+pub async fn add_user_to_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String, email: String) -> Result<String, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tenant_collection = database.collection::<Document>("tenants");
+
+    let org_tenant = get_tenant_for_org(client, &org_id).await?;
+
+    // Check to make sure user has access to this tenant
+    let mut has_access = false;
+    for tenant in tenants {
+        if tenant.name == org_tenant.name {
+            has_access = true;
+        }
+    }
+
+    if has_access {
+        let new_doc = doc! {
+            "$push": {
+                "allowedUsers": email.clone()
+            }
+        };
+
+        let res = tenant_collection.find_one_and_update(doc! {
+            "name": org_tenant.name
+        }, new_doc, None).await;
+
+        Ok(email)
+    } else {
+        Err(DatabaseError {
+            message: "User does not have access to this org.".to_owned()
+        })
+    }
+}
+
+pub async fn filter_tenant_for_project(client: &mongodb::Client, tenants: Vec<Tenant>, project_id: String) -> Option<Tenant> {
+    let database = client.database(constants::DATABASE_NAME);
+    let project_collection = database.collection::<Document>("projects");
+
+    let project = project_collection.find_one(doc! {
+        "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
+        "_tenant": doc! {
+            "$in": helpers::tenant_names_from_vec(tenants)
+        }
+
+    }, None).await;
+
+    match project {
+        Ok(project) => {
+            match project {
+                Some(project) => {
+                    Some(Tenant { name: project.get_str("_tenant").expect("Should exist").to_owned() })
+                },
+                None => None
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err);
+            None
+        }
+    }
+}
+
+pub async fn filter_tenant_for_node(client: &mongodb::Client, tenants: Vec<Tenant>, node_id: String) -> Option<Tenant> {
+    let database = client.database(constants::DATABASE_NAME);
+    let node_collection = database.collection::<Document>("nodes");
+
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+
+    let tree = trees_collection.find_one(doc! {
+        "nodes": {
+            "$elemMatch": {
+                "id": node_id.to_string()
+            }
+        },
+        "_tenant": doc! {
+            "$in": helpers::tenant_names_from_vec(tenants)
+        }
+    }, None).await;
 
 
 
-
+    match tree {
+        Ok(tree) => {
+            match tree {
+                Some(tree) => {
+                    Some(Tenant { name: tree.get_str("_tenant").expect("Should exist").to_owned() })
+                },
+                None => None
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err);
+            None
+        }
+    }
 }

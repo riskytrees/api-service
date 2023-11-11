@@ -50,7 +50,8 @@ impl Clone for ModelAttribute {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
-    pub email: String
+    pub email: String,
+    pub id: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -115,7 +116,8 @@ pub struct AuthLoginResponseResult {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreateProjectResponseResult {
     pub id: String,
-    pub title: String
+    pub title: String,
+    pub orgId: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -179,7 +181,8 @@ pub struct ApiAuthLoginResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct ApiCreateProject {
-    pub title: String
+    pub title: String,
+    pub orgId: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -332,7 +335,8 @@ impl ApiFullComputedTreeData {
 #[derive(Serialize, Deserialize)]
 pub struct ApiProjectsListProjectItem {
     pub projectId: String,
-    pub name: String
+    pub name: String,
+    pub orgId: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -469,4 +473,46 @@ pub struct ApiProjectConfigResponseResult {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiProjectConfigIdPayload {
     pub desiredConfig: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiOrgMetadataBase {
+    pub name: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiOrgMetadata {
+    pub name: String,
+    pub id: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiOrgResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiOrgMetadata> 
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OrgMetadataList {
+    pub orgs: Vec<ApiOrgMetadata>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiGetOrgsResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<OrgMetadataList> 
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiAddMemberPayload {
+    pub email: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiAddMemberResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiAddMemberPayload>
 }
