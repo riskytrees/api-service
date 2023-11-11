@@ -6,8 +6,12 @@ import os
 # The following is a Test JWT created by using the following, non-prod JWT secret:
 #   testjwttestjwttestjwttestjwttestjwt
 TEST_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20ifQ.nnzKa34M7aloJO94_OQyJIEBCnr2tKshriSb0lNNd9A"
+OTHER_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im90aGVyQGV4YW1wbGUuY29tIn0.NvemU6gZYzdlAnXDZTdNjC3xcdsKdEWg6mD6E7GMBaM"
 TEST_HEADERS = {
     'Authorization': TEST_JWT
+}
+OTHER_HEADERS = {
+    'Authorization': OTHER_JWT
 }
 
 def test_auth_login():
@@ -880,7 +884,36 @@ def test_create_project_with_org():
     r = requests.get('http://localhost:8000/projects', headers = TEST_HEADERS)
 
     res = r.json()
-    print(res)
+
+    found_org = False
+    for project in res['result']['projects']:
+        if 'orgId' in project and project['orgId'] == org_id:
+            found_org = True
+
+    assert(found_org == True)
+
+    # Other user should not see the org project
+    r = requests.get('http://localhost:8000/projects', headers = OTHER_HEADERS)
+
+    res = r.json()
+
+    found_org = False
+    for project in res['result']['projects']:
+        if 'orgId' in project and project['orgId'] == org_id:
+            found_org = True
+
+    assert(found_org == False)
+
+    # Add user to org
+    r = requests.post('http://localhost:8000/orgs/' + org_id + '/members', json = {'email':'other@example.com'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+
+    # Other user should see the org project
+    r = requests.get('http://localhost:8000/projects', headers = OTHER_HEADERS)
+
+    res = r.json()
 
     found_org = False
     for project in res['result']['projects']:

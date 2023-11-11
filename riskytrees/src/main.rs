@@ -1127,7 +1127,6 @@ async fn orgs_get(key: auth::ApiKey) -> Json<models::ApiGetOrgsResponse> {
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                // TODO: Tenants should come from ApiKey vector
                 let res = database::get_orgs( &client, key.tenants).await;
                 match res {
                     Ok(res) => {
@@ -1160,6 +1159,48 @@ async fn orgs_get(key: auth::ApiKey) -> Json<models::ApiGetOrgsResponse> {
     
 }
 
+#[post("/orgs/<org_id>/members", data = "<body>")]
+async fn orgs_members_post(org_id: String, body: Json<models::ApiAddMemberPayload>, key: auth::ApiKey) -> Json<models::ApiAddMemberResponse> {
+    if key.email == "" {
+        Json(models::ApiAddMemberResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+
+        match db_client {
+            Ok(client) => {
+                let thing = body.into_inner();
+                let res = database::add_user_to_org(&client, key.tenants, org_id, thing.email.clone()).await;
+
+                match res {
+                    Ok(res) => Json(models::ApiAddMemberResponse {
+                        ok: true,
+                        message: "Created org successfully".to_owned(),
+                        result: Some(models::ApiAddMemberPayload {
+                            email: thing.email
+                        })
+                    }),
+                    Err(err) => Json(models::ApiAddMemberResponse {
+                        ok: false,
+                        message: "Adding user to org failed".to_owned(),
+                        result: None,
+                    })
+                }
+
+
+            }
+            Err(err) => Json(models::ApiAddMemberResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        }    
+    }
+}
+
 #[launch]
 async fn rocket() -> _ {
     rocket::build()
@@ -1190,7 +1231,8 @@ async fn rocket() -> _ {
                 models_get,
                 node_get,
                 orgs_post,
-                orgs_get
+                orgs_get,
+                orgs_members_post
             ],
         )
         .attach(CORS)

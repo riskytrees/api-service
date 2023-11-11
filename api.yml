@@ -538,12 +538,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrgResponse'
-  /orgs/members:
+  /orgs/{orgId}/members:
     post:
       tags:
       - orgs
       summary: Add a member to the org by email
       operationId: addMemberToOrg
+      parameters:
+        - in: path
+          name: orgId
+          schema:
+            type: string
+          required: true
       requestBody:
         description: Details on the user to add
         content:

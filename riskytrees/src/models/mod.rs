@@ -504,3 +504,15 @@ pub struct ApiGetOrgsResponse {
     pub message: String,
     pub result: Option<OrgMetadataList> 
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiAddMemberPayload {
+    pub email: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiAddMemberResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiAddMemberPayload>
+}
