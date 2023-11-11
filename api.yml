@@ -538,7 +538,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrgResponse'
-
+  /orgs/members:
+    post:
+      tags:
+      - orgs
+      summary: Add a member to the org by email
+      operationId: addMemberToOrg
+      requestBody:
+        description: Details on the user to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberPayload'
+        required: true
+      responses:
+        200:
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddMemberResponse'
 
 components:
   schemas:
@@ -895,7 +914,21 @@ components:
         result:
           $ref: '#/components/schemas/OrgMetadata'
 
+    AddMemberPayload:
+      type: object
+      properties:
+        email:
+          type: string
+          example: someone@example.com
 
+    AddMemberResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/AddMemberPayload'
+            
 
     ApiResponse:
       type: object
