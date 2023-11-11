@@ -1267,3 +1267,67 @@ pub async fn add_user_to_org(client: &mongodb::Client, tenants: Vec<Tenant>, org
         })
     }
 }
+
+pub async fn filter_tenant_for_project(client: &mongodb::Client, tenants: Vec<Tenant>, project_id: String) -> Option<Tenant> {
+    let database = client.database(constants::DATABASE_NAME);
+    let project_collection = database.collection::<Document>("projects");
+
+    let project = project_collection.find_one(doc! {
+        "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
+        "_tenant": doc! {
+            "$in": helpers::tenant_names_from_vec(tenants)
+        }
+
+    }, None).await;
+
+    match project {
+        Ok(project) => {
+            match project {
+                Some(project) => {
+                    Some(Tenant { name: project.get_str("_tenant").expect("Should exist").to_owned() })
+                },
+                None => None
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err);
+            None
+        }
+    }
+}
+
+pub async fn filter_tenant_for_node(client: &mongodb::Client, tenants: Vec<Tenant>, node_id: String) -> Option<Tenant> {
+    let database = client.database(constants::DATABASE_NAME);
+    let node_collection = database.collection::<Document>("nodes");
+
+    let database = client.database(constants::DATABASE_NAME);
+    let trees_collection = database.collection::<Document>("trees");
+
+    let tree = trees_collection.find_one(doc! {
+        "nodes": {
+            "$elemMatch": {
+                "id": node_id.to_string()
+            }
+        },
+        "_tenant": doc! {
+            "$in": helpers::tenant_names_from_vec(tenants)
+        }
+    }, None).await;
+
+
+
+    match tree {
+        Ok(tree) => {
+            match tree {
+                Some(tree) => {
+                    Some(Tenant { name: tree.get_str("_tenant").expect("Should exist").to_owned() })
+                },
+                None => None
+            }
+        },
+        Err(err) => {
+            eprintln!("{}", err);
+            None
+        }
+    }
+}

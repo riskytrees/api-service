@@ -285,13 +285,13 @@ async fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: aut
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let mut project = database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id).await;
+                let mut project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
     
                 match project {
                     Some(mut project) => {
                         project.title = body.title.clone();
     
-                        let updated_project = database::update_project(client.clone(), crate::database::Tenant { name: key.email.clone() }, &project).await;
+                        let updated_project = database::update_project(client.clone(), database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &project).await;
                         match updated_project {
                             Ok(proj) => {
                                 Json(models::ApiCreateProjectResponse {
@@ -300,7 +300,7 @@ async fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: aut
                                     result: Some(models::CreateProjectResponseResult {
                                         title: body.title.to_owned(),
                                         id: proj.id,
-                                        orgId: get_org_id_from_tenant(&client, &database::Tenant { name: key.email }).await
+                                        orgId: get_org_id_from_tenant(&client, &database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )})).await
                                     })
                                 })
                             },
@@ -349,13 +349,13 @@ async fn projects_trees_post(
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project = database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
+                let project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
                 match project {
                     Some(project) => {
                         // Create tree
                         match database::create_project_tree(
                             client.to_owned(),
-                            crate::database::Tenant { name: key.email },
+                            database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}),
                             body.title.to_owned(),
                             id,
                         ).await {
@@ -406,12 +406,12 @@ async fn projects_trees_get(id: String, key: auth::ApiKey) -> Json<models::ApiLi
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project: Option<models::Project> =
-                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
+                let project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
+
                 match project {
                     Some(project) => {
                         // Get trees
-                        let trees = database::get_trees_by_project_id(&client, crate::database::Tenant { name: key.email }, project.id).await;
+                        let trees = database::get_trees_by_project_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), project.id).await;
     
                         match trees {
                             Ok(trees) => Json(models::ApiListTreeResponse {
@@ -455,11 +455,11 @@ async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey)
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project: Option<models::Project> =
-                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
+                let project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
+
                 match project {
                     Some(project) => {
-                        let tree = database::get_tree_by_id(&client, crate::database::Tenant { name: key.email }, tree_id.to_owned(), id.to_owned()).await;
+                        let tree = database::get_tree_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), tree_id.to_owned(), id.to_owned()).await;
                         match tree {
                             Ok(tree) => {
                                 Json(models::ApiTreeComputedResponse {
@@ -496,7 +496,7 @@ async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey)
 
 #[put("/projects/<id>/trees/<tree_id>", data = "<body>")]
 async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models::ApiFullTreeData>, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
-    if key.email == "" {
+    if key.email.clone() == "" {
         Json(models::ApiTreeComputedResponse {
             ok: false,
             message: "Could not find a tenant".to_owned(),
@@ -506,11 +506,11 @@ async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models:
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project: Option<models::Project> =
-                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
+                let project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
+
                 match project {
                     Some(project) => {
-                        let tenant = crate::database::Tenant { name: key.email };
+                        let tenant = database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )});
                         let title = body.title.to_owned();
                         let root_node_id = body.rootNodeId.to_owned();
                         let nodes = body.nodes.clone();
@@ -570,7 +570,7 @@ async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::Ap
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                match history::move_back_tree_update(&client, crate::database::Tenant { name: key.email }, tree_id, id).await {
+                match history::move_back_tree_update(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), tree_id, id).await {
                     Some(tree) => {
                         Json(models::ApiTreeComputedResponse {
                             ok: true,
@@ -608,8 +608,7 @@ async fn projects_model_get(id: String, key: auth::ApiKey) -> Json<models::ApiSe
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project: Option<models::Project> =
-                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email }, id.to_owned()).await;
+                let project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
                 match project {
                     Some(project) => {
                         Json(models::ApiSelectedModelResponse {
@@ -650,11 +649,11 @@ async fn projects_model_put(id: String, body: Json<models::SelectedModelResult>,
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project: Option<models::Project> =
-                    database::get_project_by_id(&client, crate::database::Tenant { name: key.email.clone() }, id.to_owned()).await;
+                let project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
+
                 match project {
                     Some(project) => {
-                        match database::update_project_model(client, crate::database::Tenant { name: key.email }, id.to_owned(), body.modelId.to_owned()).await {
+                        match database::update_project_model(client.clone(), database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.to_owned(), body.modelId.to_owned()).await {
                             Ok(_) => {
                                 Json(models::ApiSelectedModelResponse {
                                     ok: true,
@@ -750,7 +749,7 @@ async fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeRespo
 
         match db_client {
             Ok(client) => {
-                match get_tree_from_node_id(&client, crate::database::Tenant { name: key.email }, id).await {
+                match get_tree_from_node_id(&client, database::filter_tenant_for_node(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id).await {
                     Ok(res) => Json(res),
                     Err(err) => Json(models::ApiGetNodeResponse {
                         ok: false,
@@ -783,13 +782,13 @@ async fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key
 
         match db_client {
             Ok(client) => {
-                match database::get_tree_by_id(&client, crate::database::Tenant { name: key.email.clone() }, treeId.clone(), projectId.clone()).await {
+                match database::get_tree_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), treeId.clone(), projectId.clone()).await {
                     Ok(tree_data) => {
                         let result = models::ApiTreeDagResponseResult {
                             root: models::ApiTreeDagItem {
                                 id: treeId.clone(),
                                 title: tree_data.title,
-                                children: database::get_tree_relationships_down(&client, crate::database::Tenant { name: key.email }, &treeId, &projectId).await
+                                children: database::get_tree_relationships_down(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &treeId, &projectId).await
                             }
                         };
             
@@ -834,7 +833,7 @@ async fn projects_configs_list(projectId: String, key: auth::ApiKey) -> Json<mod
 
         match db_client {
             Ok(client) => {
-                let matching_configs = database::get_configs_for_project(&client, crate::database::Tenant { name: key.email }, &projectId).await;
+                let matching_configs = database::get_configs_for_project(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &projectId).await;
     
                 Json(models::ApiProjectConfigListResponse {
                     ok: true,
@@ -869,7 +868,7 @@ async fn projects_configs_post(projectId: String, body: Json<models::ApiProjectC
             Ok(client) => {
                 let thing = body.into_inner();
     
-                let new_config_id: Result<String, errors::DatabaseError> = database::new_config(&client, crate::database::Tenant { name: key.email }, &projectId, &thing).await;
+                let new_config_id: Result<String, errors::DatabaseError> = database::new_config(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &projectId, &thing).await;
                 match new_config_id {
                     Ok(new_config_id) => {
                         Json(models::ApiProjectConfigResponse {
@@ -912,7 +911,7 @@ async fn projects_configs_put(projectId: String, configId: String, body: Json<mo
         match db_client {
             Ok(client) => {
                 let thing = body.into_inner();
-                let new_config = database::update_config(&client, crate::database::Tenant { name: key.email }, &projectId, &configId, &thing).await;
+                let new_config = database::update_config(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &projectId, &configId, &thing).await;
     
                 match new_config {
                     Ok(updated_id) => {
@@ -957,7 +956,7 @@ async fn projects_configs_get(projectId: String, configId: String, key: auth::Ap
 
         match db_client {
             Ok(client) => {
-                let config = database::get_config(&client, crate::database::Tenant { name: key.email }, &projectId, &configId).await;
+                let config = database::get_config(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &projectId, &configId).await;
     
                 match config {
                     Ok(resp) => {
@@ -999,7 +998,7 @@ async fn projects_config_get(projectId: String, key: auth::ApiKey) -> Json<model
 
         match db_client {
             Ok(client) => {
-                let config = database::get_selected_config(&client, crate::database::Tenant { name: key.email }, &projectId).await;
+                let config = database::get_selected_config(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &projectId).await;
     
                 match config {
                     Ok(config) => {
@@ -1039,7 +1038,7 @@ async fn projects_config_put(projectId: String, body: Json<models::ApiProjectCon
         match db_client {
             Ok(client) => {
                 let thing: models::ApiProjectConfigIdPayload = body.into_inner();
-                let res = database::update_project_selected_config( &client, crate::database::Tenant { name: key.email }, &projectId, &thing).await;
+                let res = database::update_project_selected_config( &client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &projectId, &thing).await;
     
                 match res {
                     Ok(res) => {
