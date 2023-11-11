@@ -1,3 +1,4 @@
+import time
 import uuid
 import requests
 import os
@@ -868,11 +869,13 @@ def test_create_project_with_org():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project', 'orgId': org_id}, headers = TEST_HEADERS)
 
     res = r.json()
+    print(res['result']['id'])
 
     assert(res['ok'] == True)
     assert("created" in res['message'])
     assert(res['result']['title'] == 'test project')
     assert(res['result']['orgId'] == org_id)
+
 
     r = requests.get('http://localhost:8000/projects', headers = TEST_HEADERS)
 

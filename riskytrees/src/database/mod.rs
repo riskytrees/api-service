@@ -231,6 +231,7 @@ pub async fn get_available_project_ids(client: &mongodb::Client, tenants: Vec<Te
     let collection = database.collection::<Document>("projects");
     let mut resulting_ids = Vec::new();
 
+    println!("Tenants: {:?}", tenants);
     let matched_records = collection.find(doc!{"_tenant": doc! {
         "$in": helpers::tenant_names_from_vec(tenants)
     }}, None).await;
@@ -1198,7 +1199,7 @@ pub async fn get_tenant_for_org(client: &mongodb::Client, org_id: &String) -> Re
             match org {
                 Some(doc) => {
                     Ok(Tenant {
-                        name: doc.get_str("name").expect("To exist").to_owned()
+                        name: doc.get_str("_tenant").expect("To exist").to_owned()
                     })
                 },
                 None => Err(DatabaseError {

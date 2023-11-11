@@ -54,5 +54,7 @@ pub fn tenant_names_from_vec(tenants: Vec<Tenant>) -> Vec<String> {
         result.push(tenant.name);
     }
 
+    print!("{:?}", result);
+
     result
 }

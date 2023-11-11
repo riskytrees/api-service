@@ -201,6 +201,7 @@ async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse
         match db_client {
             Ok(client) => {
                 let ids = database::get_available_project_ids(&client, key.tenants.clone()).await;
+                println!("Project IDs: {:?}", ids);
                 match ids {
                     Ok(ids) => Json(models::ApiProjectsListResponse {
                         ok: true,
