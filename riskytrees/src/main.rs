@@ -1200,6 +1200,48 @@ async fn orgs_members_post(org_id: String, body: Json<models::ApiAddMemberPayloa
     }
 }
 
+#[get("/orgs/<org_id>/members")]
+async fn org_members_get(org_id: String, key: auth::ApiKey) -> Json<models::ApiGetMembersResponse> {
+    if key.email == "" {
+        Json(models::ApiGetMembersResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                let res = database::get_members_for_org( &client, org_id, key.tenants).await;
+                
+                match res {
+                    Ok(res) => {
+                        Json(models::ApiGetMembersResponse {
+                            ok: true,
+                            message: "Got members".to_owned(),
+                            result: Some(models::ApiGetMembersResult {
+                                members: res
+                            })
+                        })
+                    },
+                    Err(err) => Json(models::ApiGetMembersResponse {
+                        ok: false,
+                        message: "Getting members failed".to_owned(),
+                        result: None,
+                    })
+                }
+            }
+            Err(e) => Json(models::ApiGetMembersResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }
+    
+    }
+    
+}
+
 #[launch]
 async fn rocket() -> _ {
     rocket::build()
@@ -1231,6 +1273,7 @@ async fn rocket() -> _ {
                 node_get,
                 orgs_post,
                 orgs_get,
+                org_members_get,
                 orgs_members_post
             ],
         )
