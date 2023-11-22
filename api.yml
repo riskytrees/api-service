@@ -539,6 +539,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/OrgResponse'
   /orgs/{orgId}/members:
+    get:
+      tags:
+      - orgs
+      summary: Lists members added to the org.
+      operationId: listMembersInOrg
+      parameters:
+        - in: path
+          name: orgId
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: Got members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMembersResponse'    
     post:
       tags:
       - orgs
@@ -935,6 +953,19 @@ components:
         result:
           $ref: '#/components/schemas/AddMemberPayload'
             
+    GetMembersResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/AddMemberPayload'
+
 
     ApiResponse:
       type: object
