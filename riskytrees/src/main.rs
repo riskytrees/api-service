@@ -1242,6 +1242,70 @@ async fn org_members_get(org_id: String, key: auth::ApiKey) -> Json<models::ApiG
     
 }
 
+#[delete("/orgs/<org_id>/members", data = "<body>")]
+async fn orgs_members_delete(org_id: String, body: Json<models::ApiAddMemberPayload>, key: auth::ApiKey) -> Json<models::ApiGetMembersResponse> {
+    if key.email == "" {
+        Json(models::ApiGetMembersResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+
+        match db_client {
+            Ok(client) => {
+                let thing = body.into_inner();
+
+                if thing.email == key.email {
+                    Json(models::ApiGetMembersResponse {
+                        ok: false,
+                        message: "You can not remove yourself".to_owned(),
+                        result: None,
+                    })
+                } else {
+                    let res = database::remove_user_from_org(&client, key.tenants.clone(), org_id.clone(), thing.email.clone()).await;
+
+                    match res {
+                        Ok(res) => {
+                            let res = database::get_members_for_org( &client, org_id, key.tenants).await;
+                    
+                            match res {
+                                Ok(res) => {
+                                    Json(models::ApiGetMembersResponse {
+                                        ok: true,
+                                        message: "Got members".to_owned(),
+                                        result: Some(models::ApiGetMembersResult {
+                                            members: res
+                                        })
+                                    })
+                                },
+                                Err(err) => Json(models::ApiGetMembersResponse {
+                                    ok: false,
+                                    message: "Getting members failed".to_owned(),
+                                    result: None,
+                                })
+                            }
+            
+                        },
+                        Err(err) => Json(models::ApiGetMembersResponse {
+                            ok: false,
+                            message: "Removal of user failed".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+            }
+            Err(err) => Json(models::ApiGetMembersResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        }    
+    }
+}
+
+
 #[launch]
 async fn rocket() -> _ {
     rocket::build()
@@ -1274,7 +1338,8 @@ async fn rocket() -> _ {
                 orgs_post,
                 orgs_get,
                 org_members_get,
-                orgs_members_post
+                orgs_members_post,
+                orgs_members_delete
             ],
         )
         .attach(CORS)

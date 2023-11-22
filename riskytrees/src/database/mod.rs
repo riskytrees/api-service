@@ -1268,6 +1268,49 @@ pub async fn add_user_to_org(client: &mongodb::Client, tenants: Vec<Tenant>, org
     }
 }
 
+pub async fn remove_user_from_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String, email: String) -> Result<(), DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tenant_collection = database.collection::<Document>("tenants");
+
+    let org_tenant = get_tenant_for_org(client, &org_id).await?;
+
+    // Check to make sure user has access to this tenant
+    let mut has_access = false;
+    for tenant in tenants {
+        if tenant.name == org_tenant.name {
+            has_access = true;
+        }
+    }
+
+    if has_access {
+        let new_doc = doc! {
+            "$pull": {
+                "allowedUsers": email.clone()
+            }
+        };
+
+        let res = tenant_collection.find_one_and_update(doc! {
+            "name": org_tenant.name
+        }, new_doc, None).await;
+
+        match res {
+            Ok(res) => {
+                println!("Removed okay");
+            },
+            Err(err) => {
+                eprintln!("Removal failed: {}", err);
+            }
+        }
+
+        Ok(())
+    } else {
+        Err(DatabaseError {
+            message: "User does not have access to this org.".to_owned()
+        })
+    }
+}
+
+
 pub async fn filter_tenant_for_project(client: &mongodb::Client, tenants: Vec<Tenant>, project_id: String) -> Option<Tenant> {
     let database = client.database(constants::DATABASE_NAME);
     let project_collection = database.collection::<Document>("projects");
