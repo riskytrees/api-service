@@ -927,3 +927,22 @@ def test_create_project_with_org():
     res = r.json()
     assert(res['ok'] == True)
     assert(len(res['result']['members']) == 2)
+
+
+    # Remove user from org
+    r = requests.delete('http://localhost:8000/orgs/' + org_id + '/members', json = {'email':'other@example.com'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+
+    # Valid users should drop to 1
+    r = requests.get('http://localhost:8000/orgs/' + org_id + '/members', headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(len(res['result']['members']) == 1)
+
+    # Removal of self should fail
+    r = requests.delete('http://localhost:8000/orgs/' + org_id + '/members', json = {'email':'test@example.com'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == False)

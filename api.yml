@@ -583,6 +583,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/AddMemberResponse'
 
+    delete:
+      tags:
+      - orgs
+      summary: Remove member from org by email.
+      description: Remove member from org by email. You can not remove yourself.
+      operationId: removeMemberFromOrg
+      parameters:
+        - in: path
+          name: orgId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        description: Details on the user to remove
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberPayload'
+        required: true
+      responses:
+        200:
+          description: Member removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMembersResponse'
+
 components:
   schemas:
     RegisterUser:
