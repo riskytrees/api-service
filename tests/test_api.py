@@ -921,3 +921,9 @@ def test_create_project_with_org():
             found_org = True
 
     assert(found_org == True)
+
+    # Should be able to get the two users in the org
+    r = requests.get('http://localhost:8000/orgs/' + org_id + '/members', headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(len(res['result']['members']) == 2)

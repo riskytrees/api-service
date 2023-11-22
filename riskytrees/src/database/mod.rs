@@ -9,7 +9,7 @@ use rocket::Data;
 use std::{collections::HashMap, hash::Hash, vec};
 
 use bson::bson;
-use crate::{constants, errors::DatabaseError, models::{ApiTreeDagItem, ApiProjectConfigResponseResult}, expression_evaluator};
+use crate::{constants, errors::DatabaseError, models::{ApiTreeDagItem, ApiProjectConfigResponseResult, ApiAddMemberPayload}, expression_evaluator};
 use crate::errors;
 use crate::helpers;
 use crate::models;
@@ -1329,5 +1329,58 @@ pub async fn filter_tenant_for_node(client: &mongodb::Client, tenants: Vec<Tenan
             eprintln!("{}", err);
             None
         }
+    }
+}
+
+pub async fn get_members_for_org(client: &mongodb::Client, org_id: String, tenants: Vec<Tenant>) -> Result<Vec<ApiAddMemberPayload>, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tenant_collection = database.collection::<Document>("tenants");
+
+    let org_tenant = get_tenant_for_org(client, &org_id).await?;
+
+    // Check to make sure user has access to this tenant
+    let mut has_access = false;
+    for tenant in tenants {
+        if tenant.name == org_tenant.name {
+            has_access = true;
+        }
+    }
+
+    if has_access {
+        let tenant = tenant_collection.find_one(doc! {
+            "name": org_tenant.name
+        }, None).await;
+
+        match tenant {
+            Ok(tenant) => {
+                match tenant {
+                    Some(tenant) => {
+                        let emails = tenant.get_array("allowedUsers").expect("Should always exist");
+
+                        let mut result = vec![];
+
+                        for email in emails {
+                            result.push(ApiAddMemberPayload {
+                                email: email.as_str().expect("Always the case").to_owned()
+                            });
+                        }
+
+                        Ok(result)
+                    },
+                    None => Err(DatabaseError {
+                        message: "Could not find matching tenant".to_owned()
+                    })
+                }
+            },
+            Err(err) => Err(DatabaseError {
+                message: "Could not find tenant due to database failure".to_owned()
+            })
+        }
+
+        
+    } else {
+        Err(DatabaseError {
+            message: "User does not have access to this org.".to_owned()
+        })
     }
 }

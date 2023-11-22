@@ -516,3 +516,15 @@ pub struct ApiAddMemberResponse {
     pub message: String,
     pub result: Option<ApiAddMemberPayload>
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiGetMembersResult {
+    pub members: Vec<ApiAddMemberPayload>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiGetMembersResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiGetMembersResult>
+}
