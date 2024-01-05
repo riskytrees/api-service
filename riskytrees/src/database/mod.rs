@@ -16,7 +16,7 @@ use crate::models;
 use rocket::futures::stream::{StreamExt, TryStreamExt};
 use async_recursion::async_recursion;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Tenant {
     pub name: String
 }
@@ -1132,6 +1132,45 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models:
     }
 
 
+}
+
+pub async fn delete_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String) -> Result<bool, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+
+
+    // Verify access to org
+    let needed_tenant = get_tenant_for_org(client, &org_id).await;
+
+    match needed_tenant {
+        Ok(needed_tenant) => {
+            if tenants.contains(&needed_tenant) {
+                // Delete org
+                match org_collection.delete_one(doc! {
+                    "_id": mongodb::bson::oid::ObjectId::parse_str(&org_id).expect("Checked"),
+                    "_tenant": needed_tenant.name.to_owned()
+                }, None).await {
+                    Ok(_) => {
+                        Ok(true)
+                    },
+                    Err(err) => {
+                        Err(errors::DatabaseError {
+                            message: "Database error when trying to delete org".to_string()
+                        })
+                    }
+                }
+            } else {
+                Err(errors::DatabaseError {
+                    message: "No access to org".to_string()
+                })
+            }
+        },
+        Err(err) => {
+            Err(errors::DatabaseError {
+                message: "Finding tenant for org failed.".to_string()
+            })
+        }
+    }
 }
 
 pub async fn get_orgs(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<Vec<models::ApiOrgMetadata>, DatabaseError> {

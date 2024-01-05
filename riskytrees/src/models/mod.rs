@@ -528,3 +528,15 @@ pub struct ApiGetMembersResponse {
     pub message: String,
     pub result: Option<ApiGetMembersResult>
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeleteOrgResponseResult {
+    
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiDeleteOrgResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<DeleteOrgResponseResult>
+}
