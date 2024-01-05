@@ -538,6 +538,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrgResponse'
+  /orgs/{orgId}:
+    delete:
+      tags:
+      - orgs
+      summary: Deletes an org
+      operationId: deleteOrg
+      parameters:
+        - in: path
+          name: orgId
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: Deleted response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteOrgResponse'    
   /orgs/{orgId}/members:
     get:
       tags:
@@ -992,6 +1011,11 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/AddMemberPayload'
+
+    DeleteOrgResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
 
 
     ApiResponse:
