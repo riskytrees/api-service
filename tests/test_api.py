@@ -946,3 +946,20 @@ def test_create_project_with_org():
 
     res = r.json()
     assert(res['ok'] == False)
+
+
+def test_delete_orgs():
+    r = requests.post('http://localhost:8000/orgs', json = {'name':'Risky Trees'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    org_id = res['result']['id']
+
+    # Other user should not be able to delete
+    r = requests.delete('http://localhost:8000/orgs/' + str(org_id), headers = OTHER_HEADERS)
+    res = r.json()
+    assert(res['ok'] == False)
+
+    r = requests.delete('http://localhost:8000/orgs/' + str(org_id), headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+

@@ -1306,6 +1306,50 @@ async fn orgs_members_delete(org_id: String, body: Json<models::ApiAddMemberPayl
 }
 
 
+#[delete("/orgs/<org_id>")]
+async fn org_delete(org_id: String, key: auth::ApiKey) -> Json<models::ApiDeleteOrgResponse> {
+    if key.email == "" {
+        Json(models::ApiDeleteOrgResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+
+        match db_client {
+            Ok(client) => {
+                let res = database::delete_org(&client, key.tenants.clone(), org_id.clone()).await;
+
+                match res {
+                    Ok(_) => {
+                        Json(models::ApiDeleteOrgResponse {
+                            ok: true,
+                            message: "Got members".to_owned(),
+                            result: Some(models::DeleteOrgResponseResult {
+                                
+                            })
+                        })
+                    },
+                    Err(err) => {
+                        Json(models::ApiDeleteOrgResponse {
+                            ok: false,
+                            message: "Error trying to delete org".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+            }
+            Err(err) => Json(models::ApiDeleteOrgResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        }    
+    }
+}
+
+
 #[launch]
 async fn rocket() -> _ {
     rocket::build()
@@ -1337,6 +1381,7 @@ async fn rocket() -> _ {
                 node_get,
                 orgs_post,
                 orgs_get,
+                org_delete,
                 org_members_get,
                 orgs_members_post,
                 orgs_members_delete
