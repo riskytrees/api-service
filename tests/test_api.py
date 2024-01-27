@@ -963,3 +963,20 @@ def test_delete_orgs():
     res = r.json()
     assert(res['ok'] == True)
 
+
+def test_get_project():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.get('http://localhost:8000/projects/' + str(project_id), headers = TEST_HEADERS)
+
+    res = r.json()
+    print(res)
+    assert(res['ok'] == True)

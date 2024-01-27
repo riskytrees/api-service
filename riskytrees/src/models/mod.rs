@@ -382,6 +382,13 @@ pub struct ApiProjectsListResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ApiGetProjectResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiProjectsListProjectItem>
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct ApiCreateTreeResponse {
     pub ok: bool,
     pub message: String,

@@ -3,7 +3,7 @@
 extern crate rocket;
 
 use std::collections::HashSet;
-use database::{get_tree_from_node_id, get_org_id_from_tenant};
+use database::{get_org_id_from_tenant, get_project_by_id, get_tree_from_node_id};
 use models::ApiProjectConfigListResponseResult;
 use mongodb::bson::doc;
 use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
@@ -271,6 +271,58 @@ async fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) 
         }
     }
 
+}
+
+#[get("/projects/<id>")]
+async fn project_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetProjectResponse> {
+    if key.email == "" {
+        Json(models::ApiGetProjectResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                let ids = database::get_available_project_ids(&client, key.tenants.clone()).await;
+                println!("Project IDs: {:?}", ids);
+                match ids {
+                    Ok(ids) => {
+                        if ids.contains(&id) {
+                            let project_tenant = database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )});
+                            let project_data = get_project_by_id(&client, project_tenant.clone(), id.clone()).await.expect("Already checked");
+                            Json(models::ApiGetProjectResponse {
+                                ok: true,
+                                message: "Found project".to_owned(),
+                                result: Some(models::ApiProjectsListProjectItem {
+                                    projectId: id,
+                                    name: project_data.title,
+                                    orgId:  get_org_id_from_tenant(&client, &project_tenant).await
+                                }),
+                            })
+                        } else {
+                            Json(models::ApiGetProjectResponse {
+                                ok: false,
+                                message: "Could not find project".to_owned(),
+                                result: None,
+                            })
+                        }
+                    },
+                    Err(err) => Json(models::ApiGetProjectResponse {
+                        ok: false,
+                        message: "Failed to find project ids".to_owned(),
+                        result: None,
+                    })
+                }
+            }
+            Err(e) => Json(models::ApiGetProjectResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }
+    }
 }
 
 #[put("/projects/<id>", data = "<body>")]
@@ -1360,6 +1412,7 @@ async fn rocket() -> _ {
                 auth_login_get,
                 auth_login_post,
                 auth_logout,
+                project_get,
                 projects_get,
                 projects_post,
                 projects_put,
