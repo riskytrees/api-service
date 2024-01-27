@@ -629,16 +629,18 @@ pub async fn update_tree_by_id(
 pub async fn get_projects_from_ids(client: &mongodb::Client, tenants: Vec<Tenant>, ids: Vec<String>) -> Vec<models::ApiProjectsListProjectItem> {
     let mut result = Vec::new();
 
-    for tenant in tenants {
-        for id in ids.clone() {
-            let project_data = get_project_by_id(client, tenant.clone(), id).await;
+    
+    for id in ids.clone() {
+        for tenant in tenants.clone() {
+            let project_data = get_project_by_id(client, tenant.clone(), id.clone()).await;
             match project_data {
                 Some(project_data) => {
                     result.push(models::ApiProjectsListProjectItem {
                         projectId: project_data.id,
                         name: project_data.title,
                         orgId: get_org_id_from_tenant(client, &tenant).await
-                    })
+                    });
+                    break
                 },
                 None => { /* Skip */ }
             }
