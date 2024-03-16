@@ -3,7 +3,7 @@
 extern crate rocket;
 
 use std::collections::HashSet;
-use database::{get_org_id_from_tenant, get_project_by_id, get_tree_from_node_id};
+use database::{get_org_id_from_tenant, get_project_by_id, get_publicity_for_tree_by_id, get_tree_from_node_id, set_publicity_for_tree_by_id};
 use models::ApiProjectConfigListResponseResult;
 use mongodb::bson::doc;
 use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
@@ -507,34 +507,34 @@ async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey)
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
-
-                match project {
-                    Some(project) => {
-                        let tree = database::get_tree_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), tree_id.to_owned(), id.to_owned()).await;
-                        match tree {
-                            Ok(tree) => {
-                                Json(models::ApiTreeComputedResponse {
-                                    ok: true,
-                                    message: "Found tree".to_owned(),
-                                    result: Some(tree),
-                                })
-                            },
-                            Err(err) => {
-                                Json(models::ApiTreeComputedResponse {
-                                    ok: false,
-                                    message: "Could not find tree using id".to_owned(),
-                                    result: None,
-                                })
-                            }
+                // Tenancy applies by default, but if this tree is public, override the tenant
+                let tree: Result<models::ApiFullComputedTreeData, errors::DatabaseError> = match get_publicity_for_tree_by_id(&client, tree_id.clone()).await {
+                    Ok(res) => {
+                        match res {
+                            true => database::get_tree_by_id(&client, database::get_tenant_for_tree(&client, &tree_id.clone()).await.expect("Always exists"), tree_id, id.clone()).await,
+                            false => database::get_tree_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), tree_id.to_owned(), id.to_owned()).await        
                         }
-    
+                    },
+                    Err(err) => {
+                        Err(err)
                     }
-                    None => Json(models::ApiTreeComputedResponse {
-                        ok: false,
-                        message: "Could not find project".to_owned(),
-                        result: None,
-                    }),
+                };
+
+                match tree {
+                    Ok(tree) => {
+                        Json(models::ApiTreeComputedResponse {
+                            ok: true,
+                            message: "Found tree".to_owned(),
+                            result: Some(tree),
+                        })
+                    },
+                    Err(err) => {
+                        Json(models::ApiTreeComputedResponse {
+                            ok: false,
+                            message: "Could not find tree using id".to_owned(),
+                            result: None,
+                        })
+                    }
                 }
             }
             Err(e) => Json(models::ApiTreeComputedResponse {
@@ -640,6 +640,48 @@ async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::Ap
                 }
             }
             Err(e) => Json(models::ApiTreeComputedResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }    
+    }
+}
+
+#[put("/projects/<id>/trees/<tree_id>/public", data = "<body>")]
+async fn projects_trees_tree_public_put(id: String, body: Json<models::ApiTreePublicity>, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreePublicityResponse> {
+    if key.email == "" {
+        Json(models::ApiTreePublicityResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                match set_publicity_for_tree_by_id(&client, key.tenants.clone(), tree_id, body.isPublic).await {
+                    Ok(res) => {
+                        Json(models::ApiTreePublicityResponse {
+                            ok: true,
+                            message: "Setting publicity succeeded.".to_owned(),
+                            result: Some(models::ApiTreePublicity {
+                                isPublic: res
+                            })
+                        })
+                    },
+                    Err(err) => {
+                        Json(models::ApiTreePublicityResponse {
+                            ok: false,
+                            message: "Setting publicity failed.".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+
+
+            }
+            Err(e) => Json(models::ApiTreePublicityResponse {
                 ok: false,
                 message: "Could not connect to DB".to_owned(),
                 result: None,
@@ -1421,6 +1463,7 @@ async fn rocket() -> _ {
                 projects_trees_tree_get,
                 projects_trees_tree_put,
                 projects_trees_tree_undo_put,
+                projects_trees_tree_public_put,
                 projects_trees_tree_dag_down_get,
                 projects_model_get,
                 projects_model_put,

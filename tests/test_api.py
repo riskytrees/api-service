@@ -63,14 +63,14 @@ def test_project_put():
 
     r = requests.put('http://localhost:8000/projects/' + project_id, json = {'title':'other project'}, headers = TEST_HEADERS)
     res = r.json()
-    print(res)
+
     assert(res['ok'] == True)
     assert("updated" in res['message'])
     assert(res['result']['title'] == 'other project')
 
     r = requests.get('http://localhost:8000/projects/' + project_id + '/trees', headers = TEST_HEADERS)
     res = r.json()
-    print(res)
+
     assert(res['ok'] == True)
     assert(len(res['result']['trees']) == 1)
 
@@ -183,7 +183,7 @@ def test_project_tree_put():
         }, headers = TEST_HEADERS)
 
     res = r.json()
-    print(res)
+
     assert(res['ok'] == True)
     assert(res['result']['title'] == 'Test Confirm Tree Put')
 
@@ -345,7 +345,7 @@ def test_get_node_response():
 
     r = requests.get('http://localhost:8000/nodes/unique-node-0', headers = TEST_HEADERS)
     node_res = r.json()
-    print(r.json())
+
     assert(node_res['ok'] == True)
 
 
@@ -434,7 +434,7 @@ def test_tree_with_subtree():
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "/dag/down", headers = TEST_HEADERS)
     dag_res = r.json()
     assert(dag_res['ok'] == True)
-    print(dag_res)
+
     assert(dag_res['result']['root']['title'] == 'Other Tree')
     assert(dag_res['result']['root']['children'][0]['title'] == 'My Tree')
 
@@ -514,7 +514,7 @@ def test_create_config():
       "desiredConfig": config_id
     }, headers = TEST_HEADERS)
     res = r.json()
-    print(res)
+
     assert(res['ok'] == True)
 
     # Selected config should not error (beacuse config_id is selected)
@@ -588,7 +588,7 @@ def test_condition_resolution():
       "desiredConfig": config_id
     }, headers = TEST_HEADERS)
     res = r.json()
-    print(res)
+
     assert(res['ok'] == True)
 
     r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Have some Nodes'}, headers = TEST_HEADERS)
@@ -873,7 +873,6 @@ def test_create_project_with_org():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project', 'orgId': org_id}, headers = TEST_HEADERS)
 
     res = r.json()
-    print(res['result']['id'])
 
     assert(res['ok'] == True)
     assert("created" in res['message'])
@@ -978,5 +977,47 @@ def test_get_project():
     r = requests.get('http://localhost:8000/projects/' + str(project_id), headers = TEST_HEADERS)
 
     res = r.json()
-    print(res)
+
     assert(res['ok'] == True)
+
+def test_project_publicity():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Test Tree Put'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    tree_id = res['result']['id']
+
+    # Other user should not be able to access this.
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = OTHER_HEADERS)
+    res = r.json()
+    assert(res['ok'] == False)
+
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + '/public', json = {'isPublic': True}, headers = TEST_HEADERS)
+    res = r.json()
+
+    assert(res['ok'] == True)
+
+    # Other user should be able to access this.
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = OTHER_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + '/public', json = {'isPublic': False}, headers = TEST_HEADERS)
+    res = r.json()
+
+    assert(res['ok'] == True)
+
+    # Other user should not be able to access this.
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = OTHER_HEADERS)
+    res = r.json()
+
+    assert(res['ok'] == False)

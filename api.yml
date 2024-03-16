@@ -272,6 +272,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/TreeComputedResponse'
 
+  /projects/{projectId}/trees/{treeId}/public:
+    put:
+      tags:
+      - project
+      summary: Used to set whether or not a tree should be made public
+      operationId: treePublicToggle
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        description: Desired publicity
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TreePublicity'
+      responses:
+        200:
+          description: Change successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreePublicityResponse'
+
   /projects/{projectId}/trees/{treeId}/undo:
     put:
       tags:
@@ -687,6 +718,20 @@ components:
                 login_hint=jsmith@example.com&
                 nonce=0394852-3190485-2490358&
                 hd=example.com
+
+    TreePublicity:
+      type: object
+      properties:
+        isPublic:
+          type: boolean
+
+
+    TreePublicityResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      properties:
+        result:
+          $ref: '#/components/schemas/TreePublicity'
 
     TreeDagItem:
       type: object
