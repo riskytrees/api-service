@@ -301,7 +301,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TreePublicity'
+                $ref: '#/components/schemas/TreePublicityResponse'
 
   /projects/{projectId}/trees/{treeId}/undo:
     put:
@@ -729,7 +729,9 @@ components:
     TreePublicityResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'
-        - $ref: '#/components/schemas/TreePublicity'
+      properties:
+        result:
+          $ref: '#/components/schemas/TreePublicity'
 
     TreeDagItem:
       type: object
