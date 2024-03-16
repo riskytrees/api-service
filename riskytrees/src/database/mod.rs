@@ -1,6 +1,6 @@
+use hmac::digest::core_api::UpdateCore;
 use mongodb::{
-    bson::{doc, Document},
-    Client,
+    bson::{doc, Document}, options::UpdateOptions, Client
 };
 use openidconnect::Nonce;
 use rand::{Rng, distributions::Alphanumeric};
@@ -598,7 +598,6 @@ pub async fn get_tree_by_id(
     tree_id: String,
     project_id: String
 ) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
-
     get_full_tree_data(client, tenant, tree_id, &project_id).await
 
 }
@@ -625,6 +624,79 @@ pub async fn update_tree_by_id(
 
     get_full_tree_data(client, tenant, tree_id, &project_id).await
 }
+
+// DANGER: Not tenantized
+pub async fn get_publicity_for_tree_by_id(
+    client: &mongodb::Client,
+    tree_id: String
+) -> Result<bool, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tree_access_collection = database.collection::<Document>("tree_access_control");
+
+    let access_control_data = tree_access_collection.find_one(doc! {
+        "treeId": mongodb::bson::oid::ObjectId::parse_str(&tree_id).expect("Checked")
+    }, None).await;
+
+    match access_control_data {
+        Ok(access_control_data) => {
+            match access_control_data {
+                Some(access_control_data) => {
+                    if access_control_data.contains_key("isPublic") && access_control_data.get_bool("isPublic").expect("Checked") {
+                        return Ok(true);
+                    }
+
+                    return Ok(false);
+                },
+                None => {
+                    return Ok(false);
+                }
+            }
+        },
+        Err(_err) => {
+            return Err(DatabaseError{
+                message: "Error looking up access_control_data".to_string()
+            });
+        }
+    }
+}
+
+pub async fn set_publicity_for_tree_by_id(
+    client: &mongodb::Client,
+    tenants: Vec<Tenant>,
+    tree_id: String,
+    publicity: bool
+) -> Result<bool, errors::DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tree_access_collection = database.collection::<Document>("tree_access_control");
+
+    let tree_tenant = get_tenant_for_tree(client, &tree_id).await.expect("Always exists");
+
+    match tree_access_collection.update_one(doc! {
+        "treeId": mongodb::bson::oid::ObjectId::parse_str(&tree_id).expect("Checked"),
+        "_tenant": doc! {
+            "$in": helpers::tenant_names_from_vec(tenants)
+        }
+    }, doc ! {
+        "$set": {
+            "treeId": mongodb::bson::oid::ObjectId::parse_str(&tree_id).expect("Checked"),
+            "isPublic": publicity,
+            "_tenant": tree_tenant.name.to_owned()
+        }
+    }, mongodb::options::UpdateOptions::builder()
+    .upsert(Some(true))
+    .build()).await {
+        Ok(access_control_data) => {
+            Ok(publicity)
+        },
+        Err(err) => {
+            eprintln!("{}", err);
+            return Err(DatabaseError{
+                message: "Error looking up access_control_data".to_string()
+            });
+        }
+    }
+}
+
 
 pub async fn get_projects_from_ids(client: &mongodb::Client, tenants: Vec<Tenant>, ids: Vec<String>) -> Vec<models::ApiProjectsListProjectItem> {
     let mut result = Vec::new();
@@ -1245,6 +1317,33 @@ pub async fn get_tenant_for_org(client: &mongodb::Client, org_id: &String) -> Re
                 },
                 None => Err(DatabaseError {
                     message: "Lookup failed for org".to_owned()
+                })
+            }
+        },
+        Err(err) => Err(DatabaseError {
+            message: "Database connection error".to_owned()
+        })
+    }
+}
+
+pub async fn get_tenant_for_tree(client: &mongodb::Client, tree_id: &String) -> Result<Tenant, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tree_collection = database.collection::<Document>("trees");
+
+    let tree = tree_collection.find_one(doc! {
+        "_id": mongodb::bson::oid::ObjectId::parse_str(&tree_id).expect("Checked"),
+    }, None).await;
+
+    match tree {
+        Ok(tree) => {
+            match tree {
+                Some(doc) => {
+                    Ok(Tenant {
+                        name: doc.get_str("_tenant").expect("To exist").to_owned()
+                    })
+                },
+                None => Err(DatabaseError {
+                    message: "Lookup failed for tree".to_owned()
                 })
             }
         },

@@ -547,3 +547,14 @@ pub struct ApiDeleteOrgResponse {
     pub message: String,
     pub result: Option<DeleteOrgResponseResult>
 }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiTreePublicity {
+    pub isPublic: bool
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiTreePublicityResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiTreePublicity>
+}
