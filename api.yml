@@ -273,6 +273,31 @@ paths:
                 $ref: '#/components/schemas/TreeComputedResponse'
 
   /projects/{projectId}/trees/{treeId}/public:
+    get:
+      tags:
+      - project
+      summary: Used to get whether or not a tree should be made public
+      operationId: treePublicGet
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+
+      responses:
+        200:
+          description: Got state successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreePublicityResponse'
+    
     put:
       tags:
       - project

@@ -648,6 +648,48 @@ async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::Ap
     }
 }
 
+#[get("/projects/<id>/trees/<tree_id>/public")]
+async fn projects_trees_tree_public_get(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreePublicityResponse> {
+    if key.email == "" {
+        Json(models::ApiTreePublicityResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                match database::get_publicity_for_tree_by_id(&client, tree_id).await {
+                    Ok(res) => {
+                        Json(models::ApiTreePublicityResponse {
+                            ok: true,
+                            message: "Got publicity successfully.".to_owned(),
+                            result: Some(models::ApiTreePublicity {
+                                isPublic: res
+                            })
+                        })
+                    },
+                    Err(err) => {
+                        Json(models::ApiTreePublicityResponse {
+                            ok: false,
+                            message: "Getting publicity failed.".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+
+
+            }
+            Err(e) => Json(models::ApiTreePublicityResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }    
+    }
+}
+
 #[put("/projects/<id>/trees/<tree_id>/public", data = "<body>")]
 async fn projects_trees_tree_public_put(id: String, body: Json<models::ApiTreePublicity>, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreePublicityResponse> {
     if key.email == "" {
@@ -1463,6 +1505,7 @@ async fn rocket() -> _ {
                 projects_trees_tree_get,
                 projects_trees_tree_put,
                 projects_trees_tree_undo_put,
+                projects_trees_tree_public_get,
                 projects_trees_tree_public_put,
                 projects_trees_tree_dag_down_get,
                 projects_model_get,
