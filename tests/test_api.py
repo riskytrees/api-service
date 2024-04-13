@@ -996,6 +996,12 @@ def test_project_publicity():
     res = r.json()
     tree_id = res['result']['id']
 
+    # By default should not be public
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + '/public', headers = OTHER_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['isPublic'] == False)
+
     # Other user should not be able to access this.
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = OTHER_HEADERS)
     res = r.json()
@@ -1005,6 +1011,13 @@ def test_project_publicity():
     res = r.json()
 
     assert(res['ok'] == True)
+
+    # Now should not be public
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + '/public', headers = OTHER_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+    assert(res['result']['isPublic'] == True)
+
 
     # Other user should be able to access this.
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = OTHER_HEADERS)
