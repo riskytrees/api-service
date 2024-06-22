@@ -271,6 +271,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TreeComputedResponse'
+    delete:
+      tags:
+      - project
+      summary: Deletes a tree
+      operationId: deleteTree
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: treeId
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Deleted succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
 
   /projects/{projectId}/trees/{treeId}/public:
     get:
