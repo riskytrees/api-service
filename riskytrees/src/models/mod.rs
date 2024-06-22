@@ -173,6 +173,13 @@ pub struct ApiRegisterUser {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ApiResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<String>
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct ApiAuthLoginResponse {
     pub ok: bool,
     pub message: String,

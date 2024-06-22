@@ -610,6 +610,59 @@ async fn projects_trees_tree_put(id: String, tree_id: String, body: Json<models:
     }
 }
 
+#[delete("/projects/<id>/trees/<tree_id>")]
+async fn projects_trees_tree_delete(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiResponse> {
+    if key.email.clone() == "" {
+        Json(models::ApiResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                let project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
+
+                match project {
+                    Some(project) => {
+                        match database::delete_tree_by_id(&client, key.tenants.clone(), tree_id).await {
+                            Ok(res) => {
+                                Json(models::ApiResponse {
+                                    ok: true,
+                                    message: "Deleted tree".to_owned(),
+                                    result: None
+                                })
+                            },
+                            Err(err) => {
+                                eprintln!("{err}");
+                                Json(models::ApiResponse {
+                                    ok: false,
+                                    message: "Error deleting tree".to_owned(),
+                                    result: None
+                                })
+                            }
+                        }
+    
+                    }
+                    None => Json(models::ApiResponse {
+                        ok: false,
+                        message: "Could not find project".to_owned(),
+                        result: None,
+                    }),
+                }
+            }
+            Err(e) => Json(models::ApiResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }    
+    }
+}
+
+
+
 #[put("/projects/<id>/trees/<tree_id>/undo")]
 async fn projects_trees_tree_undo_put(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
     if key.email == "" {
@@ -1504,6 +1557,7 @@ async fn rocket() -> _ {
                 projects_trees_get,
                 projects_trees_tree_get,
                 projects_trees_tree_put,
+                projects_trees_tree_delete,
                 projects_trees_tree_undo_put,
                 projects_trees_tree_public_get,
                 projects_trees_tree_public_put,

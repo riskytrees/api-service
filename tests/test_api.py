@@ -188,6 +188,40 @@ def test_project_tree_put():
     assert(res['result']['title'] == 'Test Confirm Tree Put')
 
 
+def test_project_tree_delete():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    project_id = res['result']['id']
+
+    r = requests.post('http://localhost:8000/projects/' + str(project_id) + '/trees', json = {'title':'Test Tree Put'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    tree_id = res['result']['id']
+
+    r = requests.delete('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+
+    # PUTing the tree should fail
+    r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id), json = {
+        'title': 'Test Confirm Tree Put',
+        'nodes': [],
+        'rootNodeId': ''
+        }, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == False)
+
+
 def test_project_tree_put_with_nodes():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
 

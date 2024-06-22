@@ -1567,3 +1567,42 @@ pub async fn get_members_for_org(client: &mongodb::Client, org_id: String, tenan
         })
     }
 }
+
+pub async fn delete_tree_by_id(client: &mongodb::Client, tenants: Vec<Tenant>, id: String) -> Result<bool, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tree_collection = database.collection::<Document>("trees");
+
+
+    // Verify access to org
+    let needed_tenant = get_tenant_for_tree(client, &id).await;
+
+    match needed_tenant {
+        Ok(needed_tenant) => {
+            if tenants.contains(&needed_tenant) {
+                // Delete tree
+                match tree_collection.delete_one(doc! {
+                    "_id": mongodb::bson::oid::ObjectId::parse_str(&id).expect("Checked"),
+                    "_tenant": needed_tenant.name.to_owned()
+                }, None).await {
+                    Ok(_) => {
+                        Ok(true)
+                    },
+                    Err(err) => {
+                        Err(errors::DatabaseError {
+                            message: "Database error when trying to delete tree".to_string()
+                        })
+                    }
+                }
+            } else {
+                Err(errors::DatabaseError {
+                    message: "No access to tree".to_string()
+                })
+            }
+        },
+        Err(err) => {
+            Err(errors::DatabaseError {
+                message: "Finding tenant for tree failed:".to_string() + &err.to_string()
+            })
+        }
+    }
+}
