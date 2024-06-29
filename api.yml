@@ -153,7 +153,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateProjectResponse'
-
+    delete:
+      tags:
+      - project
+      summary: Deletes a project and all contained trees
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      operationId: deleteProject
+      responses:
+        200:
+          description: Project deleted succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  
   /projects/{id}/trees:
     get:
       tags:
