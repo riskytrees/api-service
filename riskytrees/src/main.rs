@@ -385,6 +385,76 @@ async fn projects_put(id: String, body: Json<models::ApiCreateProject>, key: aut
 
 }
 
+#[delete("/projects/<id>")]
+async fn projects_delete(id: String, key: auth::ApiKey) -> Json<models::ApiResponse> {
+    if key.email == "" {
+        Json(models::ApiResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                let tenant = database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )});
+                let mut project = database::get_project_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), id.clone()).await;
+    
+                match project {
+                    Some(mut project) => {
+                        match database::get_trees_by_project_id(&client, tenant, project.id.clone()).await {
+                            Ok(res) => {
+                                // Delete trees before deleting project
+                                for tree in res {
+                                    database::delete_tree_by_id(&client, key.tenants.clone(), tree.id).await;
+                                }
+
+                                // Delete project
+                                match database::delete_project_by_id(&client, key.tenants.clone(), project.id.clone()).await {
+                                    Ok(res) => {
+                                        Json(models::ApiResponse {
+                                            ok: true,
+                                            message: "Deleted project and trees".to_owned(),
+                                            result: None,
+                                        })
+                                    },
+                                    Err(err) => {
+                                        Json(models::ApiResponse {
+                                            ok: false,
+                                            message: "Error deleting project".to_owned(),
+                                            result: None,
+                                        })
+                                    }
+                                }
+                            },
+                            Err(err) => {
+                                Json(models::ApiResponse {
+                                    ok: false,
+                                    message: "Could not lookup trees but should have been able to".to_owned(),
+                                    result: None,
+                                })
+                            }
+                        }
+                    },
+                    None => Json(models::ApiResponse {
+                        ok: false,
+                        message: "Project not found".to_owned(),
+                        result: None,
+                    })
+                }
+            }
+            Err(e) => Json(models::ApiResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }
+    }
+
+}
+
+
+
 #[post("/projects/<id>/trees", data = "<body>")]
 async fn projects_trees_post(
     id: String,
@@ -1553,6 +1623,7 @@ async fn rocket() -> _ {
                 projects_get,
                 projects_post,
                 projects_put,
+                projects_delete,
                 projects_trees_post,
                 projects_trees_get,
                 projects_trees_tree_get,

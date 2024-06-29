@@ -1208,6 +1208,45 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models:
 
 }
 
+pub async fn delete_project_by_id(client: &mongodb::Client, tenants: Vec<Tenant>, project_id: String) -> Result<bool, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let project_collection = database.collection::<Document>("projects");
+
+        // Verify access to org
+        let needed_tenant = get_tenant_for_project(client, &project_id).await;
+
+        match needed_tenant {
+            Ok(needed_tenant) => {
+                if tenants.contains(&needed_tenant) {
+                    // Delete org
+                    match project_collection.delete_one(doc! {
+                        "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
+                        "_tenant": needed_tenant.name.to_owned()
+                    }, None).await {
+                        Ok(_) => {
+                            Ok(true)
+                        },
+                        Err(err) => {
+                            Err(errors::DatabaseError {
+                                message: "Database error when trying to delete org".to_string()
+                            })
+                        }
+                    }
+                } else {
+                    Err(errors::DatabaseError {
+                        message: "No access to org".to_string()
+                    })
+                }
+            },
+            Err(err) => {
+                Err(errors::DatabaseError {
+                    message: "Finding tenant for org failed.".to_string()
+                })
+            }
+        }
+    
+}
+
 pub async fn delete_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String) -> Result<bool, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let org_collection = database.collection::<Document>("organizations");
@@ -1305,6 +1344,33 @@ pub async fn get_tenant_for_org(client: &mongodb::Client, org_id: &String) -> Re
 
     let org = org_collection.find_one(doc! {
         "_id": mongodb::bson::oid::ObjectId::parse_str(&org_id).expect("Checked"),
+    }, None).await;
+
+    match org {
+        Ok(org) => {
+            match org {
+                Some(doc) => {
+                    Ok(Tenant {
+                        name: doc.get_str("_tenant").expect("To exist").to_owned()
+                    })
+                },
+                None => Err(DatabaseError {
+                    message: "Lookup failed for org".to_owned()
+                })
+            }
+        },
+        Err(err) => Err(DatabaseError {
+            message: "Database connection error".to_owned()
+        })
+    }
+}
+
+pub async fn get_tenant_for_project(client: &mongodb::Client, project_id: &String) -> Result<Tenant, DatabaseError>  {
+    let database = client.database(constants::DATABASE_NAME);
+    let project_collection = database.collection::<Document>("projects");
+
+    let org = project_collection.find_one(doc! {
+        "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
     }, None).await;
 
     match org {
