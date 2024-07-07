@@ -4,6 +4,6 @@ COPY cas/rds-combined-ca-bundle.pem /app/riskytrees/rds-combined-ca-bundle.pem
 
 WORKDIR /app/riskytrees
 
-RUN cargo build
+RUN cargo build --release
 ENTRYPOINT ["cargo"]
 CMD ["run"]
