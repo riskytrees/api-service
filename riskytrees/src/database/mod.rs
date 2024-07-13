@@ -6,7 +6,7 @@ use openidconnect::Nonce;
 use rand::{Rng, distributions::Alphanumeric};
 use rocket::Data;
 
-use std::{collections::HashMap, hash::Hash, vec};
+use std::{collections::{HashMap, HashSet}, hash::Hash, vec};
 
 use bson::bson;
 use crate::{constants, errors::DatabaseError, models::{ApiTreeDagItem, ApiProjectConfigResponseResult, ApiAddMemberPayload}, expression_evaluator};
@@ -759,8 +759,15 @@ pub async fn get_tree_from_node_id(client: &mongodb::Client, tenant: Tenant, nod
 }
 
 #[async_recursion]
-pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenant, startTreeId: &String, projectId: &String) -> Vec<ApiTreeDagItem> {
+pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenant, startTreeId: &String, projectId: &String, mut seen_tree_ids: HashSet<String>) -> Vec<ApiTreeDagItem> {
     let mut result = vec![];
+
+    if seen_tree_ids.contains(startTreeId) {
+        return result;
+    } else {
+        seen_tree_ids.insert(startTreeId.to_string());
+    }
+
 
     let childrenNodes = get_nodes_from_tree(client, tenant.clone(), startTreeId, projectId).await;
 
@@ -802,7 +809,7 @@ pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenan
     for childTree in &childTrees {
         match get_tree_by_id(&client, tenant.clone(), childTree.to_string(), projectId.to_string()).await {
             Ok(tree_data) => {
-                result.push(ApiTreeDagItem { id: childTree.to_string(), title: tree_data.title, children: get_tree_relationships_down(client, tenant.clone(), childTree, projectId).await });
+                result.push(ApiTreeDagItem { id: childTree.to_string(), title: tree_data.title, children: get_tree_relationships_down(client, tenant.clone(), childTree, projectId, seen_tree_ids.clone()).await });
             },
             Err(err) => {
                 // Ignore
