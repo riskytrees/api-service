@@ -759,11 +759,13 @@ pub async fn get_tree_from_node_id(client: &mongodb::Client, tenant: Tenant, nod
 }
 
 #[async_recursion]
-pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenant, startTreeId: &String, projectId: &String, seen_tree_ids: HashSet<String>) -> Vec<ApiTreeDagItem> {
+pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenant, startTreeId: &String, projectId: &String, mut seen_tree_ids: HashSet<String>) -> Vec<ApiTreeDagItem> {
     let mut result = vec![];
 
     if seen_tree_ids.contains(startTreeId) {
         return result;
+    } else {
+        seen_tree_ids.insert(startTreeId.to_string());
     }
 
 
