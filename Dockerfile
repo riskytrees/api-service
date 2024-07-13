@@ -6,4 +6,4 @@ WORKDIR /app/riskytrees
 
 RUN cargo build --release
 ENTRYPOINT ["cargo"]
-CMD ["run"]
+CMD ["run", "--release"]
