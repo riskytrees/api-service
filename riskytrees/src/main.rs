@@ -1047,7 +1047,7 @@ async fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key
                             root: models::ApiTreeDagItem {
                                 id: treeId.clone(),
                                 title: tree_data.title,
-                                children: database::get_tree_relationships_down(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &treeId, &projectId).await
+                                children: database::get_tree_relationships_down(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), projectId.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), &treeId, &projectId, HashSet::new()).await
                             }
                         };
             
