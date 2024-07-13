@@ -1431,8 +1431,9 @@ async fn orgs_members_post(org_id: String, body: Json<models::ApiAddMemberPayloa
         match db_client {
             Ok(client) => {
                 let thing = body.into_inner();
-                let res = database::add_user_to_org(&client, key.tenants, org_id, thing.email.clone()).await;
 
+                let res = database::add_user_to_org(&client, key.tenants, org_id, thing.email.clone()).await;
+        
                 match res {
                     Ok(res) => Json(models::ApiAddMemberResponse {
                         ok: true,
@@ -1523,36 +1524,61 @@ async fn orgs_members_delete(org_id: String, body: Json<models::ApiAddMemberPayl
                         result: None,
                     })
                 } else {
-                    let res = database::remove_user_from_org(&client, key.tenants.clone(), org_id.clone(), thing.email.clone()).await;
+                    let existing_user_count = database::get_user_count_in_org(&client, key.tenants.clone(), org_id.clone()).await;
 
-                    match res {
-                        Ok(res) => {
-                            let res = database::get_members_for_org( &client, org_id, key.tenants).await;
-                    
-                            match res {
-                                Ok(res) => {
-                                    Json(models::ApiGetMembersResponse {
-                                        ok: true,
-                                        message: "Got members".to_owned(),
-                                        result: Some(models::ApiGetMembersResult {
-                                            members: res
-                                        })
+                    match existing_user_count {
+                        Ok(user_count) => {
+
+                            if user_count > 1 {
+                                let res = database::remove_user_from_org(&client, key.tenants.clone(), org_id.clone(), thing.email.clone()).await;
+
+                                match res {
+                                    Ok(res) => {
+                                        let res = database::get_members_for_org( &client, org_id, key.tenants).await;
+                                
+                                        match res {
+                                            Ok(res) => {
+                                                Json(models::ApiGetMembersResponse {
+                                                    ok: true,
+                                                    message: "Got members".to_owned(),
+                                                    result: Some(models::ApiGetMembersResult {
+                                                        members: res
+                                                    })
+                                                })
+                                            },
+                                            Err(err) => Json(models::ApiGetMembersResponse {
+                                                ok: false,
+                                                message: "Getting members failed".to_owned(),
+                                                result: None,
+                                            })
+                                        }
+                        
+                                    },
+                                    Err(err) => Json(models::ApiGetMembersResponse {
+                                        ok: false,
+                                        message: "Removal of user failed".to_owned(),
+                                        result: None,
                                     })
-                                },
-                                Err(err) => Json(models::ApiGetMembersResponse {
+                                }
+                            } else {
+                                Json(models::ApiGetMembersResponse {
                                     ok: false,
-                                    message: "Getting members failed".to_owned(),
+                                    message: "Can not delete last member.".to_owned(),
                                     result: None,
                                 })
                             }
-            
+
                         },
-                        Err(err) => Json(models::ApiGetMembersResponse {
-                            ok: false,
-                            message: "Removal of user failed".to_owned(),
-                            result: None,
-                        })
+                        Err(err) => {
+                            Json(models::ApiGetMembersResponse {
+                                ok: false,
+                                message: "Failed to get user count".to_owned(),
+                                result: None,
+                            })
+                        }
                     }
+
+
                 }
             }
             Err(err) => Json(models::ApiGetMembersResponse {
