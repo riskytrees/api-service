@@ -1018,6 +1018,21 @@ def test_create_project_with_org():
     res = r.json()
     assert(res['ok'] == False)
 
+    # Add four more users
+    for i in range(0, 4):
+            # Add user to org
+            r = requests.post('http://localhost:8000/orgs/' + org_id + '/members', json = {'email':'other' + str(i) + '@example.com'}, headers = TEST_HEADERS)
+
+            res = r.json()
+            assert(res['ok'] == True)
+
+
+    # Sixth user should fail (requires upgrade)
+    r = requests.post('http://localhost:8000/orgs/' + org_id + '/members', json = {'email':'other6@example.com'}, headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == False)
+
 
 def test_delete_orgs():
     r = requests.post('http://localhost:8000/orgs', json = {'name':'Risky Trees'}, headers = TEST_HEADERS)

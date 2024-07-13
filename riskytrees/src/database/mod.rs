@@ -1448,6 +1448,49 @@ pub async fn get_org_id_from_tenant(client: &mongodb::Client, tenant: &Tenant) -
     }
 }
 
+pub async fn get_user_count_in_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String) -> Result<usize, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tenant_collection = database.collection::<Document>("tenants");
+
+    let org_tenant = get_tenant_for_org(client, &org_id).await?;
+
+    // Check to make sure user has access to this tenant
+    let mut has_access = false;
+    for tenant in tenants {
+        if tenant.name == org_tenant.name {
+            has_access = true;
+        }
+    }
+
+    if has_access {
+        let res = tenant_collection.find_one(doc! {
+            "name": org_tenant.name
+        }, None).await;
+
+        match res {
+            Ok(res) => {
+                match res {
+                    Some(doc) => {
+                        let allowed_users = doc.get_array("allowedUsers").expect("To exist");
+                        return Ok(allowed_users.len())
+                    },
+                    None => Err(DatabaseError {
+                        message: "Could not find tenant".to_owned()
+                    })
+                }
+            },
+            Err(err) => Err(DatabaseError {
+                message: "Error finding tenant".to_owned()
+            })
+        }
+    } else {
+        Err(DatabaseError {
+            message: "User does not have access to this org.".to_owned()
+        })
+    }
+
+}
+
 pub async fn add_user_to_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String, email: String) -> Result<String, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let tenant_collection = database.collection::<Document>("tenants");
