@@ -1095,9 +1095,14 @@ components:
 
     OrgMetadataBase:
       type: object
+      required:
+        - name
       properties:
         name:
           type: string
+        plan:
+          type: string
+          enum: [standard, organization, public-good]
 
     OrgMetadata:
       allOf:
