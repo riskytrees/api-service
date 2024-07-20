@@ -933,7 +933,7 @@ def test_create_orgs():
 
 
 def test_create_project_with_org():
-    r = requests.post('http://localhost:8000/orgs', json = {'name':'Risky Trees'}, headers = TEST_HEADERS)
+    r = requests.post('http://localhost:8000/orgs', json = {'name':'Risky Trees', 'plan': 'organization'}, headers = TEST_HEADERS)
 
     res = r.json()
 

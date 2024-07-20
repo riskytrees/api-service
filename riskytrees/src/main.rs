@@ -1350,7 +1350,8 @@ async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) ->
                             message: "Created org successfully".to_owned(),
                             result: Some(models::ApiOrgMetadata {
                                 name: thing.name,
-                                id: res
+                                id: res,
+                                plan: thing.plan.unwrap_or("standard".to_owned())
                             }),
                         })
                     },
@@ -1433,11 +1434,20 @@ async fn orgs_members_post(org_id: String, body: Json<models::ApiAddMemberPayloa
                 let thing = body.into_inner();
 
                 let existing_user_count = database::get_user_count_in_org(&client, key.tenants.clone(), org_id.clone()).await;
+                let org_max_count = database::get_max_user_count_in_org(&client, key.tenants.clone(), org_id.clone()).await;
+
+                if (org_max_count.is_err()) {
+                    return Json(models::ApiAddMemberResponse {
+                        ok: false,
+                        message: "Error getting max user org count".to_owned(),
+                        result: None,
+                    })
+                }
 
                 // Only allow 5 users per org.
                 match existing_user_count {
                     Ok(user_count) => {
-                        if user_count == 5 {
+                        if user_count >= org_max_count.expect("Checked") {
                             Json(models::ApiAddMemberResponse {
                                 ok: false,
                                 message: "Too many users. Please upgrade.".to_owned(),

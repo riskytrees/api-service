@@ -1197,8 +1197,16 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models:
     .map(char::from)
     .collect();
 
+    // Default plan to standard which will allow no additional users.
+    let mut plan: String = "standard".to_owned();
+    let plan_options = vec!["standard".to_owned(), "organization".to_owned(), "public-good".to_owned()];
+
+    if (data.plan.is_some() && plan_options.contains(&(data.plan.clone().expect("Checked")))) {
+        plan = data.plan.clone().expect("Checked");
+    }
+
     let insert_result =
-    org_collection.insert_one(doc! { "name": data.name.clone(), "_tenant": new_tenant.clone() }, None).await?;
+    org_collection.insert_one(doc! { "name": data.name.clone(), "plan": plan, "_tenant": new_tenant.clone() }, None).await?;
     let inserted_id = insert_result.inserted_id;
 
     // Give requesting user access to this new tenant...
@@ -1309,7 +1317,8 @@ pub async fn get_orgs(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<
                     if record.is_ok() {
                         result.push(models::ApiOrgMetadata {
                             name: record.clone().expect("checked").get_str("name").expect("Assert").to_owned(),
-                            id: record.clone().expect("checked").get_object_id("_id").expect("Assert").to_string()
+                            id: record.clone().expect("checked").get_object_id("_id").expect("Assert").to_string(),
+                            plan: record.clone().expect("checked").get_str("plan").unwrap_or("standard").to_owned()
                         })
                     }
                 }
@@ -1446,6 +1455,54 @@ pub async fn get_org_id_from_tenant(client: &mongodb::Client, tenant: &Tenant) -
             None
         }
     }
+}
+
+pub async fn get_max_user_count_in_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String) -> Result<usize, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tenant_collection = database.collection::<Document>("tenants");
+    let org_collection = database.collection::<Document>("organizations");
+
+    let org_tenant = get_tenant_for_org(client, &org_id).await?;
+
+    // Check to make sure user has access to this tenant
+    let mut has_access = false;
+    for tenant in tenants {
+        if tenant.name == org_tenant.name {
+            has_access = true;
+        }
+    }
+
+    if has_access {
+        let org = org_collection.find_one(doc! {
+            "_id": mongodb::bson::oid::ObjectId::parse_str(&org_id).expect("Checked"),
+        }, None).await;
+
+        match org {
+            Ok(res) => {
+                match res {
+                    Some(doc) => {
+                        let plan = doc.get_str("plan").unwrap_or("standard");
+                        match plan {
+                            "organization" => Ok(5),
+                            "public-good" => Ok(1000),
+                            _ => Ok(1)
+                        }
+                    },
+                    None => Err(DatabaseError {
+                        message: "Could not find tenant".to_owned()
+                    })
+                }
+            },
+            Err(err) => Err(DatabaseError {
+                message: "Error finding tenant".to_owned()
+            })
+        }
+    } else {
+        Err(DatabaseError {
+            message: "User does not have access to this org.".to_owned()
+        })
+    }
+
 }
 
 pub async fn get_user_count_in_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String) -> Result<usize, DatabaseError> {
