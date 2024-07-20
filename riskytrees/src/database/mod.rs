@@ -1197,8 +1197,16 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models:
     .map(char::from)
     .collect();
 
+    // Default plan to standard which will allow no additional users.
+    let plan: String = "standard".to_owned();
+    let plan_options = vec!["standard", "organization", "public-good"];
+
+    if (data.plan.is_some() && plan_options.contains(data.plan.expect("Checked"))) {
+        plan = data.plan.expect("Checked");
+    }
+
     let insert_result =
-    org_collection.insert_one(doc! { "name": data.name.clone(), "_tenant": new_tenant.clone() }, None).await?;
+    org_collection.insert_one(doc! { "name": data.name.clone(), "plan": org_collection, "_tenant": new_tenant.clone() }, None).await?;
     let inserted_id = insert_result.inserted_id;
 
     // Give requesting user access to this new tenant...
@@ -1309,7 +1317,8 @@ pub async fn get_orgs(client: &mongodb::Client, tenants: Vec<Tenant>) -> Result<
                     if record.is_ok() {
                         result.push(models::ApiOrgMetadata {
                             name: record.clone().expect("checked").get_str("name").expect("Assert").to_owned(),
-                            id: record.clone().expect("checked").get_object_id("_id").expect("Assert").to_string()
+                            id: record.clone().expect("checked").get_object_id("_id").expect("Assert").to_string(),
+                            plan: record.clone().expect("checked").get_str("plan").unwrap_or("standard").to_owned()
                         })
                     }
                 }

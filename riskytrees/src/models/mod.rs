@@ -491,13 +491,15 @@ pub struct ApiProjectConfigIdPayload {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiOrgMetadataBase {
-    pub name: String
+    pub name: String,
+    pub plan: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiOrgMetadata {
     pub name: String,
-    pub id: String
+    pub id: String,
+    pub plan: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
