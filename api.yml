@@ -842,6 +842,8 @@ components:
       properties:
         result:
           properties:
+            name:
+              type: string
             attributes:
               type: object
 
@@ -860,6 +862,8 @@ components:
     ProjectConfigPayload:
       type: object
       properties:
+        name:
+          type: string
         attributes:
           type: object
 

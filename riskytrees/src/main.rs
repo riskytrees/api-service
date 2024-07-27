@@ -1135,7 +1135,8 @@ async fn projects_configs_post(projectId: String, body: Json<models::ApiProjectC
                             message: "Created config".to_owned(),
                             result: Some(models::ApiProjectConfigResponseResult {
                                 id: new_config_id,
-                                attributes: serde_json::json!(thing)
+                                attributes: serde_json::json!(thing.attributes),
+                                name: None
                             })
                         })
                     },
@@ -1179,7 +1180,8 @@ async fn projects_configs_put(projectId: String, configId: String, body: Json<mo
                             message: "Updated config".to_owned(),
                             result: Some(models::ApiProjectConfigResponseResult {
                                 id: updated_id,
-                                attributes: serde_json::json!(thing)
+                                attributes: serde_json::json!(thing.attributes),
+                                name: thing.name
                             }),
                         })
                     },

@@ -468,7 +468,8 @@ pub struct ApiProjectConfigListResponseResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiProjectConfigPayload {
-    pub attributes: serde_json::Value
+    pub attributes: serde_json::Value,
+    pub name: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -481,7 +482,8 @@ pub struct ApiProjectConfigResponse {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiProjectConfigResponseResult {
     pub id: String,
-    pub attributes: serde_json::Value
+    pub attributes: serde_json::Value,
+    pub name: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
