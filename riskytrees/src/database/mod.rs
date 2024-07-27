@@ -905,6 +905,7 @@ pub async fn update_config(client: &mongodb::Client, tenant: Tenant, project_id:
         Ok(bson_attributes) => {
             let new_doc = doc! {
                 "attributes": bson_attributes,
+                "name": body.name.clone(),
                 "_tenant": tenant.name.to_owned()
             };
         
@@ -949,10 +950,15 @@ pub async fn get_selected_config(client: &mongodb::Client, tenant: Tenant, proje
                             match matched_record {
                                 Some(matched_record) => {
                                     let attributes = matched_record.get_document("attributes").expect("Should always exist");
+                                    let name = matched_record.get_str("name");
 
                                     Ok(ApiProjectConfigResponseResult {
                                         id: matched_record.get_object_id("_id").expect("Should always exist").to_string(),
-                                        attributes: serde_json::json!(attributes)
+                                        attributes: serde_json::json!(attributes),
+                                        name: match name {
+                                            Ok(_) => Some(name.expect("Checked").to_string()),
+                                            Err(err) => None
+                                        }
                                     })
                                 },
                                 None => Err(DatabaseError { message: "No matched record".to_string()})
@@ -1022,7 +1028,11 @@ pub async fn get_config(client: &mongodb::Client, tenant: Tenant, project_id: &S
 
                     Ok(ApiProjectConfigResponseResult {
                         id: matched_record.get_object_id("_id").expect("Should always exist").to_string(),
-                        attributes: serde_json::json!(attributes)
+                        attributes: serde_json::json!(attributes),
+                        name: match matched_record.get_str("name") {
+                            Ok(res) => Some(res.to_string()),
+                            Err(err) => None 
+                        }
                     })
                 },
                 None => Err(DatabaseError { message: "No matched record".to_string()})

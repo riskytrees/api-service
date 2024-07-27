@@ -622,7 +622,8 @@ def test_update_config():
     r = requests.put('http://localhost:8000/projects/' + project_id + "/configs/" + config_id, json = {
       "attributes": {
         "New": "Value"
-      }  
+      },
+      "name": "Cool config"
     }, headers = TEST_HEADERS)
     res = r.json()
     assert(res['ok'] == True)
@@ -632,6 +633,7 @@ def test_update_config():
     res = r.json()
     assert(res['ok'] == True)
     assert(res['result']['attributes']['New'] == 'Value')
+    assert(res['result']['name'] == 'Cool config')
 
 def test_condition_resolution():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
