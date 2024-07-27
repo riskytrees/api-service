@@ -19,7 +19,7 @@ fn test_de_json_condition() {
 fn test_expression_evaluation() {
     let config = models::ApiProjectConfigResponseResult {
         id: "test".to_owned(),
-        name: "Hello",
+        name: Some("Hello".to_owned()),
         attributes: serde_json::json!({
             "hello": "world",
             "other": false
