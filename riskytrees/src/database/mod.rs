@@ -1233,6 +1233,55 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models:
 
 }
 
+pub async fn update_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String, data: &models::ApiOrgMetadataBase) {
+    let database = client.database(constants::DATABASE_NAME);
+    let org_collection = database.collection::<Document>("organizations");
+
+
+    // Verify access to org
+    let needed_tenant = get_tenant_for_org(client, &org_id).await;
+
+    let new_doc = doc! {
+        "$set": {
+            "name": data.name
+        }
+    };
+
+    if data.plan.is_some() {
+        new_doc.insert("plan", data.plan.expect("Checked"))
+    }
+
+    match needed_tenant {
+        Ok(needed_tenant) => {
+            if tenants.contains(&needed_tenant) {
+                // Update org
+                match org_collection.update_one(doc! {
+                    "_id": mongodb::bson::oid::ObjectId::parse_str(&org_id).expect("Checked"),
+                    "_tenant": needed_tenant.name.to_owned()
+                }, new_doc, None).await {
+                    Ok(_) => {
+                        Ok(true)
+                    },
+                    Err(err) => {
+                        Err(errors::DatabaseError {
+                            message: "Database error when trying to update org".to_string()
+                        })
+                    }
+                }
+            } else {
+                Err(errors::DatabaseError {
+                    message: "No access to org".to_string()
+                })
+            }
+        },
+        Err(err) => {
+            Err(errors::DatabaseError {
+                message: "Finding tenant for org failed.".to_string()
+            })
+        }
+    }
+}
+
 pub async fn delete_project_by_id(client: &mongodb::Client, tenants: Vec<Tenant>, project_id: String) -> Result<bool, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let project_collection = database.collection::<Document>("projects");
