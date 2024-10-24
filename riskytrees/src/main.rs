@@ -1376,6 +1376,55 @@ async fn orgs_post(body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) ->
     }
 }
 
+#[put("/orgs/<org_id>", data = "<body>")]
+async fn orgs_put(org_id: String, body: Json<models::ApiOrgMetadataBase>, key: auth::ApiKey) -> Json<models::ApiOrgResponse> {
+    if key.email == "" {
+        Json(models::ApiOrgResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+
+        match db_client {
+            Ok(client) => {
+                let thing = body.into_inner();
+                let res = database::update_org( &client, key.tenants, org_id, &thing).await;
+
+                match res {
+                    Ok(res) => {
+                        Json(models::ApiOrgResponse {
+                            ok: true,
+                            message: "Updated org successfully".to_owned(),
+                            result: Some(models::ApiOrgMetadata {
+                                name: thing.name,
+                                id: res,
+                                plan: thing.plan.unwrap_or("standard".to_owned())
+                            }),
+                        })
+                    },
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        Json(models::ApiOrgResponse {
+                            ok: false,
+                            message: "Error creating org".to_owned(),
+                            result: None,
+                        })
+                    }
+                }
+            },
+            Err(err) => Json(models::ApiOrgResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        }    
+    }
+}
+
+
+
 #[get("/orgs")]
 async fn orgs_get(key: auth::ApiKey) -> Json<models::ApiGetOrgsResponse> {
     if key.email == "" {
@@ -1704,6 +1753,7 @@ async fn rocket() -> _ {
                 orgs_post,
                 orgs_get,
                 org_delete,
+                orgs_put,
                 org_members_get,
                 orgs_members_post,
                 orgs_members_delete

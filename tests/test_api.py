@@ -1,3 +1,4 @@
+import secrets
 import time
 import uuid
 import requests
@@ -932,6 +933,53 @@ def test_create_orgs():
 
     assert(res['ok'] == True)
     assert(res['result']['orgs'][0]['name'] == 'Risky Trees')
+
+
+def test_update_orgs():
+    r = requests.post('http://localhost:8000/orgs', json = {'name':'Risky Trees'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("Created" in res['message'])
+    org_id = res['result']['id']
+
+    new_name = 'Safety Trees ' + secrets.token_hex(8)
+    r = requests.put('http://localhost:8000/orgs/' + str(org_id), json = {'name': new_name}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+
+    r = requests.get('http://localhost:8000/orgs', headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+
+    found_alerted_org = False
+    for org in res['result']['orgs']:
+        if org['name'] == new_name:
+            found_alerted_org = True
+
+    assert(found_alerted_org == True)
+
+
+    r = requests.put('http://localhost:8000/orgs/' + str(org_id), json = {'name': new_name, "plan": "public-good"}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+
+
+    r = requests.get('http://localhost:8000/orgs', headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+
+    found_alerted_org = False
+    for org in res['result']['orgs']:
+        if org['id'] == org_id:
+            assert(org['plan'] == "public-good")
 
 
 def test_create_project_with_org():
