@@ -654,6 +654,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/OrgResponse'
   /orgs/{orgId}:
+    put:
+      tags:
+        - orgs
+      summary: Updates an org
+      operationId: updateOrg
+      requestBody:
+        description: Desired org config
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgMetadataBase'
+        required: true
+      parameters:
+        - in: path
+          name: orgId
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: Org created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgResponse'
     delete:
       tags:
       - orgs
