@@ -1233,7 +1233,7 @@ pub async fn create_org(client: &mongodb::Client, tenant: Tenant, data: &models:
 
 }
 
-pub async fn update_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String, data: &models::ApiOrgMetadataBase) {
+pub async fn update_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String, data: &models::ApiOrgMetadataBase) -> Result<String, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let org_collection = database.collection::<Document>("organizations");
 
@@ -1241,14 +1241,14 @@ pub async fn update_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: 
     // Verify access to org
     let needed_tenant = get_tenant_for_org(client, &org_id).await;
 
-    let new_doc = doc! {
+    let mut new_doc = doc! {
         "$set": {
-            "name": data.name
+            "name": data.name.clone()
         }
     };
 
     if data.plan.is_some() {
-        new_doc.insert("plan", data.plan.expect("Checked"))
+        new_doc.insert("plan", data.plan.clone().expect("Checked"));
     }
 
     match needed_tenant {
@@ -1260,7 +1260,7 @@ pub async fn update_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: 
                     "_tenant": needed_tenant.name.to_owned()
                 }, new_doc, None).await {
                     Ok(_) => {
-                        Ok(true)
+                        Ok(org_id)
                     },
                     Err(err) => {
                         Err(errors::DatabaseError {

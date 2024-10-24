@@ -181,7 +181,7 @@ impl<'r> rocket::request::FromRequest<'r> for ApiKey {
     async fn from_request(request: &'r rocket::request::Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
         let keys: Vec<_> = request.headers().get("Authorization").collect();
         match keys.len() {
-            0 => rocket::request::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+            0 => rocket::request::Outcome::Error((rocket::http::Status::BadRequest, AuthError {
                 message: "No Auth header".to_owned()
             })),
             1 => {
@@ -219,13 +219,13 @@ impl<'r> rocket::request::FromRequest<'r> for ApiKey {
                         })
                     },
                     Err(err) => {
-                        rocket::request::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+                        rocket::request::Outcome::Error((rocket::http::Status::BadRequest, AuthError {
                             message: "JWT Verification failed".to_owned()
                         }))
                     }
                 }
             },
-            _ => rocket::request::Outcome::Failure((rocket::http::Status::BadRequest, AuthError {
+            _ => rocket::request::Outcome::Error((rocket::http::Status::BadRequest, AuthError {
                 message: "Too many auth headers!".to_owned()
             })),
         }
