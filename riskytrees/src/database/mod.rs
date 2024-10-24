@@ -1248,7 +1248,7 @@ pub async fn update_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: 
     };
 
     if data.plan.is_some() {
-        new_doc.insert("plan", data.plan.clone().expect("Checked"));
+        new_doc.get_document_mut("$set").expect("Just added").insert("plan", data.plan.clone().expect("Checked"));
     }
 
     match needed_tenant {
