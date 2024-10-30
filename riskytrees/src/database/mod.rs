@@ -349,10 +349,12 @@ pub async fn update_project_model(client: mongodb::Client, tenant: Tenant, proje
                 "title": title, "related_tree_ids": tree_ids, "selectedModel": modelId, "_tenant": tenant.name.to_owned()
             };
 
-            let _result = project_collection.find_one_and_replace(doc! {
+            let _result = project_collection.find_one_and_update(doc! {
                 "_id": mongodb::bson::oid::ObjectId::parse_str(&project_id).expect("Checked"),
                 "_tenant": tenant.name.to_owned()
-            }, new_doc, None).await;
+            }, doc! {
+                "$set": new_doc
+            }, None).await;
 
             Ok(true)
         },
