@@ -352,12 +352,39 @@ def test_get_and_update_project_model():
 
     assert(r.json()['result']['modelId'] == '')
 
+    # Add a config so we are sure updating the model doesn't clear other properties
+    r = requests.post('http://localhost:8000/projects/' + project_id + "/configs", json = {
+      "attributes": {
+        "Hello": "Test"
+      }  
+    }, headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs", headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+    assert("Got" in res['message'])
+    assert(len(res['result']['ids']) == 1)
+
+    # Update model
+
     r = requests.put('http://localhost:8000/projects/' + str(project_id) + '/model', json = {'modelId': 'test'}, headers = TEST_HEADERS)
     assert(r.json()['ok'] == True)
 
     r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/model', headers = TEST_HEADERS)
 
     assert(r.json()['result']['modelId'] == 'test')
+
+
+    # Ensure config still exists
+    r = requests.get('http://localhost:8000/projects/' + project_id + "/configs", headers = TEST_HEADERS)
+
+    res = r.json()
+    assert(res['ok'] == True)
+    assert("Got" in res['message'])
+    assert(len(res['result']['ids']) == 1)
 
 def test_get_node_response():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
