@@ -253,6 +253,11 @@ paths:
           schema:
             type: integer
           required: true
+        - in: query
+          name: configId
+          required: false
+          schema:
+            type: string
       responses:
         200:
           description: Got tree successfully
