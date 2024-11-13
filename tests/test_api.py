@@ -780,6 +780,33 @@ def test_condition_resolution():
 
     assert(list(filter(lambda r : r == True, condition_results)).count(True) == 3)
 
+    # Now change selected config
+    r = requests.post('http://localhost:8000/projects/' + project_id + "/configs", json = {
+      "attributes": {
+        "test": "200",
+        "other": False
+      }  
+    }, headers = TEST_HEADERS)
+    res = r.json()
+    assert(res['ok'] == True)
+
+    new_config_id = res['result']['id']
+
+    r = requests.get('http://localhost:8000/projects/' + str(project_id) + '/trees/' + str(tree_id) + "?config_id=" + new_config_id, headers = TEST_HEADERS)
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert(res['result']['title'] == 'My Tree')
+    assert(len(res['result']['nodes']) == 5)
+    condition_results = [res['result']['nodes'][0]['conditionResolved'],
+                         res['result']['nodes'][1]['conditionResolved'],
+                         res['result']['nodes'][2]['conditionResolved'],
+                         res['result']['nodes'][3]['conditionResolved'],
+                         res['result']['nodes'][4]['conditionResolved']
+                        ]
+
+    assert(list(filter(lambda r : r == True, condition_results)).count(True) != 3)
+
 
 def test_condition_no_config():
     r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
@@ -863,6 +890,7 @@ def test_condition_no_config():
                         ]
 
     assert(list(filter(lambda r : r == True, condition_results)).count(True) == 0)
+
 
 
 def test_project_tree_undo_put():
