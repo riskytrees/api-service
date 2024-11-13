@@ -487,7 +487,7 @@ fn convert_bson_document_to_ModelAttribute_map(bson_doc: &Document) -> HashMap<S
 }
 
 // Returns all the data contained in a single tree
-async fn get_full_tree_data(client: &mongodb::Client, tenant: Tenant, tree_id: String, project_id: &String) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
+async fn get_full_tree_data(client: &mongodb::Client, tenant: Tenant, tree_id: String, project_id: &String, config_id: Option<String>) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let trees_collection = database.collection::<Document>("trees");
 
@@ -529,7 +529,10 @@ async fn get_full_tree_data(client: &mongodb::Client, tenant: Tenant, tree_id: S
 
                         let mut condition_resolved = true; // Default to true
                         if condition_attribute.is_some() {
-                            let config = get_selected_config(client, tenant.clone(), project_id).await;
+                            let config = match config_id {
+                                Some(ref config_id) => get_config_by_id(client, tenant.clone(), &config_id).await,
+                                None => get_selected_config(client, tenant.clone(), project_id).await
+                            };
 
                             match config {
                                 Ok(config) => {
@@ -600,7 +603,18 @@ pub async fn get_tree_by_id(
     tree_id: String,
     project_id: String
 ) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
-    get_full_tree_data(client, tenant, tree_id, &project_id).await
+    get_full_tree_data(client, tenant, tree_id, &project_id, None).await
+
+}
+
+pub async fn get_tree_by_id_with_config(
+    client: &mongodb::Client,
+    tenant: Tenant,
+    tree_id: String,
+    project_id: String,
+    config_id: Option<String>
+) -> Result<models::ApiFullComputedTreeData, errors::DatabaseError> {
+    get_full_tree_data(client, tenant, tree_id, &project_id, config_id).await
 
 }
 
@@ -624,7 +638,7 @@ pub async fn update_tree_by_id(
     }, None).await;
 
 
-    get_full_tree_data(client, tenant, tree_id, &project_id).await
+    get_full_tree_data(client, tenant, tree_id, &project_id, None).await
 }
 
 // DANGER: Not tenantized
@@ -824,7 +838,7 @@ pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenan
 }
 
 pub async fn get_nodes_from_tree(client: &mongodb::Client, tenant: Tenant, treeId: &String, projectId: &String) -> Vec<models::ApiFullComputedNodeData> {
-    let data = get_full_tree_data(client, tenant, treeId.to_string(), projectId).await;
+    let data = get_full_tree_data(client, tenant, treeId.to_string(), projectId, None).await;
 
     match data {
         Ok(res) => {
@@ -923,6 +937,41 @@ pub async fn update_config(client: &mongodb::Client, tenant: Tenant, project_id:
         Err(err) => {
             Err(DatabaseError { message: "Could not convert body attribute to JSON".to_owned() })
         }
+    }
+}
+
+pub async fn get_config_by_id(client: &mongodb::Client, tenant: Tenant, config_id: &String) -> Result<models::ApiProjectConfigResponseResult, errors::DatabaseError>  {
+    let database = client.database(constants::DATABASE_NAME);
+    let config_collection = database.collection::<Document>("configs");
+
+    let matched_record = config_collection.find_one(
+        doc! {
+            "_id": mongodb::bson::oid::ObjectId::parse_str(&config_id).expect("Checked"),
+            "_tenant": tenant.clone().name.to_owned()
+        },
+        None,
+    ).await;
+
+    match matched_record {
+        Ok(matched_record) => {
+            match matched_record {
+                Some(matched_record) => {
+                    let attributes = matched_record.get_document("attributes").expect("Should always exist");
+                    let name = matched_record.get_str("name");
+
+                    Ok(ApiProjectConfigResponseResult {
+                        id: matched_record.get_object_id("_id").expect("Should always exist").to_string(),
+                        attributes: serde_json::json!(attributes),
+                        name: match name {
+                            Ok(_) => Some(name.expect("Checked").to_string()),
+                            Err(err) => None
+                        }
+                    })
+                },
+                None => Err(DatabaseError { message: "No matched record".to_string()})
+            }
+        },
+        Err(err) => Err(DatabaseError { message: format!("{}", err)})
     }
 }
 
