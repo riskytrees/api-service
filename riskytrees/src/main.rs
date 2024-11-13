@@ -565,8 +565,8 @@ async fn projects_trees_get(id: String, key: auth::ApiKey) -> Json<models::ApiLi
     }
 }
 
-#[get("/projects/<id>/trees/<tree_id>")]
-async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey) -> Json<models::ApiTreeComputedResponse> {
+#[get("/projects/<id>/trees/<tree_id>?<config_id>")]
+async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey, config_id: Option<String>) -> Json<models::ApiTreeComputedResponse> {
     if key.email == "" {
         Json(models::ApiTreeComputedResponse {
             ok: false,
@@ -581,8 +581,8 @@ async fn projects_trees_tree_get(id: String, tree_id: String, key: auth::ApiKey)
                 let tree: Result<models::ApiFullComputedTreeData, errors::DatabaseError> = match get_publicity_for_tree_by_id(&client, tree_id.clone()).await {
                     Ok(res) => {
                         match res {
-                            true => database::get_tree_by_id(&client, database::get_tenant_for_tree(&client, &tree_id.clone()).await.expect("Always exists"), tree_id, id.clone()).await,
-                            false => database::get_tree_by_id(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), tree_id.to_owned(), id.to_owned()).await        
+                            true => database::get_tree_by_id_with_config(&client, database::get_tenant_for_tree(&client, &tree_id.clone()).await.expect("Always exists"), tree_id, id.clone(), config_id).await,
+                            false => database::get_tree_by_id_with_config(&client, database::filter_tenant_for_project(&client, key.tenants.clone(), id.clone()).await.unwrap_or(database::Tenant {name: key.email.clone( )}), tree_id.to_owned(), id.to_owned(), config_id).await        
                         }
                     },
                     Err(err) => {
