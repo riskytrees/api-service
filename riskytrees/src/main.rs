@@ -132,12 +132,16 @@ async fn auth_login_get(code: Option<String>, state: Option<String>, scope: Opti
 }
 
 #[post("/auth/login?<provider>")]
-async fn auth_login_post(provider: Option<String>) -> Json<models::ApiAuthLoginResponse> {
+async fn auth_login_post(mut provider: Option<String>) -> Json<models::ApiAuthLoginResponse> {
+    if provider.is_none() {
+        provider = Some("google".to_string());
+    }
+    
     let db_client = database::get_instance().await;
     match db_client {
         Ok(client) => {
             // Start flow
-            let start_data = auth::start_flow();
+            let start_data = auth::start_flow(provider.expect("Asserted"));
             match start_data {
                 Ok(start_data) => {
                     // Store csrf_token for lookup later
@@ -180,7 +184,7 @@ async fn auth_login_post(provider: Option<String>) -> Json<models::ApiAuthLoginR
                 result: None,
             })
         },
-    }
+    }    
 }
 
 #[post("/auth/logout")]

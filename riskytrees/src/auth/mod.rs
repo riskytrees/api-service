@@ -37,21 +37,53 @@ pub struct ApiKey {
 }
 
 
-pub fn start_flow() -> Result<AuthRequestData, AuthError> {
-    let auth_url = AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).map_err(|e| AuthError {
+pub fn start_flow(provider: String) -> Result<AuthRequestData, AuthError> {
+    let oidc_auth_url = match provider.as_str() {
+        "google" => "RISKY_TREES_GOOGLE_AUTH_URL",
+        "github" => "RISKY_TREES_GITHUB_AUTH_URL",
+        _ => ""
+    };
+
+    let oidc_redirect_url = match provider.as_str() {
+        "google" => "RISKY_TREES_GOOGLE_REDIRECT_URL",
+        "github" => "RISKY_TREES_GITHUB_REDIRECT_URL",
+        _ => ""
+    };
+
+    let oidc_client_secret = match provider.as_str() {
+        "google" => "RISKY_TREES_GOOGLE_CLIENT_SECRET",
+        "github" => "RISKY_TREES_GITHUB_CLIENT_SECRET",
+        _ => ""
+    };
+
+    let oidc_client_id = match provider.as_str() {
+        "google" => "RISKY_TREES_GOOGLE_CLIENT_ID",
+        "github" => "RISKY_TREES_GITHUB_CLIENT_ID",
+        _ => ""
+    };
+
+    let oidc_issuer_url = match provider.as_str() {
+        "google" => "RISKY_TREES_GOOGLE_ISSUER_URL",
+        "github" => "RISKY_TREES_GITHUB_ISSUER_URL",
+        _ => ""
+    };
+
+
+
+    let auth_url = AuthUrl::new(env::var(oidc_auth_url).expect("to exist").to_string()).map_err(|e| AuthError {
         message: "Error getting auth URL".to_owned()
     })?;
-    let redirect_url = RedirectUrl::new(env::var("RISKY_TREES_GOOGLE_REDIRECT_URL").expect("to exist").to_string());
+    let redirect_url = RedirectUrl::new(env::var(oidc_redirect_url).expect("to exist").to_string());
 
 
     match redirect_url {
         Ok(redirect_url) => {
             let client =
             openidconnect::core::CoreClient::new(
-                ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
-                Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string())),
-                IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_ISSUER_URL").expect("to exist").to_string()).expect("Should be able to create Issuer URL"),
-                AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).expect("Should be able to create auth URL"),
+                ClientId::new(env::var(oidc_client_id).expect("to exist").to_string()),
+                Some(ClientSecret::new(env::var(oidc_client_secret).expect("to exist").to_string())),
+                IssuerUrl::new(env::var(oidc_issuer_url).expect("to exist").to_string()).expect("Should be able to create Issuer URL"),
+                AuthUrl::new(env::var(oidc_auth_url).expect("to exist").to_string()).expect("Should be able to create auth URL"),
                 None, None, JsonWebKeySet::new(vec![])
 
             )
