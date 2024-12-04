@@ -117,27 +117,56 @@ pub fn start_flow(provider: String) -> Result<AuthRequestData, AuthError> {
 
 // Returns email if trade succeeds
 pub async fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
-    let auth_url = AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).map_err(|e| AuthError {
-        message: "Error getting auth URL".to_owned()
-    })?;
-    let redirect_url = RedirectUrl::new(env::var("RISKY_TREES_GOOGLE_REDIRECT_URL").expect("to exist").to_string()).map_err(|e| AuthError {
+    let oidc_auth_url = match code.starts_with("gho_") {
+        false => "RISKY_TREES_GOOGLE_AUTH_URL",
+        true => "RISKY_TREES_GITHUB_AUTH_URL"
+    };
+
+    let oidc_redirect_url = match code.starts_with("gho_") {
+        false => "RISKY_TREES_GOOGLE_REDIRECT_URL",
+        true => "RISKY_TREES_GITHUB_REDIRECT_URL"
+    };
+
+    let oidc_jwks_url = match code.starts_with("gho_") {
+        false => "RISKY_TREES_GOOGLE_JWKS_URL",
+        true => "RISKY_TREES_GITHUB_JWKS_URL"
+    };
+
+    let oidc_client_id = match code.starts_with("gho_") {
+        false => "RISKY_TREES_GOOGLE_CLIENT_ID",
+        true => "RISKY_TREES_GITHUB_CLIENT_ID"
+    };
+
+    let oidc_client_secret = match code.starts_with("gho_") {
+        false => "RISKY_TREES_GOOGLE_CLIENT_SECRET",
+        true => "RISKY_TREES_GITHUB_CLIENT_SECRET"
+    };
+
+    let oidc_issuer_url = match code.starts_with("gho_") {
+        false => "RISKY_TREES_GOOGLE_ISSUER_URL",
+        true => "RISKY_TREES_GITHUB_ISSUER_URL"
+    };
+
+    let oidc_token_url = match code.starts_with("gho_") {
+        false => "RISKY_TREES_GOOGLE_TOKEN_URL",
+        true => "RISKY_TREES_GITHUB_TOKEN_URL"
+    };
+
+    let redirect_url = RedirectUrl::new(env::var(oidc_redirect_url).expect("to exist").to_string()).map_err(|e| AuthError {
         message: "Error getting redirect URL".to_owned()
     })?;
-    let token_url = AuthUrl::new(env::var("RISKY_TREES_GOOGLE_TOKEN_URL").expect("to exist").to_string()).map_err(|e| AuthError {
-        message: "Error getting auth URL".to_owned()
-    })?;
 
-    let jwks_url = openidconnect::JsonWebKeySetUrl::new(env::var("RISKY_TREES_GOOGLE_JWKS_URL").expect("to exist").to_string()).expect("Should work");
+    let jwks_url = openidconnect::JsonWebKeySetUrl::new(env::var(oidc_jwks_url).expect("to exist").to_string()).expect("Should work");
     let http_client = openidconnect::reqwest::async_http_client;
     let jwks = JsonWebKeySet::fetch_async(&jwks_url, http_client).await.expect("Should resolve JWKS");
 
     let client =
     openidconnect::core::CoreClient::new(
-        ClientId::new(env::var("RISKY_TREES_GOOGLE_CLIENT_ID").expect("to exist").to_string()),
-        Some(ClientSecret::new(env::var("RISKY_TREES_GOOGLE_CLIENT_SECRET").expect("to exist").to_string())),
-        IssuerUrl::new(env::var("RISKY_TREES_GOOGLE_ISSUER_URL").expect("to exist").to_string()).expect("Should be able to create Issuer URL"),
-        AuthUrl::new(env::var("RISKY_TREES_GOOGLE_AUTH_URL").expect("to exist").to_string()).expect("Should be able to create auth URL"),
-        Some(TokenUrl::new(env::var("RISKY_TREES_GOOGLE_TOKEN_URL").expect("to exist").to_string()).expect("Should be able to create token URL")), 
+        ClientId::new(env::var(oidc_client_id).expect("to exist").to_string()),
+        Some(ClientSecret::new(env::var(oidc_client_secret).expect("to exist").to_string())),
+        IssuerUrl::new(env::var(oidc_issuer_url).expect("to exist").to_string()).expect("Should be able to create Issuer URL"),
+        AuthUrl::new(env::var(oidc_auth_url).expect("to exist").to_string()).expect("Should be able to create auth URL"),
+        Some(TokenUrl::new(env::var(oidc_token_url).expect("to exist").to_string()).expect("Should be able to create token URL")), 
         None, jwks
 
     )
