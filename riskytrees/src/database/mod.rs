@@ -1093,21 +1093,26 @@ pub async fn get_config(client: &mongodb::Client, tenant: Tenant, project_id: &S
     }
 }
 
-pub async fn store_csrf_token(token: &openidconnect::CsrfToken, nonce: &Nonce, client: &mongodb::Client) -> Result<bool, DatabaseError> {
+pub async fn store_csrf_token(token: &openidconnect::CsrfToken, nonce: &Nonce, client: &mongodb::Client, provider: String) -> Result<bool, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let csrf_collection = database.collection::<Document>("csrf_tokens");
 
     csrf_collection.insert_one(doc! {
         "csrf": token.secret(),
-        "nonce": nonce.secret()
+        "nonce": nonce.secret(),
+        "provider": provider
     }, None).await?;
 
     Ok(true)
 }
+pub struct CSRFValidationResult {
+    pub nonce: Nonce,
+    pub provider: String
+}
 
 // Deletes token at time of validation. i.e. good for one use
 // Returns Nonce if validated, throws an error otherwise.
-pub async fn validate_csrf_token(state_parameter: &String, client: &mongodb::Client) -> Result<Nonce, DatabaseError> {
+pub async fn validate_csrf_token(state_parameter: &String, client: &mongodb::Client) -> Result<CSRFValidationResult, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let csrf_collection = database.collection::<Document>("csrf_tokens");
 
@@ -1120,7 +1125,13 @@ pub async fn validate_csrf_token(state_parameter: &String, client: &mongodb::Cli
             let nonce = result.get_str("nonce").map_err(|e| DatabaseError {
                 message: "No nonce".to_owned()
             })?;
-            Ok(Nonce::new(nonce.to_owned()))
+            let provider = result.get_str("provider").map_err(|e| DatabaseError {
+                message: "No provider".to_owned()
+            })?;
+            Ok(CSRFValidationResult {
+                nonce: Nonce::new(nonce.to_owned()),
+                provider: provider.to_string()
+            })
         },
         None => {
             Err(DatabaseError {

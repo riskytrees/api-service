@@ -1,5 +1,7 @@
 use std::env;
 use hmac::{Hmac, Mac};
+use openidconnect::AccessToken;
+use openidconnect::OAuth2TokenResponse;
 use sha2::Sha256;
 use jwt;
 use jwt::SignWithKey;
@@ -22,6 +24,7 @@ use openidconnect::{
 use openidconnect::reqwest::async_http_client;
 
 use crate::database;
+use crate::database::CSRFValidationResult;
 use crate::database::Tenant;
 use crate::errors::{AuthError, self};
 
@@ -115,39 +118,43 @@ pub fn start_flow(provider: String) -> Result<AuthRequestData, AuthError> {
 
 }
 
+pub async fn exchange_github_access_token_for_email(access_token: &AccessToken) -> Result<String, AuthError> {
+    // TODO implement me
+}
+
 // Returns email if trade succeeds
-pub async fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthError> {
-    let oidc_auth_url = match code.starts_with("gho_") {
+pub async fn trade_token(code: &String, validation_result: CSRFValidationResult) -> Result<String, AuthError> {
+    let oidc_auth_url = match validation_result.provider == "github" {
         false => "RISKY_TREES_GOOGLE_AUTH_URL",
         true => "RISKY_TREES_GITHUB_AUTH_URL"
     };
 
-    let oidc_redirect_url = match code.starts_with("gho_") {
+    let oidc_redirect_url = match validation_result.provider == "github" {
         false => "RISKY_TREES_GOOGLE_REDIRECT_URL",
         true => "RISKY_TREES_GITHUB_REDIRECT_URL"
     };
 
-    let oidc_jwks_url = match code.starts_with("gho_") {
+    let oidc_jwks_url = match validation_result.provider == "github" {
         false => "RISKY_TREES_GOOGLE_JWKS_URL",
         true => "RISKY_TREES_GITHUB_JWKS_URL"
     };
 
-    let oidc_client_id = match code.starts_with("gho_") {
+    let oidc_client_id = match validation_result.provider == "github" {
         false => "RISKY_TREES_GOOGLE_CLIENT_ID",
         true => "RISKY_TREES_GITHUB_CLIENT_ID"
     };
 
-    let oidc_client_secret = match code.starts_with("gho_") {
+    let oidc_client_secret = match validation_result.provider == "github" {
         false => "RISKY_TREES_GOOGLE_CLIENT_SECRET",
         true => "RISKY_TREES_GITHUB_CLIENT_SECRET"
     };
 
-    let oidc_issuer_url = match code.starts_with("gho_") {
+    let oidc_issuer_url = match validation_result.provider == "github" {
         false => "RISKY_TREES_GOOGLE_ISSUER_URL",
         true => "RISKY_TREES_GITHUB_ISSUER_URL"
     };
 
-    let oidc_token_url = match code.starts_with("gho_") {
+    let oidc_token_url = match validation_result.provider == "github" {
         false => "RISKY_TREES_GOOGLE_TOKEN_URL",
         true => "RISKY_TREES_GITHUB_TOKEN_URL"
     };
@@ -180,11 +187,12 @@ pub async fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthErro
 
     match token_result {
         Ok(token_result) => {
+            println!("${:?}", token_result);
             let id_token = token_result.id_token();
             match id_token {
                 Some(id_token) => {
                     // Extract the ID token claims after verifying its authenticity and nonce.
-                    let claims = id_token.claims(&client.id_token_verifier(), &nonce);
+                    let claims = id_token.claims(&client.id_token_verifier(), &validation_result.nonce);
 
                     match claims {
                         Ok(claims) => {
@@ -199,7 +207,23 @@ pub async fn trade_token(code: &String, nonce: Nonce) -> Result<String, AuthErro
                         }
                     }
                 },
-                None =>  Err(AuthError { message: "Did not receive an ID Token".to_owned() })
+                None => {
+                    match validation_result.provider.as_str() {
+                        "google" => Err(AuthError { message: "Did not receive an ID Token".to_owned() }),
+                        _ => {
+                            // Some login providers don't support OIDC's Identity Token so we have to do a manual identity lookup
+                            let access_token = token_result.access_token();
+                            match exchange_github_access_token_for_email(access_token).await {
+                                Ok(email) => {
+                                    Ok(email.to_string())
+                                },
+                                Err(err) => {
+                                    Err(AuthError { message: "Github identity lookup failed".to_owned() })
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         Err(err) => {
