@@ -140,3 +140,6 @@ terraform.rc
 
 # macOS
 .DS_Store
+
+# Sensitive values
+*_test.env
