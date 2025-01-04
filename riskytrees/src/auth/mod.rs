@@ -119,7 +119,28 @@ pub fn start_flow(provider: String) -> Result<AuthRequestData, AuthError> {
 }
 
 pub async fn exchange_github_access_token_for_email(access_token: &AccessToken) -> Result<String, AuthError> {
-    // TODO implement me
+    let request = octocrab::Octocrab::builder()
+    .user_access_token(secrecy::SecretString::from(access_token.secret().as_str()))
+    .build();
+
+    match request {
+        Ok(request) => {
+            let user: Result<octocrab::models::UserProfile, octocrab::Error> = request.get("/user", None::<&()>)
+        .await;
+            match user {
+                Ok(user_profile) => {
+                    match user_profile.email {
+                        Some(email) => {
+                            return Ok(email)
+                        },
+                        None => Err(AuthError { message: "No email associated with user".to_owned() })
+                    }
+                },
+                Err(err) => Err(AuthError { message: "GitHub API call to /user failed".to_owned() })
+            }
+        },
+        Err(err) => Err(AuthError { message: "Failed to build request".to_owned() })
+    }
 }
 
 // Returns email if trade succeeds
@@ -217,9 +238,7 @@ pub async fn trade_token(code: &String, validation_result: CSRFValidationResult)
                                 Ok(email) => {
                                     Ok(email.to_string())
                                 },
-                                Err(err) => {
-                                    Err(AuthError { message: "Github identity lookup failed".to_owned() })
-                                }
+                                Err(err) => Err(err)
                             }
                         }
                     }
