@@ -208,7 +208,6 @@ pub async fn trade_token(code: &String, validation_result: CSRFValidationResult)
 
     match token_result {
         Ok(token_result) => {
-            println!("${:?}", token_result);
             let id_token = token_result.id_token();
             match id_token {
                 Some(id_token) => {
