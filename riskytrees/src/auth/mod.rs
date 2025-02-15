@@ -1,5 +1,6 @@
 use std::env;
 use hmac::{Hmac, Mac};
+use jwt::claims::SecondsSinceEpoch;
 use openidconnect::AccessToken;
 use openidconnect::OAuth2TokenResponse;
 use sha2::Sha256;
@@ -251,10 +252,11 @@ pub async fn trade_token(code: &String, validation_result: CSRFValidationResult)
 
 }
 
-pub fn generate_user_jwt(email: &String) -> Result<String, AuthError> {
+pub fn generate_user_jwt(email: &String, expiration: SecondsSinceEpoch) -> Result<String, AuthError> {
     let key: Hmac<Sha256> = Hmac::new_from_slice(env::var("RISKY_TREES_JWT_SECRET").expect("to exist").as_bytes()).expect("Should be able to create key");
     let mut claims = std::collections::BTreeMap::new();
     claims.insert("email", email.clone());
+    claims.insert("expiration", expiration.to_string());
     let token_str = claims.sign_with_key(&key).expect("Sign should work");
 
     Ok(token_str)
@@ -266,7 +268,24 @@ pub fn verify_user_jwt(token: &String) -> Result<String, AuthError> {
 
     match claims {
         Ok(claims) => {
-            Ok(claims["email"].clone())
+            if (!claims.contains_key("expiration")) {
+                Err(AuthError {
+                    message: "JWT verification failed (missing keys)!".to_owned()
+                })
+            } else {
+                let start = std::time::SystemTime::now();
+                let since_the_epoch = start
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .expect("Time went backwards").as_secs();
+                let valid_until: u64 = claims["expiration"].parse().expect("Should be a u64");
+                if since_the_epoch < valid_until {
+                    Ok(claims["email"].clone())
+                } else {
+                    Err(AuthError {
+                        message: "JWT verification failed (expired)!".to_owned()
+                    })
+                }
+            }
         },
         Err(err) => {
             Err(AuthError {

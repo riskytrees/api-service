@@ -84,7 +84,11 @@ async fn auth_login_get(code: Option<String>, state: Option<String>, scope: Opti
                         match email {
                             Ok(email) => {
                                 // Generate JWT
-                                let session_token = auth::generate_user_jwt(&email);
+                                let start = std::time::SystemTime::now();
+                                let since_the_epoch = start
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("Time went backwards").as_secs() + 604800;
+                                let session_token = auth::generate_user_jwt(&email, since_the_epoch);
                                 match session_token {
                                     Ok(session_token) => Json(models::ApiAuthLoginResponse {
                                         ok: true,

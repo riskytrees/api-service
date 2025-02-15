@@ -6,8 +6,8 @@ import os
 
 # The following is a Test JWT created by using the following, non-prod JWT secret:
 #   testjwttestjwttestjwttestjwttestjwt
-TEST_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20ifQ.nnzKa34M7aloJO94_OQyJIEBCnr2tKshriSb0lNNd9A"
-OTHER_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im90aGVyQGV4YW1wbGUuY29tIn0.NvemU6gZYzdlAnXDZTdNjC3xcdsKdEWg6mD6E7GMBaM"
+TEST_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHBpcmF0aW9uIjoiMzQ3NjIzNTgxNCJ9.v_ROJ4EXdZdJl9dAVTD42b8F3mPf2y51AMnbt57FWq0"
+OTHER_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im90aGVyQGV4YW1wbGUuY29tIiwiZXhwaXJhdGlvbiI6IjM0NzYyMzU4MTQifQ.0WEAiKFhDGhioPhpZ84SWEqDIkM8Pmh6eDa8Hn7unrA"
 TEST_HEADERS = {
     'Authorization': TEST_JWT
 }
