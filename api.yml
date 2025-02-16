@@ -39,7 +39,7 @@ paths:
           required: false
       responses:
         200:
-          description: User logged in succesfully.
+          description: User logged in successfully.
           content:
             application/json:
               schema:
@@ -61,7 +61,7 @@ paths:
 
       responses:
         200:
-          description: User logged in succesfully.
+          description: User logged in successfully.
           content:
             application/json:
               schema:
@@ -74,9 +74,38 @@ paths:
       operationId: logoutUser
       responses:
         200:
-          description: User logged out succesfully
+          description: User logged out successfully
           content: {}
-
+  /auth/personal/tokens:
+    post:
+      tags:
+      - auth
+      summary: Generates a personal access token.
+      description: Generates a personal access token. Tokens are valid for 30 days. However, every time a token is used, the counter is reset.
+      operationId: postPersonalToken
+      responses:
+        200:
+          description: Token generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPersonalTokenResponse'
+    delete:
+      tags:
+      - auth
+      summary: Deactivates a personal access token
+      operationId: deletePersonalToken
+      requestBody:
+        description: Details on the key
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthPersonalToken'
+        required: true
+      responses:
+        200:
+          description: Deactivated successfully
+          content: {}
   /projects:
     get:
       tags:
@@ -104,7 +133,7 @@ paths:
         required: true
       responses:
         200:
-          description: Project created succesfully
+          description: Project created successfully
           content:
             application/json:
               schema:
@@ -148,7 +177,7 @@ paths:
         required: true
       responses:
         200:
-          description: Project created succesfully
+          description: Project created successfully
           content:
             application/json:
               schema:
@@ -166,7 +195,7 @@ paths:
       operationId: deleteProject
       responses:
         200:
-          description: Project deleted succesfully
+          description: Project deleted successfully
           content:
             application/json:
               schema:
@@ -211,7 +240,7 @@ paths:
           required: true
       responses:
         200:
-          description: Tree created succesfully
+          description: Tree created successfully
           content:
             application/json:
               schema:
@@ -230,7 +259,7 @@ paths:
           required: true
       responses:
         200:
-          description: Got node details succesfully.
+          description: Got node details successfully.
           content:
             application/json:
               schema:
@@ -312,7 +341,7 @@ paths:
           required: true
       responses:
         200:
-          description: Deleted succesfully
+          description: Deleted successfully
           content:
             application/json:
               schema:
@@ -634,7 +663,7 @@ paths:
       operationId: getOrgs
       responses:
         200:
-          description: Got list of orgs succesfully
+          description: Got list of orgs successfully
           content:
             application/json:
               schema:
@@ -773,6 +802,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetMembersResponse'
+    
 
 components:
   schemas:
@@ -791,6 +821,24 @@ components:
           type: string
         orgId:
           type: string
+
+    AuthPersonalToken:
+      type: object
+      properties:
+        tokenId:
+          type: string
+    AuthPersonalTokenResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            tokenId:
+              type: string
+            personalToken:
+              type: string
 
     AuthLoginResponse:
       allOf:
