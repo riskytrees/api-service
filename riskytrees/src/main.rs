@@ -17,6 +17,7 @@ mod models;
 mod auth;
 mod expression_evaluator;
 mod history;
+mod routes;
 
 #[cfg(test)]
 mod tests;
@@ -232,6 +233,30 @@ async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse
             }),
         }
     }
+}
+
+#[post("/auth/personal/tokens", data = "<body>")]
+async fn auth_personal_tokens_post(body: Json<models::ApiCreateAuthPersonalToken>, key: auth::ApiKey) -> Json<models::ApiAuthPersonalTokenResponse> {
+    if key.email == "" {
+        Json(models::ApiAuthPersonalTokenResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                
+            }
+            Err(e) => Json(models::ApiAuthPersonalTokenResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }
+    }
+
 }
 
 #[post("/projects", data = "<body>")]

@@ -81,8 +81,15 @@ paths:
       tags:
       - auth
       summary: Generates a personal access token.
-      description: Generates a personal access token. Tokens are valid for 30 days. However, every time a token is used, the counter is reset.
+      description: Generates a personal access token.
       operationId: postPersonalToken
+      requestBody:
+        description: Metadata on the key, like duration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuthPersonalToken'
+        required: true
       responses:
         200:
           description: Token generated successfully
@@ -827,6 +834,15 @@ components:
       properties:
         tokenId:
           type: string
+
+
+    CreateAuthPersonalToken:
+      type: object
+      properties:
+        expireInDays:
+          type: integer
+          example: 90
+
     AuthPersonalTokenResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'
