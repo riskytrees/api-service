@@ -1902,6 +1902,10 @@ pub async fn delete_tree_by_id(client: &mongodb::Client, tenants: Vec<Tenant>, i
 }
 
 pub async fn generate_token_for_user(client: &mongodb::Client, email: &String, expiration: u32) -> Result<models::AuthPersonalTokenResponseResult, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tokens_collection = database.collection::<Document>("tokens");
+
+
     let start = std::time::SystemTime::now();
     let since_the_epoch = start
         .duration_since(std::time::UNIX_EPOCH)
@@ -1913,19 +1917,34 @@ pub async fn generate_token_for_user(client: &mongodb::Client, email: &String, e
     // and so static code analysis can find them.
     let identifier = "rtt_".to_owned() + &identifier_uuid.to_string();
 
-    let user_jwt = generate_user_jwt(email,since_the_epoch, Some(identifier.clone()) );
+    let res = tokens_collection.insert_one(doc! {
+        "_tenant": email.clone(),
+        "identifier": identifier.clone(),
+        "revoked": false
+    }, None).await;
 
-    match user_jwt {
-        Ok(user_jwt) => {
-            Ok(models::AuthPersonalTokenResponseResult {
-                personalToken: user_jwt,
-                tokenId: identifier.to_string()
-            })
+    match res {
+        Ok(res) => {
+            let user_jwt = generate_user_jwt(email,since_the_epoch, Some(identifier.clone()) );
+
+            match user_jwt {
+                Ok(user_jwt) => {
+                    Ok(models::AuthPersonalTokenResponseResult {
+                        personalToken: user_jwt,
+                        tokenId: identifier.to_string()
+                    })
+                },
+                Err(err) => {
+                    Err(errors::DatabaseError {
+                        message: "Generation of user JWT failed.".to_owned()
+                    })
+                }
+            }
         },
-        Err(err) => {
-            Err(errors::DatabaseError {
-                message: "Generation of user JWT failed.".to_owned()
-            })
-        }
+        Err(err) => Err(errors::DatabaseError {
+            message: "Could not store token in DB".to_owned()
+        })
     }
+    
+
 }
