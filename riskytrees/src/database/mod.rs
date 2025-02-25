@@ -7,9 +7,9 @@ use rand::{Rng, distributions::Alphanumeric};
 use rocket::Data;
 
 use std::{collections::{HashMap, HashSet}, hash::Hash, vec};
-
+use uuid::Uuid;
 use bson::bson;
-use crate::{constants, errors::DatabaseError, models::{ApiTreeDagItem, ApiProjectConfigResponseResult, ApiAddMemberPayload}, expression_evaluator};
+use crate::{auth::generate_user_jwt, constants, errors::DatabaseError, expression_evaluator, models::{ApiAddMemberPayload, ApiProjectConfigResponseResult, ApiTreeDagItem}};
 use crate::errors;
 use crate::helpers;
 use crate::models;
@@ -1896,6 +1896,35 @@ pub async fn delete_tree_by_id(client: &mongodb::Client, tenants: Vec<Tenant>, i
         Err(err) => {
             Err(errors::DatabaseError {
                 message: "Finding tenant for tree failed:".to_string() + &err.to_string()
+            })
+        }
+    }
+}
+
+pub async fn generate_token_for_user(client: &mongodb::Client, email: &String, expiration: u32) -> Result<models::AuthPersonalTokenResponseResult, DatabaseError> {
+    let start = std::time::SystemTime::now();
+    let since_the_epoch = start
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("Time went backwards").as_secs() + u64::from(expiration);
+
+    // Unlike session tokens, we need an identifier for API tokens.
+    let identifier_uuid = Uuid::new_v4();
+    // Prefix is so we can differentiate API tokens from session tokens
+    // and so static code analysis can find them.
+    let identifier = "rtt_".to_owned() + &identifier_uuid.to_string();
+
+    let user_jwt = generate_user_jwt(email,since_the_epoch, Some(identifier.clone()) );
+
+    match user_jwt {
+        Ok(user_jwt) => {
+            Ok(models::AuthPersonalTokenResponseResult {
+                personalToken: user_jwt,
+                tokenId: identifier.to_string()
+            })
+        },
+        Err(err) => {
+            Err(errors::DatabaseError {
+                message: "Generation of user JWT failed.".to_owned()
             })
         }
     }

@@ -4,7 +4,7 @@ extern crate rocket;
 
 use std::collections::HashSet;
 use database::{get_org_id_from_tenant, get_project_by_id, get_publicity_for_tree_by_id, get_tree_from_node_id, set_publicity_for_tree_by_id};
-use models::ApiProjectConfigListResponseResult;
+use models::{ApiProjectConfigListResponseResult, AuthPersonalTokenResponseResult};
 use mongodb::bson::doc;
 use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
 
@@ -17,7 +17,6 @@ mod models;
 mod auth;
 mod expression_evaluator;
 mod history;
-mod routes;
 
 #[cfg(test)]
 mod tests;
@@ -89,7 +88,7 @@ async fn auth_login_get(code: Option<String>, state: Option<String>, scope: Opti
                                 let since_the_epoch = start
                                     .duration_since(std::time::UNIX_EPOCH)
                                     .expect("Time went backwards").as_secs() + 604800;
-                                let session_token = auth::generate_user_jwt(&email, since_the_epoch);
+                                let session_token = auth::generate_user_jwt(&email, since_the_epoch, None);
                                 match session_token {
                                     Ok(session_token) => Json(models::ApiAuthLoginResponse {
                                         ok: true,
@@ -247,7 +246,24 @@ async fn auth_personal_tokens_post(body: Json<models::ApiCreateAuthPersonalToken
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                
+                let token = database::generate_token_for_user(&client, &key.email, body.expiresInDays).await;
+
+                match token {
+                    Ok(token) => {
+                        Json(models::ApiAuthPersonalTokenResponse {
+                            ok: true,
+                            message: "Token created succesfully.".to_owned(),
+                            result: Some(token)
+                        })
+                    },
+                    Err(err) => Json(models::ApiAuthPersonalTokenResponse {
+                        ok: false,
+                        message: "Generation of token failed".to_owned(),
+                        result: None,
+                    })
+                }
+
+
             }
             Err(e) => Json(models::ApiAuthPersonalTokenResponse {
                 ok: false,
@@ -1759,6 +1775,7 @@ async fn rocket() -> _ {
                 auth_login_get,
                 auth_login_post,
                 auth_logout,
+                auth_personal_tokens_post,
                 project_get,
                 projects_get,
                 projects_post,

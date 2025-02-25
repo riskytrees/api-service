@@ -252,11 +252,16 @@ pub async fn trade_token(code: &String, validation_result: CSRFValidationResult)
 
 }
 
-pub fn generate_user_jwt(email: &String, expiration: SecondsSinceEpoch) -> Result<String, AuthError> {
+pub fn generate_user_jwt(email: &String, expiration: SecondsSinceEpoch, identifier: Option<String> ) -> Result<String, AuthError> {
     let key: Hmac<Sha256> = Hmac::new_from_slice(env::var("RISKY_TREES_JWT_SECRET").expect("to exist").as_bytes()).expect("Should be able to create key");
     let mut claims = std::collections::BTreeMap::new();
     claims.insert("email", email.clone());
     claims.insert("expiration", expiration.to_string());
+
+    if identifier.is_some() {
+        claims.insert("identifier", identifier.expect("Checked"));
+    }
+
     let token_str = claims.sign_with_key(&key).expect("Sign should work");
 
     Ok(token_str)
