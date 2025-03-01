@@ -246,7 +246,7 @@ async fn auth_personal_tokens_post(body: Json<models::ApiCreateAuthPersonalToken
         let db_client = database::get_instance().await;
         match db_client {
             Ok(client) => {
-                let token = database::generate_token_for_user(&client, &key.email, body.expiresInDays).await;
+                let token = database::generate_token_for_user(&client, &key.email, body.expireInDays).await;
 
                 match token {
                     Ok(token) => {

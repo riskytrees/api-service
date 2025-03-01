@@ -1226,3 +1226,52 @@ def test_project_publicity():
     res = r.json()
 
     assert(res['ok'] == False)
+
+
+def test_token_create():
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert("created" in res['message'])
+    assert(res['result']['title'] == 'test project')
+
+    # Create a token
+    r = requests.post('http://localhost:8000/auth/personal/tokens', json = {'expireInDays': 1}, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    token = res['result']['personalToken']
+    identifier = res['result']['tokenId']
+    assert(token != None)
+
+
+    # Try to get it with a token should work
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers={
+        'Authorization': token
+    })
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+
+    # Delete the token
+    r = requests.delete('http://localhost:8000/auth/personal/tokens', json = {
+        'tokenId': identifier
+    }, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+
+
+    # Try to get it with the token should now fail
+    r = requests.post('http://localhost:8000/projects', json = {'title':'test project'}, headers={
+        'Authorization': token
+    })
+
+    res = r.json()
+
+    assert(res['ok'] == False)

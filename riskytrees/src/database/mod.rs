@@ -1901,6 +1901,32 @@ pub async fn delete_tree_by_id(client: &mongodb::Client, tenants: Vec<Tenant>, i
     }
 }
 
+pub async fn validate_token_identifier(client: &mongodb::Client, identifier: &String) -> bool {
+    let database = client.database(constants::DATABASE_NAME);
+    let tokens_collection = database.collection::<Document>("tokens");
+
+    let res = tokens_collection.find_one(doc! {
+        "identifier": identifier.clone(),
+        "revoked": false
+    }, None).await;
+
+    match res {
+        Ok(res) => {
+            match res {
+                Some(res) => {
+                    true
+                },
+                None => false
+            }
+
+        },
+        Err(err) => {
+            false
+        }
+    }
+
+}
+
 pub async fn generate_token_for_user(client: &mongodb::Client, email: &String, expiration: u32) -> Result<models::AuthPersonalTokenResponseResult, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let tokens_collection = database.collection::<Document>("tokens");

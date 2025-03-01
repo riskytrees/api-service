@@ -572,7 +572,7 @@ pub struct ApiTreePublicityResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiCreateAuthPersonalToken {
-    pub expiresInDays: u32
+    pub expireInDays: u32
 
 }
 

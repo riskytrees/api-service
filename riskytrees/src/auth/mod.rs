@@ -1,5 +1,6 @@
 use std::env;
 use hmac::{Hmac, Mac};
+use jwt::claims;
 use jwt::claims::SecondsSinceEpoch;
 use openidconnect::AccessToken;
 use openidconnect::OAuth2TokenResponse;
@@ -265,6 +266,27 @@ pub fn generate_user_jwt(email: &String, expiration: SecondsSinceEpoch, identifi
     let token_str = claims.sign_with_key(&key).expect("Sign should work");
 
     Ok(token_str)
+}
+
+pub async fn verify_still_valid(claims: &std::collections::BTreeMap<String, String>) -> bool {
+    let db_client = database::get_instance().await;
+
+    match db_client {
+        Ok(db_client) => {
+            if (claims.contains_key("identifier")) {
+                if (claims.get("identifier").expect("checked").starts_with("rtt_")) {
+                    if !database::validate_token_identifier(&db_client, claims.get("identifier").expect("checked")).await {
+                        return false;
+                    }
+                }
+            }
+        
+            return true;
+        },
+        Err(err) => {
+            return false;
+        }
+    }
 }
 
 pub fn verify_user_jwt(token: &String) -> Result<String, AuthError> {
