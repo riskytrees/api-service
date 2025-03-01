@@ -569,3 +569,22 @@ pub struct ApiTreePublicityResponse {
     pub message: String,
     pub result: Option<ApiTreePublicity>
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiCreateAuthPersonalToken {
+    pub expireInDays: u32
+
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiAuthPersonalTokenResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<AuthPersonalTokenResponseResult>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AuthPersonalTokenResponseResult {
+    pub tokenId: String,
+    pub personalToken: String
+}

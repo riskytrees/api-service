@@ -4,7 +4,7 @@ extern crate rocket;
 
 use std::collections::HashSet;
 use database::{get_org_id_from_tenant, get_project_by_id, get_publicity_for_tree_by_id, get_tree_from_node_id, set_publicity_for_tree_by_id};
-use models::ApiProjectConfigListResponseResult;
+use models::{ApiProjectConfigListResponseResult, AuthPersonalTokenResponseResult};
 use mongodb::bson::doc;
 use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
 
@@ -88,7 +88,7 @@ async fn auth_login_get(code: Option<String>, state: Option<String>, scope: Opti
                                 let since_the_epoch = start
                                     .duration_since(std::time::UNIX_EPOCH)
                                     .expect("Time went backwards").as_secs() + 604800;
-                                let session_token = auth::generate_user_jwt(&email, since_the_epoch);
+                                let session_token = auth::generate_user_jwt(&email, since_the_epoch, None);
                                 match session_token {
                                     Ok(session_token) => Json(models::ApiAuthLoginResponse {
                                         ok: true,
@@ -233,6 +233,96 @@ async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse
         }
     }
 }
+
+#[post("/auth/personal/tokens", data = "<body>")]
+async fn auth_personal_tokens_post(body: Json<models::ApiCreateAuthPersonalToken>, key: auth::ApiKey) -> Json<models::ApiAuthPersonalTokenResponse> {
+    if key.email == "" {
+        Json(models::ApiAuthPersonalTokenResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                let token = database::generate_token_for_user(&client, &key.email, body.expireInDays).await;
+
+                match token {
+                    Ok(token) => {
+                        Json(models::ApiAuthPersonalTokenResponse {
+                            ok: true,
+                            message: "Token created succesfully.".to_owned(),
+                            result: Some(token)
+                        })
+                    },
+                    Err(err) => Json(models::ApiAuthPersonalTokenResponse {
+                        ok: false,
+                        message: "Generation of token failed".to_owned(),
+                        result: None,
+                    })
+                }
+
+
+            }
+            Err(e) => Json(models::ApiAuthPersonalTokenResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }
+    }
+
+}
+
+#[delete("/auth/personal/tokens/<id>")]
+async fn personal_token_delete(id: String, key: auth::ApiKey) -> Json<models::ApiResponse> {
+    if key.email == "" {
+        Json(models::ApiResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                match database::deactivate_token(&client, &key.email.clone(), &id).await {
+                    Ok(res) => {
+                        if res {
+                            Json(models::ApiResponse {
+                                ok: true,
+                                message: "Token deactivated".to_owned(),
+                                result: None
+                            })
+                        } else {
+                            Json(models::ApiResponse {
+                                ok: false,
+                                message: "Token failed to deactivate".to_owned(),
+                                result: None
+                            })
+                        }
+                    }, 
+                    Err(err) => {
+                        Json(models::ApiResponse {
+                            ok: false,
+                            message: "Could not deactivate token due to DB issue".to_owned(),
+                            result: None
+                        })
+                    }
+
+                }
+            }
+            Err(e) => Json(models::ApiResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }
+    }
+
+}
+
 
 #[post("/projects", data = "<body>")]
 async fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) -> Json<models::ApiCreateProjectResponse> {
@@ -1734,6 +1824,8 @@ async fn rocket() -> _ {
                 auth_login_get,
                 auth_login_post,
                 auth_logout,
+                auth_personal_tokens_post,
+                personal_token_delete,
                 project_get,
                 projects_get,
                 projects_post,

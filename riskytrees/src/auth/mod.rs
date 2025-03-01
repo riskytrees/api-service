@@ -1,5 +1,6 @@
 use std::env;
 use hmac::{Hmac, Mac};
+use jwt::claims;
 use jwt::claims::SecondsSinceEpoch;
 use openidconnect::AccessToken;
 use openidconnect::OAuth2TokenResponse;
@@ -252,14 +253,40 @@ pub async fn trade_token(code: &String, validation_result: CSRFValidationResult)
 
 }
 
-pub fn generate_user_jwt(email: &String, expiration: SecondsSinceEpoch) -> Result<String, AuthError> {
+pub fn generate_user_jwt(email: &String, expiration: SecondsSinceEpoch, identifier: Option<String> ) -> Result<String, AuthError> {
     let key: Hmac<Sha256> = Hmac::new_from_slice(env::var("RISKY_TREES_JWT_SECRET").expect("to exist").as_bytes()).expect("Should be able to create key");
     let mut claims = std::collections::BTreeMap::new();
     claims.insert("email", email.clone());
     claims.insert("expiration", expiration.to_string());
+
+    if identifier.is_some() {
+        claims.insert("identifier", identifier.expect("Checked"));
+    }
+
     let token_str = claims.sign_with_key(&key).expect("Sign should work");
 
     Ok(token_str)
+}
+
+pub async fn verify_still_valid(claims: &std::collections::BTreeMap<String, String>) -> bool {
+    let db_client = database::get_instance().await;
+
+    match db_client {
+        Ok(db_client) => {
+            if (claims.contains_key("identifier")) {
+                if (claims.get("identifier").expect("checked").starts_with("rtt_")) {
+                    if !database::validate_token_identifier(&db_client, claims.get("identifier").expect("checked")).await {
+                        return false;
+                    }
+                }
+            }
+        
+            return true;
+        },
+        Err(err) => {
+            return false;
+        }
+    }
 }
 
 pub fn verify_user_jwt(token: &String) -> Result<String, AuthError> {
