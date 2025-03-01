@@ -1258,13 +1258,13 @@ def test_token_create():
     assert(res['ok'] == True)
 
     # Delete the token
-    r = requests.delete('http://localhost:8000/auth/personal/tokens', json = {
-        'tokenId': identifier
-    }, headers = TEST_HEADERS)
+    r = requests.delete('http://localhost:8000/auth/personal/tokens/' + identifier, headers = TEST_HEADERS)
 
     res = r.json()
 
     assert(res['ok'] == True)
+
+    time.sleep(5)
 
 
     # Try to get it with the token should now fail
@@ -1272,6 +1272,4 @@ def test_token_create():
         'Authorization': token
     })
 
-    res = r.json()
-
-    assert(res['ok'] == False)
+    assert(r.status_code == 400)

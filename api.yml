@@ -97,18 +97,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthPersonalTokenResponse'
+  /auth/personal/tokens/{id}:
     delete:
       tags:
       - auth
       summary: Deactivates a personal access token
       operationId: deletePersonalToken
-      requestBody:
-        description: Details on the key
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AuthPersonalToken'
-        required: true
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
       responses:
         200:
           description: Deactivated successfully

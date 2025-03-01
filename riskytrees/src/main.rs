@@ -275,6 +275,55 @@ async fn auth_personal_tokens_post(body: Json<models::ApiCreateAuthPersonalToken
 
 }
 
+#[delete("/auth/personal/tokens/<id>")]
+async fn personal_token_delete(id: String, key: auth::ApiKey) -> Json<models::ApiResponse> {
+    if key.email == "" {
+        Json(models::ApiResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                match database::deactivate_token(&client, &key.email.clone(), &id).await {
+                    Ok(res) => {
+                        if res {
+                            Json(models::ApiResponse {
+                                ok: true,
+                                message: "Token deactivated".to_owned(),
+                                result: None
+                            })
+                        } else {
+                            Json(models::ApiResponse {
+                                ok: false,
+                                message: "Token failed to deactivate".to_owned(),
+                                result: None
+                            })
+                        }
+                    }, 
+                    Err(err) => {
+                        Json(models::ApiResponse {
+                            ok: false,
+                            message: "Could not deactivate token due to DB issue".to_owned(),
+                            result: None
+                        })
+                    }
+
+                }
+            }
+            Err(e) => Json(models::ApiResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            }),
+        }
+    }
+
+}
+
+
 #[post("/projects", data = "<body>")]
 async fn projects_post(body: Json<models::ApiCreateProject>, key: auth::ApiKey) -> Json<models::ApiCreateProjectResponse> {
     if key.email == "" {
@@ -1776,6 +1825,7 @@ async fn rocket() -> _ {
                 auth_login_post,
                 auth_logout,
                 auth_personal_tokens_post,
+                personal_token_delete,
                 project_get,
                 projects_get,
                 projects_post,

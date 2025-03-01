@@ -1974,3 +1974,36 @@ pub async fn generate_token_for_user(client: &mongodb::Client, email: &String, e
     
 
 }
+
+pub async fn deactivate_token(client: &mongodb::Client, email: &String, token_id: &String) -> Result<bool, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tokens_collection = database.collection::<Document>("tokens");
+
+    let res = tokens_collection.find_one_and_update(doc ! {
+        "_tenant": email.clone(),
+        "identifier": token_id.clone(),
+        "revoked": false
+    }, doc! {
+        "$set": {
+            "revoked": true
+        }
+    }, None).await;
+
+    match res {
+        Ok(res) => {
+            match res {
+                Some(res) => {
+                    Ok(true)
+                },
+                None => Err(DatabaseError {
+                    message: "Could not find token".to_owned()
+                })
+            }
+        },
+        Err(err) => {
+            Err(errors::DatabaseError {
+                message: "Find token failed".to_owned()
+            })
+        }
+    }
+}
