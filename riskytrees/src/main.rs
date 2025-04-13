@@ -234,6 +234,48 @@ async fn projects_get(key: auth::ApiKey) -> Json<models::ApiProjectsListResponse
     }
 }
 
+#[get("/auth/personal/tokens")]
+async fn auth_personal_tokens_get(key: auth::ApiKey) -> Json<models::ApiAuthPersonalTokensResponse> {
+    if key.email == "" {
+        Json(models::ApiAuthPersonalTokensResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: vec![],
+        })
+    } else {
+        let db_client = database::get_instance().await;
+        match db_client {
+            Ok(client) => {
+                let tokens = database::get_tokens_for_user(&client, &key.email).await;
+
+                match tokens {
+                    Ok(tokens) => {
+                        Json(models::ApiAuthPersonalTokensResponse {
+                            ok: true,
+                            message: "Token created succesfully.".to_owned(),
+                            result: tokens
+                        })
+                    },
+                    Err(err) => Json(models::ApiAuthPersonalTokensResponse {
+                        ok: false,
+                        message: "Generation of token failed".to_owned(),
+                        result: vec![],
+                    })
+                }
+
+
+            }
+            Err(e) => Json(models::ApiAuthPersonalTokensResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: vec![],
+            }),
+        }
+    }
+
+}
+
+
 #[post("/auth/personal/tokens", data = "<body>")]
 async fn auth_personal_tokens_post(body: Json<models::ApiCreateAuthPersonalToken>, key: auth::ApiKey) -> Json<models::ApiAuthPersonalTokenResponse> {
     if key.email == "" {
@@ -1824,6 +1866,7 @@ async fn rocket() -> _ {
                 auth_login_get,
                 auth_login_post,
                 auth_logout,
+                auth_personal_tokens_get,
                 auth_personal_tokens_post,
                 personal_token_delete,
                 project_get,

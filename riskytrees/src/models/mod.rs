@@ -588,3 +588,15 @@ pub struct AuthPersonalTokenResponseResult {
     pub tokenId: String,
     pub personalToken: String
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiAuthPersonalTokensResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Vec<AuthPersonalTokensResponseResult>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AuthPersonalTokensResponseResult {
+    pub tokenId: String
+}

@@ -9,7 +9,7 @@ use rocket::Data;
 use std::{collections::{HashMap, HashSet}, hash::Hash, vec};
 use uuid::Uuid;
 use bson::bson;
-use crate::{auth::generate_user_jwt, constants, errors::DatabaseError, expression_evaluator, models::{ApiAddMemberPayload, ApiProjectConfigResponseResult, ApiTreeDagItem}};
+use crate::{auth::generate_user_jwt, constants, errors::DatabaseError, expression_evaluator, models::{ApiAddMemberPayload, ApiProjectConfigResponseResult, ApiTreeDagItem, AuthPersonalTokensResponseResult}};
 use crate::errors;
 use crate::helpers;
 use crate::models;
@@ -1925,6 +1925,34 @@ pub async fn validate_token_identifier(client: &mongodb::Client, identifier: &St
         }
     }
 
+}
+
+pub async fn get_tokens_for_user(client: &mongodb::Client, email: &String) -> Result<Vec<AuthPersonalTokensResponseResult>, DatabaseError> {
+    let database = client.database(constants::DATABASE_NAME);
+    let tokens_collection = database.collection::<Document>("tokens");
+
+    let res = tokens_collection.find(doc! {
+        "_tenant": email.clone(),
+        "revoked": false
+    }, None).await;
+
+    match res {
+        Ok(mut res) => {
+            let mut result: Vec<AuthPersonalTokensResponseResult> = vec![];
+            while let Some(record) = res.next().await {
+                if record.is_ok() {
+                    result.push(AuthPersonalTokensResponseResult {
+                        tokenId: record.expect("Checked").get_str("identifier").expect("To work").to_string()
+                    })
+                }
+            }
+
+            Ok(result)
+        },
+        Err(err) => Err(errors::DatabaseError {
+            message: "Could not lookup tokens in DB".to_owned()
+        })
+    }
 }
 
 pub async fn generate_token_for_user(client: &mongodb::Client, email: &String, expiration: u32) -> Result<models::AuthPersonalTokenResponseResult, DatabaseError> {
