@@ -258,7 +258,7 @@ async fn auth_personal_tokens_get(key: auth::ApiKey) -> Json<models::ApiAuthPers
                     },
                     Err(err) => Json(models::ApiAuthPersonalTokensResponse {
                         ok: false,
-                        message: "Generation of token failed".to_owned(),
+                        message: "Token retrieval failed".to_owned(),
                         result: vec![],
                     })
                 }
