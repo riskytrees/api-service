@@ -252,7 +252,7 @@ async fn auth_personal_tokens_get(key: auth::ApiKey) -> Json<models::ApiAuthPers
                     Ok(tokens) => {
                         Json(models::ApiAuthPersonalTokensResponse {
                             ok: true,
-                            message: "Token created succesfully.".to_owned(),
+                            message: "Tokens retrieved successfully.".to_owned(),
                             result: tokens
                         })
                     },
