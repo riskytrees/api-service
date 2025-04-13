@@ -77,6 +77,20 @@ paths:
           description: User logged out successfully
           content: {}
   /auth/personal/tokens:
+    get:
+      tags:
+      - auth
+      summary: Gets a list of personal access tokens you've created.
+      description: Gets a list of personal access tokens you've created.
+      operationId: getPersonalTokens
+      responses:
+        200:
+          description: Got tokens successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPersonalTokensResponse'
+
     post:
       tags:
       - auth
@@ -855,6 +869,19 @@ components:
               type: string
             personalToken:
               type: string
+
+    AuthPersonalTokensResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      type: object
+      properties:
+        result:
+          type: array
+          items:
+            type: object
+            properties:
+              tokenId:
+                type: string
 
     AuthLoginResponse:
       allOf:

@@ -1257,6 +1257,15 @@ def test_token_create():
 
     assert(res['ok'] == True)
 
+    # Should be able to list tokens
+    r = requests.get('http://localhost:8000/auth/personal/tokens', headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+    assert(len(res['result']) >= 1)
+
+
     # Delete the token
     r = requests.delete('http://localhost:8000/auth/personal/tokens/' + identifier, headers = TEST_HEADERS)
 
