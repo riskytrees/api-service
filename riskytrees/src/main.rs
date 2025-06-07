@@ -17,6 +17,7 @@ mod models;
 mod auth;
 mod expression_evaluator;
 mod history;
+mod recommendations;
 
 #[cfg(test)]
 mod tests;
@@ -1168,6 +1169,39 @@ async fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeRespo
 
 }
 
+#[get("/nodes/<id>/recommend")]
+async fn node_recommend_get(id: String, key: auth::ApiKey) -> Json<models::ApiRecommendNodeChildrenResponse> {
+    if key.email == "" {
+        Json(models::ApiRecommendNodeChildrenResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+
+        match db_client {
+            Ok(client) => {
+                // TODO
+                // Get list of node titles leading up to this node.
+                Json(models::ApiRecommendNodeChildrenResponse {
+                                ok: false,
+                                message: "MOCKED".to_owned(),
+                                result: None,
+                })
+
+            },
+            Err(err) => Json(models::ApiRecommendNodeChildrenResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        }
+    
+    }
+
+}
+
 #[get("/projects/<projectId>/trees/<treeId>/dag/down")]
 async fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key: auth::ApiKey) -> Json<models::ApiTreeDagResponse> {
     if key.email == "" {
@@ -1893,6 +1927,7 @@ async fn rocket() -> _ {
                 projects_config_put,
                 models_get,
                 node_get,
+                node_recommend_get,
                 orgs_post,
                 orgs_get,
                 org_delete,

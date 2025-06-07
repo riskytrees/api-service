@@ -600,3 +600,21 @@ pub struct ApiAuthPersonalTokensResponse {
 pub struct AuthPersonalTokensResponseResult {
     pub tokenId: String
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RecommendNodeSuggestion {
+    pub title: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RecommendNodeChildrenResult {
+    pub suggestions: Vec<RecommendNodeSuggestion>,
+    pub operator: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiRecommendNodeChildrenResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<RecommendNodeChildrenResult>
+}
