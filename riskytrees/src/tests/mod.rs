@@ -1,5 +1,6 @@
 use crate::models;
 use crate::expression_evaluator;
+use crate::recommendations::convert_recommendations_to_list;
 use crate::recommendations::recommend_steps_for_path;
 
 #[test]
@@ -44,6 +45,8 @@ async fn test_recommendations() {
     println!("{}", result);
 
     assert!(result.contains("1."));
+
+    assert!(convert_recommendations_to_list(result).len() > 0)
     
 }
 

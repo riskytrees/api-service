@@ -27,11 +27,8 @@ pub async fn recommend_steps_for_path(current_steps: Vec<String>) -> String {
             \"topP\": 0.9
         }}
     }}", system_prompt.to_owned() + "\\nHere are the current steps: " + &steps);
-        println!("{}", body_as_str);
 
     let body: serde_json::Value = serde_json::from_str(body_as_str).expect("JSON");
-
-
     let body_string = body.to_string();
     let body_bytes = body_string.as_bytes();
     let blob = Blob::new(body_bytes);
@@ -60,4 +57,14 @@ pub async fn recommend_steps_for_path(current_steps: Vec<String>) -> String {
             return "Error".to_string();
         }
     }
+}
+
+pub fn convert_recommendations_to_list(raw_response: String) -> Vec<String> {
+    // Raw response should be a bulleted list.
+
+    return raw_response
+        .split('\n')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
 }
