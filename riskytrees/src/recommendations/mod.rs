@@ -12,7 +12,7 @@ pub async fn recommend_steps_for_path(current_steps: Vec<String>) -> String {
     let model_identifier = "arn:aws:bedrock:us-east-2:891377076852:inference-profile/us.amazon.nova-micro-v1:0";
 
     let steps = current_steps.join(" -> ");
-    let system_prompt = "You are a security engineer who is an expert in analyzing computer systems and determining how to defend systems from hackers.\\nYou like to model attacks in a top-down fashion, where threats start high-level and ambiguous and you slowly answer \\\"how\\\" until a very specific set of steps is listed. In other words, you're building an \\\"attack tree\\\".\\nI will give you a series of steps through a tree. You must propose how an attacker could accomplish the last step listed by suggesting one or more new steps.\\nYou need to be succinct with responses. Each proposed step should contain fewer than 10 words. Present the results as a list. Prefix each item with the text: Prevent ";
+    let system_prompt = "You are a security engineer who is an expert in analyzing computer systems and determining how to defend systems from hackers.\\nYou like to model attacks in a top-down fashion, where threats start high-level and ambiguous and you slowly answer \\\"how\\\" until a very specific set of steps is listed. In other words, you're building an \\\"attack tree\\\".\\nI will give you a series of steps through a tree. You must propose how an attacker could accomplish the last step listed by suggesting one or more new steps.\\nYou need to be succinct with responses. Each proposed step should contain fewer than 10 words. Present the results as a list. Prefix each proposed step with the only the text: Prevent ";
 
     let body_as_str = &format!("{{
         \"messages\": [
@@ -61,10 +61,13 @@ pub async fn recommend_steps_for_path(current_steps: Vec<String>) -> String {
 
 pub fn convert_recommendations_to_list(raw_response: String) -> Vec<String> {
     // Raw response should be a bulleted list.
+    let response_as_json: serde_json::Value = serde_json::from_str(&raw_response).expect("JSON");
+    let output = response_as_json.as_object().expect("Schema object").get("output").expect("Schema output");
+    let message = output.get("message").expect(("Schema message")).get("content").expect(("Schema content"));
+    let text: String = message.as_array().expect("Schema array").first().expect("Some response expected").get("text").expect("Schema text").to_string();
 
-    return raw_response
-        .split('\n')
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
+    let parts = text.split(". ");
+    let collection: Vec<String> = parts.map(|s| s.to_string()).collect();
+
+    return collection;
 }
