@@ -71,8 +71,8 @@ pub fn convert_recommendations_to_list(raw_response: String) -> Vec<String> {
     let message = output.get("message").expect(("Schema message")).get("content").expect(("Schema content"));
     let text: String = message.as_array().expect("Schema array").first().expect("Some response expected").get("text").expect("Schema text").to_string();
 
-    let parts = text.split(". ");
-    let collection: Vec<String> = parts.map(|s| s.to_string()).collect();
+    let parts = text.split("\\n");
+    let collection: Vec<String> = parts.map(|s| s.to_string().replace("\\n", "")).filter(|p| p.len() > 5).collect();
 
     return collection;
 }
