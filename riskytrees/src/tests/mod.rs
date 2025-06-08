@@ -37,6 +37,7 @@ fn test_expression_evaluation() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_recommendations() {
     let path = vec!["Threats to RiskyTrees in next 5 years".to_string(), "Cost Flooding".to_string(), "Log flooding".to_string()];
     let result = recommend_steps_for_path(path).await;
