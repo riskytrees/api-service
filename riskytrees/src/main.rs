@@ -1185,6 +1185,7 @@ async fn node_recommend_post(body: Json<models::ApiRecommendNodeChildrenPayload>
         match db_client {
             Ok(client) => {
                 if user_in_paid_plan(&client, key.tenants.clone()).await {
+                    println!("HEre");
                     let result = recommend_steps_for_path(body.steps.clone()).await;
                     let final_list = convert_recommendations_to_list(result);
 
