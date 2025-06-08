@@ -618,3 +618,8 @@ pub struct ApiRecommendNodeChildrenResponse {
     pub message: String,
     pub result: Option<RecommendNodeChildrenResult>
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiRecommendNodeChildrenPayload {
+    pub steps: Vec<String>
+}

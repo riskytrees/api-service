@@ -40,14 +40,11 @@ fn test_expression_evaluation() {
 async fn test_recommendations() {
     let path = vec!["Threats to RiskyTrees in next 5 years".to_string(), "Cost Flooding".to_string(), "Log flooding".to_string()];
     let result = recommend_steps_for_path(path).await;
-    println!("{:?}", result);
 
     assert!(result.contains(","));
 
     let final_list = convert_recommendations_to_list(result);
-    println!("{:?}", final_list);
 
     assert!(final_list.len() > 1);
-    assert!(false);   
 }
 

@@ -8,6 +8,8 @@ use models::{ApiProjectConfigListResponseResult, AuthPersonalTokenResponseResult
 use mongodb::bson::doc;
 use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
 
+use crate::recommendations::{convert_recommendations_to_list, recommend_steps_for_path};
+
 
 mod constants;
 mod database;
@@ -1169,8 +1171,8 @@ async fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeRespo
 
 }
 
-#[get("/nodes/<id>/recommend")]
-async fn node_recommend_get(id: String, key: auth::ApiKey) -> Json<models::ApiRecommendNodeChildrenResponse> {
+#[post("/nodes/recommend", data = "<body>")]
+async fn node_recommend_post(body: Json<models::ApiRecommendNodeChildrenPayload>, key: auth::ApiKey) -> Json<models::ApiRecommendNodeChildrenResponse> {
     if key.email == "" {
         Json(models::ApiRecommendNodeChildrenResponse {
             ok: false,
@@ -1182,12 +1184,21 @@ async fn node_recommend_get(id: String, key: auth::ApiKey) -> Json<models::ApiRe
 
         match db_client {
             Ok(client) => {
-                // TODO
-                // Get list of node titles leading up to this node.
+                let result = recommend_steps_for_path(body.steps.clone()).await;
+                let final_list = convert_recommendations_to_list(result);
+
+                let suggestions: Vec<models::RecommendNodeSuggestion> = final_list
+                    .into_iter()
+                    .map(|s| models::RecommendNodeSuggestion { title: s })
+                    .collect();
+
                 Json(models::ApiRecommendNodeChildrenResponse {
-                                ok: false,
-                                message: "MOCKED".to_owned(),
-                                result: None,
+                    ok: true,
+                    message: "Suggested steps".to_owned(),
+                    result: Some(models::RecommendNodeChildrenResult {
+                        operator: "or".to_owned(),
+                        suggestions
+                    }),
                 })
 
             },
@@ -1927,7 +1938,7 @@ async fn rocket() -> _ {
                 projects_config_put,
                 models_get,
                 node_get,
-                node_recommend_get,
+                node_recommend_post,
                 orgs_post,
                 orgs_get,
                 org_delete,
