@@ -1,5 +1,7 @@
 use crate::models;
 use crate::expression_evaluator;
+use crate::recommendations::convert_recommendations_to_list;
+use crate::recommendations::recommend_steps_for_path;
 
 #[test]
 fn test_test_runner() {
@@ -32,5 +34,18 @@ fn test_expression_evaluation() {
     assert_eq!(expression_evaluator::evaluate("config[\"hello\"] == \"test\"", &config), false);
     assert_eq!(expression_evaluator::evaluate("config[\"other\"] == false", &config), true);
 
+}
+
+#[tokio::test]
+#[ignore]
+async fn test_recommendations() {
+    let path = vec!["Threats to RiskyTrees in next 5 years".to_string(), "Cost Flooding".to_string(), "Log flooding".to_string()];
+    let result = recommend_steps_for_path(path).await;
+
+    assert!(result.contains(","));
+
+    let final_list = convert_recommendations_to_list(result);
+
+    assert!(final_list.len() > 1);
 }
 

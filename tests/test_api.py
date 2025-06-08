@@ -1282,3 +1282,24 @@ def test_token_create():
     })
 
     assert(r.status_code == 400)
+
+
+def test_recommendations():
+    # Should fail because no organization plan access
+    r = requests.post('http://localhost:8000/nodes/recommend', json={
+        'steps': ['Threats to RiskyTrees in next 5 years', 'Cost Flooding', 'Log flooding']
+    }, headers = OTHER_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == False)
+
+
+    r = requests.post('http://localhost:8000/nodes/recommend', json={
+        'steps': ['Threats to RiskyTrees in next 5 years', 'Cost Flooding', 'Log flooding']
+    }, headers = TEST_HEADERS)
+
+    res = r.json()
+
+    assert(res['ok'] == True)
+

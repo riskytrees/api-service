@@ -8,6 +8,8 @@ use models::{ApiProjectConfigListResponseResult, AuthPersonalTokenResponseResult
 use mongodb::bson::doc;
 use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
 
+use crate::{database::user_in_paid_plan, recommendations::{convert_recommendations_to_list, recommend_steps_for_path}};
+
 
 mod constants;
 mod database;
@@ -17,6 +19,7 @@ mod models;
 mod auth;
 mod expression_evaluator;
 mod history;
+mod recommendations;
 
 #[cfg(test)]
 mod tests;
@@ -1168,6 +1171,56 @@ async fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeRespo
 
 }
 
+#[post("/nodes/recommend", data = "<body>")]
+async fn node_recommend_post(body: Json<models::ApiRecommendNodeChildrenPayload>, key: auth::ApiKey) -> Json<models::ApiRecommendNodeChildrenResponse> {
+    if key.email == "" {
+        Json(models::ApiRecommendNodeChildrenResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+
+        match db_client {
+            Ok(client) => {
+                if user_in_paid_plan(&client, key.tenants.clone()).await {
+                    println!("HEre");
+                    let result = recommend_steps_for_path(body.steps.clone()).await;
+                    let final_list = convert_recommendations_to_list(result);
+
+                    let suggestions: Vec<models::RecommendNodeSuggestion> = final_list
+                        .into_iter()
+                        .map(|s| models::RecommendNodeSuggestion { title: s })
+                        .collect();
+
+                    Json(models::ApiRecommendNodeChildrenResponse {
+                        ok: true,
+                        message: "Suggested steps".to_owned(),
+                        result: Some(models::RecommendNodeChildrenResult {
+                            operator: "or".to_owned(),
+                            suggestions
+                        }),
+                    })
+                } else {
+                    Json(models::ApiRecommendNodeChildrenResponse {
+                        ok: false,
+                        message: "Free users can not use recommendation features".to_owned(),
+                        result: None,
+                    })
+                }
+            },
+            Err(err) => Json(models::ApiRecommendNodeChildrenResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        }
+    
+    }
+
+}
+
 #[get("/projects/<projectId>/trees/<treeId>/dag/down")]
 async fn projects_trees_tree_dag_down_get(projectId: String, treeId: String, key: auth::ApiKey) -> Json<models::ApiTreeDagResponse> {
     if key.email == "" {
@@ -1893,6 +1946,7 @@ async fn rocket() -> _ {
                 projects_config_put,
                 models_get,
                 node_get,
+                node_recommend_post,
                 orgs_post,
                 orgs_get,
                 org_delete,

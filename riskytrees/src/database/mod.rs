@@ -1578,6 +1578,32 @@ pub async fn get_org_id_from_tenant(client: &mongodb::Client, tenant: &Tenant) -
     }
 }
 
+pub async fn user_in_paid_plan(client: &mongodb::Client, tenants: Vec<Tenant>) -> bool {
+    let database = client.database(constants::DATABASE_NAME);
+    let tenant_collection = database.collection::<Document>("tenants");
+    let org_collection = database.collection::<Document>("organizations");
+
+    let org = org_collection.find_one(doc! {
+        "plan": doc! {
+            "$in": vec!["public-good", "organization"]
+        },
+        "_tenant": doc! {
+            "$in": helpers::tenant_names_from_vec(tenants)
+        }
+    }, None).await;
+
+    match org {
+        Ok(org) => {
+            if org.is_some() {
+                true
+            } else {
+                false
+            }
+        },
+        Err(err) => false
+    }
+}
+
 pub async fn get_max_user_count_in_org(client: &mongodb::Client, tenants: Vec<Tenant>, org_id: String) -> Result<usize, DatabaseError> {
     let database = client.database(constants::DATABASE_NAME);
     let tenant_collection = database.collection::<Document>("tenants");
