@@ -15,6 +15,11 @@ pub async fn recommend_steps_for_path(current_steps: Vec<String>) -> String {
     let system_prompt = "You are a security engineer who is an expert in analyzing computer systems and determining how to defend systems from hackers.\\nYou like to model attacks in a top-down fashion, where threats start high-level and ambiguous and you slowly answer \\\"how\\\" until a very specific set of steps is listed. In other words, you're building an \\\"attack tree\\\".\\nI will give you a series of steps through a tree. You must propose how an attacker could accomplish the last step listed by suggesting one or more new steps.\\nYou need to be succinct with responses. Each proposed step should contain fewer than 10 words. Present the results as a list. Prefix each proposed step with the only the text: Prevent ";
 
     let body_as_str = &format!("{{
+        \"system\": [
+            {{
+                \"text\":\"{}\"
+            }}
+        ],
         \"messages\": [
             {{
                 \"role\": \"user\",
@@ -23,10 +28,10 @@ pub async fn recommend_steps_for_path(current_steps: Vec<String>) -> String {
         ],
         \"inferenceConfig\": {{
             \"maxTokens\": 512,
-            \"temperature\": 0.5,
+            \"temperature\": 0.7,
             \"topP\": 0.9
         }}
-    }}", system_prompt.to_owned() + "\\nHere are the current steps: " + &steps);
+    }}", system_prompt.to_owned(), &steps);
 
     let body: serde_json::Value = serde_json::from_str(body_as_str).expect("JSON");
     let body_string = body.to_string();
