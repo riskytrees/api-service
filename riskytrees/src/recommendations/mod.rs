@@ -8,7 +8,7 @@ pub async fn recommend_steps_for_path(current_steps: Vec<String>) -> String {
 
     println!("{:?}", config.region());
 
-    let guardrail_identifier = "arn:aws:bedrock:us-east-2:891377076852:guardrail/2sfcr35ii256";
+    //let guardrail_identifier = "arn:aws:bedrock:us-east-2:891377076852:guardrail/2sfcr35ii256";
     let model_identifier = "arn:aws:bedrock:us-east-2:891377076852:inference-profile/us.amazon.nova-micro-v1:0";
 
     let steps = current_steps.join(" -> ");
@@ -37,8 +37,8 @@ pub async fn recommend_steps_for_path(current_steps: Vec<String>) -> String {
     let blob = Blob::new(body_bytes);
 
     let result = client.invoke_model()
-        .guardrail_identifier(guardrail_identifier)
-        .guardrail_version("DRAFT")
+        //.guardrail_identifier(guardrail_identifier)
+        //.guardrail_version("DRAFT")
         .model_id(model_identifier)
         .body(blob)
         .send()
