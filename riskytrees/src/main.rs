@@ -8,7 +8,7 @@ use models::{ApiProjectConfigListResponseResult, AuthPersonalTokenResponseResult
 use mongodb::bson::doc;
 use rocket::{http::Method, Config, serde::json::Json, figment::Figment};
 
-use crate::recommendations::{convert_recommendations_to_list, recommend_steps_for_path};
+use crate::{database::user_in_paid_plan, recommendations::{convert_recommendations_to_list, recommend_steps_for_path}};
 
 
 mod constants;
@@ -1184,23 +1184,30 @@ async fn node_recommend_post(body: Json<models::ApiRecommendNodeChildrenPayload>
 
         match db_client {
             Ok(client) => {
-                let result = recommend_steps_for_path(body.steps.clone()).await;
-                let final_list = convert_recommendations_to_list(result);
+                if user_in_paid_plan(&client, key.tenants.clone()).await {
+                    let result = recommend_steps_for_path(body.steps.clone()).await;
+                    let final_list = convert_recommendations_to_list(result);
 
-                let suggestions: Vec<models::RecommendNodeSuggestion> = final_list
-                    .into_iter()
-                    .map(|s| models::RecommendNodeSuggestion { title: s })
-                    .collect();
+                    let suggestions: Vec<models::RecommendNodeSuggestion> = final_list
+                        .into_iter()
+                        .map(|s| models::RecommendNodeSuggestion { title: s })
+                        .collect();
 
-                Json(models::ApiRecommendNodeChildrenResponse {
-                    ok: true,
-                    message: "Suggested steps".to_owned(),
-                    result: Some(models::RecommendNodeChildrenResult {
-                        operator: "or".to_owned(),
-                        suggestions
-                    }),
-                })
-
+                    Json(models::ApiRecommendNodeChildrenResponse {
+                        ok: true,
+                        message: "Suggested steps".to_owned(),
+                        result: Some(models::RecommendNodeChildrenResult {
+                            operator: "or".to_owned(),
+                            suggestions
+                        }),
+                    })
+                } else {
+                    Json(models::ApiRecommendNodeChildrenResponse {
+                        ok: false,
+                        message: "Free users can not use recommendation features".to_owned(),
+                        result: None,
+                    })
+                }
             },
             Err(err) => Json(models::ApiRecommendNodeChildrenResponse {
                 ok: false,
