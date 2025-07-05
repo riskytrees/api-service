@@ -1975,9 +1975,11 @@ pub async fn get_tokens_for_user(client: &mongodb::Client, email: &String) -> Re
 
             Ok(result)
         },
-        Err(err) => Err(errors::DatabaseError {
+        Err(err) => {
+            eprintln!("{}", err);
+            Err(errors::DatabaseError {
             message: "Could not lookup tokens in DB".to_owned()
-        })
+        })}
     }
 }
 

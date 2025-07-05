@@ -259,11 +259,13 @@ async fn auth_personal_tokens_get(key: auth::ApiKey) -> Json<models::ApiAuthPers
                             result: tokens
                         })
                     },
-                    Err(err) => Json(models::ApiAuthPersonalTokensResponse {
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        Json(models::ApiAuthPersonalTokensResponse {
                         ok: false,
                         message: "Token retrieval failed".to_owned(),
                         result: vec![],
-                    })
+                    })}
                 }
 
 
@@ -341,6 +343,7 @@ async fn personal_token_delete(id: String, key: auth::ApiKey) -> Json<models::Ap
                                 result: None
                             })
                         } else {
+                            eprintln!("Failed to deactivate");
                             Json(models::ApiResponse {
                                 ok: false,
                                 message: "Token failed to deactivate".to_owned(),
@@ -349,6 +352,7 @@ async fn personal_token_delete(id: String, key: auth::ApiKey) -> Json<models::Ap
                         }
                     }, 
                     Err(err) => {
+                        eprintln!("{}", err);
                         Json(models::ApiResponse {
                             ok: false,
                             message: "Could not deactivate token due to DB issue".to_owned(),
@@ -358,11 +362,14 @@ async fn personal_token_delete(id: String, key: auth::ApiKey) -> Json<models::Ap
 
                 }
             }
-            Err(e) => Json(models::ApiResponse {
+            Err(e) => {
+                eprintln!("{}", e);
+
+                Json(models::ApiResponse {
                 ok: false,
                 message: "Could not connect to DB".to_owned(),
                 result: None,
-            }),
+            })},
         }
     }
 
