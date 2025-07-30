@@ -1918,6 +1918,7 @@ async fn org_delete(org_id: String, key: auth::ApiKey) -> Json<models::ApiDelete
 
 #[launch]
 async fn rocket() -> _ {
+    rustls::crypto::aws_lc_rs::default_provider().install_default();
     rocket::build()
         .mount(
             "/",
