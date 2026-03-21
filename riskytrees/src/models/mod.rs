@@ -435,6 +435,24 @@ pub struct ApiGetNodeResponseResult {
     pub treeId: String
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ApiGetNodeRiskResponse {
+    pub ok: bool,
+    pub message: String,
+    pub result: Option<ApiGetNodeRiskResponseResult>
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ApiGetNodeRiskResponseResult {
+    pub computed: serde_json::Value,
+    pub interface: ApiGetNodeRiskResponseInterface
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ApiGetNodeRiskResponseInterface {
+    pub primary: String
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiTreeDagResponse {
     pub ok: bool,

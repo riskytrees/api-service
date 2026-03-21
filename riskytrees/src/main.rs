@@ -20,6 +20,7 @@ mod auth;
 mod expression_evaluator;
 mod history;
 mod recommendations;
+mod risk;
 
 #[cfg(test)]
 mod tests;
@@ -1178,6 +1179,104 @@ async fn node_get(id: String, key: auth::ApiKey) -> Json<models::ApiGetNodeRespo
 
 }
 
+#[get("/nodes/<id>/risk?<riskModel>")]
+async fn node_risk_get(id: String, riskModel: String, key: auth::ApiKey) -> Json<models::ApiGetNodeRiskResponse> {
+    if key.email == "" {
+        Json(models::ApiGetNodeRiskResponse {
+            ok: false,
+            message: "Could not find a tenant".to_owned(),
+            result: None,
+        })
+    } else {
+        let db_client = database::get_instance().await;
+
+        match db_client {
+            Ok(client) => {
+                let tenant = database::filter_tenant_for_node(&client, key.tenants.clone(), id.clone()).await;
+
+                match tenant {
+                    Some(tenant) => {
+                        match get_tree_from_node_id(&client, tenant.clone(), id.clone()).await {
+                            Ok(node_lookup) => {
+                                match node_lookup.result {
+                                    Some(node_lookup) => {
+                                        match database::get_project_from_tree_id(&client, tenant.clone(), &node_lookup.treeId).await {
+                                            Some(project) => {
+                                                let mut trees = Vec::new();
+                                                let mut had_error = false;
+
+                                                for tree_id in project.related_tree_ids.clone() {
+                                                    match database::get_tree_by_id(&client, tenant.clone(), tree_id, project.id.clone()).await {
+                                                        Ok(tree) => trees.push(tree),
+                                                        Err(err) => {
+                                                            eprintln!("{}", err);
+                                                            had_error = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+
+                                                if had_error {
+                                                    Json(models::ApiGetNodeRiskResponse {
+                                                        ok: false,
+                                                        message: "Could not load tree data for node".to_owned(),
+                                                        result: None,
+                                                    })
+                                                } else {
+                                                    match risk::compute_node_risk(&trees, &id, &riskModel) {
+                                                        Some(result) => Json(models::ApiGetNodeRiskResponse {
+                                                            ok: true,
+                                                            message: "Computed node risk".to_owned(),
+                                                            result: Some(result),
+                                                        }),
+                                                        None => Json(models::ApiGetNodeRiskResponse {
+                                                            ok: false,
+                                                            message: "Could not compute node risk".to_owned(),
+                                                            result: None,
+                                                        })
+                                                    }
+                                                }
+                                            },
+                                            None => Json(models::ApiGetNodeRiskResponse {
+                                                ok: false,
+                                                message: "Could not find project for node".to_owned(),
+                                                result: None,
+                                            })
+                                        }
+                                    },
+                                    None => Json(models::ApiGetNodeRiskResponse {
+                                        ok: false,
+                                        message: "Could not find node".to_owned(),
+                                        result: None,
+                                    })
+                                }
+                            },
+                            Err(err) => {
+                                eprintln!("{}", err);
+                                Json(models::ApiGetNodeRiskResponse {
+                                    ok: false,
+                                    message: "Could not find node".to_owned(),
+                                    result: None,
+                                })
+                            }
+                        }
+                    },
+                    None => Json(models::ApiGetNodeRiskResponse {
+                        ok: false,
+                        message: "Could not find node".to_owned(),
+                        result: None,
+                    })
+                }
+            },
+            Err(_err) => Json(models::ApiGetNodeRiskResponse {
+                ok: false,
+                message: "Could not connect to DB".to_owned(),
+                result: None,
+            })
+        }
+    }
+}
+
 #[post("/nodes/recommend", data = "<body>")]
 async fn node_recommend_post(body: Json<models::ApiRecommendNodeChildrenPayload>, key: auth::ApiKey) -> Json<models::ApiRecommendNodeChildrenResponse> {
     if key.email == "" {
@@ -1954,6 +2053,7 @@ async fn rocket() -> _ {
                 projects_config_put,
                 models_get,
                 node_get,
+                node_risk_get,
                 node_recommend_post,
                 orgs_post,
                 orgs_get,
