@@ -208,6 +208,65 @@ fn test_compute_attack_risk_skips_unresolved_conditions() {
 }
 
 #[test]
+fn test_compute_risk_across_nested_trees() {
+    let mut root_attributes = HashMap::new();
+    root_attributes.insert("node_type".to_owned(), model_attribute_string("or"));
+    root_attributes.insert("impactToDefender".to_owned(), model_attribute_int(100));
+
+    let mut child_attributes = HashMap::new();
+    child_attributes.insert("likelihoodOfSuccess".to_owned(), model_attribute_float(0.5));
+
+    let root_tree_for_likelihood = models::ApiFullComputedTreeData {
+        title: "root".to_owned(),
+        rootNodeId: "000".to_owned(),
+        nodes: vec![
+            make_node("000", vec!["001", "100"], root_attributes.clone(), true),
+            make_node("001", vec![], child_attributes.clone(), true),
+        ],
+    };
+
+    let nested_tree_for_likelihood = models::ApiFullComputedTreeData {
+        title: "nested".to_owned(),
+        rootNodeId: "100".to_owned(),
+        nodes: vec![make_node("100", vec![], child_attributes.clone(), true)],
+    };
+
+    let root_tree_for_attack_risk = models::ApiFullComputedTreeData {
+        title: "root".to_owned(),
+        rootNodeId: "000".to_owned(),
+        nodes: vec![
+            make_node("000", vec!["001", "100"], root_attributes, true),
+            make_node("001", vec![], child_attributes.clone(), true),
+        ],
+    };
+
+    let nested_tree_for_attack_risk = models::ApiFullComputedTreeData {
+        title: "nested".to_owned(),
+        rootNodeId: "100".to_owned(),
+        nodes: vec![make_node("100", vec![], child_attributes, true)],
+    };
+
+    let likelihood_result = compute_node_risk(
+        &[root_tree_for_likelihood, nested_tree_for_likelihood],
+        "000",
+        "b9ff54e0-37cf-41d4-80ea-f3a9b1e3af74",
+    )
+    .unwrap();
+
+    assert_eq!(computed_f64(&likelihood_result, "likelihoodOfSuccess"), 0.75);
+
+    let attack_risk_result = compute_node_risk(
+        &[root_tree_for_attack_risk, nested_tree_for_attack_risk],
+        "000",
+        "f1644cb9-b2a5-4abb-813f-98d0277e42f2",
+    )
+    .unwrap();
+
+    assert_eq!(computed_f64(&attack_risk_result, "likelihoodOfSuccess"), 0.75);
+    assert_eq!(computed_f64(&attack_risk_result, "risk"), 75.0);
+}
+
+#[test]
 fn test_compute_evita_risk_for_and_and_or_nodes() {
     let mut root_attributes = HashMap::new();
     root_attributes.insert("node_type".to_owned(), model_attribute_string("and"));
