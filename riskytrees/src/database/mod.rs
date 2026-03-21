@@ -774,6 +774,25 @@ pub async fn get_tree_from_node_id(client: &mongodb::Client, tenant: Tenant, nod
     }
 }
 
+pub async fn get_project_from_tree_id(client: &mongodb::Client, tenant: Tenant, tree_id: &String) -> Option<models::Project> {
+    let database = client.database(constants::DATABASE_NAME);
+    let project_collection = database.collection::<Document>("projects");
+
+    let mongo_tree_id = mongodb::bson::oid::ObjectId::parse_str(tree_id).ok()?;
+    let project = project_collection.find_one(doc! {
+        "related_tree_ids": mongo_tree_id,
+        "_tenant": tenant.name.to_owned()
+    }, None).await.ok()?;
+
+    match project {
+        Some(project) => {
+            let project_id = project.get_object_id("_id").ok()?.to_hex();
+            get_project_by_id(client, tenant, project_id).await
+        },
+        None => None
+    }
+}
+
 #[async_recursion]
 pub async fn get_tree_relationships_down(client: &mongodb::Client, tenant: Tenant, startTreeId: &String, projectId: &String, mut seen_tree_ids: HashSet<String>) -> Vec<ApiTreeDagItem> {
     let mut result = vec![];
